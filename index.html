@@ -21,7 +21,7 @@
     .images{display:flex;gap:12px}
     .images img{width:48%;height:auto;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,0.06)}
     .pair-attr{margin-top:14px;padding:12px;border:1px dashed #e6eef8;border-radius:8px}
-    .scale{display:flex;gap:8px;align-items:center}
+    .scale{display:flex;gap:8px;align-items:center;justify-content:center}
     .scale label{display:flex;flex-direction:column;align-items:center;font-weight:500}
     .hint{font-size:13px;color:var(--muted);margin-top:8px}
     .regions-wrap{position:relative;display:inline-block;width:100%}
@@ -69,11 +69,19 @@
       <div class="buttons"><div></div><button id="to-page-2" data-next="2" type="button">Next: Safe — Rating ▶</button></div>
     </div>
 
+    <!-- For each attribute: rating page then annotation page. We'll list them explicitly. -->
+
     <!-- Safe rating (page 2) -->
     <div id="page-2" class="page" data-attr-index="0">
       <h2>2. Safe — Pairwise comparison</h2>
       <div class="images"><img src="1.jpg" alt="image1"><img src="2.jpg" alt="image2"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <div style="font-weight:600">Image 1</div>
+        <div style="text-align:center;font-weight:700">Which image looks safer?</div>
+        <div style="font-weight:600">Image 2</div>
+      </div>
       <div class="pair-attr" id="rating-Safe"></div>
+      <div class="hint" style="margin-top:8px">Use the 5-point scale below with 0 at the center.</div>
       <div class="buttons"><button class="secondary" data-go="1" type="button">◀ Back</button><button data-next="3" type="button">Next: mark Safe points ▶</button></div>
     </div>
 
@@ -97,25 +105,135 @@
       <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="4" type="button">Next: Lively — Rating ▶</button></div>
     </div>
 
-    <!-- Lively rating (4) and annotation (5) -->
-    <div id="page-4" class="page" data-attr-index="1"><h2>4. Lively — Pairwise comparison</h2><div class="images"><img src="1.jpg"><img src="2.jpg"></div><div class="pair-attr" id="rating-Lively"></div><div class="buttons"><button class="secondary" data-go="3" type="button">◀ Back</button><button data-next="5" type="button">Next: mark Lively points ▶</button></div></div>
-    <div id="page-5" class="page" data-attr-index="1"><h2>5. Lively — Mark points of interest</h2><p class="hint">Click to add point. Dragging disabled. Delete via "Delete selected" or list button.</p><div class="images"><div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Lively-1" src="1.jpg"/><svg id="ov-Lively-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Lively-1">0</span></div><div class="points-list" id="list-Lively-1"></div></div><div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Lively-2" src="2.jpg"/><svg id="ov-Lively-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Lively-2">0</span></div><div class="points-list" id="list-Lively-2"></div></div></div><div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div><div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="6" type="button">Next: Beautiful — Rating ▶</button></div></div>
+    <!-- Lively rating (4) -->
+    <div id="page-4" class="page" data-attr-index="1">
+      <h2>4. Lively — Pairwise comparison</h2>
+      <div class="images"><img src="1.jpg" alt="image1"><img src="2.jpg" alt="image2"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <div style="font-weight:600">Image 1</div>
+        <div style="text-align:center;font-weight:700">Which image looks livelier?</div>
+        <div style="font-weight:600">Image 2</div>
+      </div>
+      <div class="pair-attr" id="rating-Lively"></div>
+      <div class="hint" style="margin-top:8px">Use the 5-point scale below with 0 at the center.</div>
+      <div class="buttons"><button class="secondary" data-go="3" type="button">◀ Back</button><button data-next="5" type="button">Next: mark Lively points ▶</button></div>
+    </div>
 
-    <!-- Beautiful (6,7) -->
-    <div id="page-6" class="page" data-attr-index="2"><h2>6. Beautiful — Pairwise comparison</h2><div class="images"><img src="1.jpg"><img src="2.jpg"></div><div class="pair-attr" id="rating-Beautiful"></div><div class="buttons"><button class="secondary" data-go="5" type="button">◀ Back</button><button data-next="7" type="button">Next: mark Beautiful points ▶</button></div></div>
-    <div id="page-7" class="page" data-attr-index="2"><h2>7. Beautiful — Mark points of interest</h2><p class="hint">Click to add point. Dragging disabled. Delete via "Delete selected" or list button.</p><div class="images"><div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Beautiful-1" src="1.jpg"/><svg id="ov-Beautiful-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Beautiful-1">0</span></div><div class="points-list" id="list-Beautiful-1"></div></div><div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Beautiful-2" src="2.jpg"/><svg id="ov-Beautiful-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Beautiful-2">0</span></div><div class="points-list" id="list-Beautiful-2"></div></div></div><div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div><div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="8" type="button">Next: Wealthy — Rating ▶</button></div></div>
+    <!-- Lively annotation (5) -->
+    <div id="page-5" class="page" data-attr-index="1">
+      <h2>5. Lively — Mark points of interest</h2>
+      <p class="hint">Click to add point. Dragging disabled. Delete via "Delete selected" or list button.</p>
+      <div class="images">
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Lively-1" src="1.jpg"/><svg id="ov-Lively-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Lively-1">0</span></div><div class="points-list" id="list-Lively-1"></div></div>
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Lively-2" src="1.jpg"/><svg id="ov-Lively-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Lively-2">0</span></div><div class="points-list" id="list-Lively-2"></div></div>
+      </div>
+      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div>
+      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="6" type="button">Next: Beautiful — Rating ▶</button></div>
+    </div>
 
-    <!-- Wealthy (8,9) -->
-    <div id="page-8" class="page" data-attr-index="3"><h2>8. Wealthy — Pairwise comparison</h2><div class="images"><img src="1.jpg"><img src="2.jpg"></div><div class="pair-attr" id="rating-Wealthy"></div><div class="buttons"><button class="secondary" data-go="7" type="button">◀ Back</button><button data-next="9" type="button">Next: mark Wealthy points ▶</button></div></div>
-    <div id="page-9" class="page" data-attr-index="3"><h2>9. Wealthy — Mark points of interest</h2><p class="hint">Click to add point. Dragging disabled. Delete via "Delete selected" or list button.</p><div class="images"><div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Wealthy-1" src="1.jpg"/><svg id="ov-Wealthy-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Wealthy-1">0</span></div><div class="points-list" id="list-Wealthy-1"></div></div><div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Wealthy-2" src="2.jpg"/><svg id="ov-Wealthy-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Wealthy-2">0</span></div><div class="points-list" id="list-Wealthy-2"></div></div></div><div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div><div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="10" type="button">Next: Boring — Rating ▶</button></div></div>
+    <!-- Beautiful rating (6) -->
+    <div id="page-6" class="page" data-attr-index="2">
+      <h2>6. Beautiful — Pairwise comparison</h2>
+      <div class="images"><img src="1.jpg" alt="image1"><img src="2.jpg" alt="image2"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <div style="font-weight:600">Image 1</div>
+        <div style="text-align:center;font-weight:700">Which image looks more beautiful?</div>
+        <div style="font-weight:600">Image 2</div>
+      </div>
+      <div class="pair-attr" id="rating-Beautiful"></div>
+      <div class="hint" style="margin-top:8px">Use the 5-point scale below with 0 at the center.</div>
+      <div class="buttons"><button class="secondary" data-go="5" type="button">◀ Back</button><button data-next="7" type="button">Next: mark Beautiful points ▶</button></div>
+    </div>
 
-    <!-- Boring (10,11) -->
-    <div id="page-10" class="page" data-attr-index="4"><h2>10. Boring — Pairwise comparison</h2><div class="images"><img src="1.jpg"><img src="2.jpg"></div><div class="pair-attr" id="rating-Boring"></div><div class="buttons"><button class="secondary" data-go="9" type="button">◀ Back</button><button data-next="11" type="button">Next: mark Boring points ▶</button></div></div>
-    <div id="page-11" class="page" data-attr-index="4"><h2>11. Boring — Mark points of interest</h2><p class="hint">Click to add point. Dragging disabled. Delete via "Delete selected" or list button.</p><div class="images"><div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Boring-1" src="1.jpg"/><svg id="ov-Boring-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Boring-1">0</span></div><div class="points-list" id="list-Boring-1"></div></div><div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Boring-2" src="2.jpg"/><svg id="ov-Boring-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Boring-2">0</span></div><div class="points-list" id="list-Boring-2"></div></div></div><div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div><div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="12" type="button">Next: Depressing — Rating ▶</button></div></div>
+    <!-- Beautiful annotation (7) -->
+    <div id="page-7" class="page" data-attr-index="2">
+      <h2>7. Beautiful — Mark points of interest</h2>
+      <p class="hint">Click to add point. Dragging disabled. Delete via "Delete selected" or list button.</p>
+      <div class="images">
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Beautiful-1" src="1.jpg"/><svg id="ov-Beautiful-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Beautiful-1">0</span></div><div class="points-list" id="list-Beautiful-1"></div></div>
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Beautiful-2" src="2.jpg"/><svg id="ov-Beautiful-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Beautiful-2">0</span></div><div class="points-list" id="list-Beautiful-2"></div></div>
+      </div>
+      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div>
+      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="8" type="button">Next: Wealthy — Rating ▶</button></div>
+    </div>
 
-    <!-- Depressing (12,13) -->
-    <div id="page-12" class="page" data-attr-index="5"><h2>12. Depressing — Pairwise comparison</h2><div class="images"><img src="1.jpg"><img src="2.jpg"></div><div class="pair-attr" id="rating-Depressing"></div><div class="buttons"><button class="secondary" data-go="11" type="button">◀ Back</button><button data-next="13" type="button">Next: mark Depressing points ▶</button></div></div>
-    <div id="page-13" class="page" data-attr-index="5"><h2>13. Depressing — Mark points of interest</h2><p class="hint">Click to add point. Dragging disabled. Delete via "Delete selected" or list button.</p><div class="images"><div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Depressing-1" src="1.jpg"/><svg id="ov-Depressing-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Depressing-1">0</span></div><div class="points-list" id="list-Depressing-1"></div></div><div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Depressing-2" src="2.jpg"/><svg id="ov-Depressing-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Depressing-2">0</span></div><div class="points-list" id="list-Depressing-2"></div></div></div><div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div><div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="14" type="button">Next: AI guess ▶</button></div></div>
+    <!-- Wealthy rating (8) -->
+    <div id="page-8" class="page" data-attr-index="3">
+      <h2>8. Wealthy — Pairwise comparison</h2>
+      <div class="images"><img src="1.jpg" alt="image1"><img src="2.jpg" alt="image2"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <div style="font-weight:600">Image 1</div>
+        <div style="text-align:center;font-weight:700">Which image looks wealthier?</div>
+        <div style="font-weight:600">Image 2</div>
+      </div>
+      <div class="pair-attr" id="rating-Wealthy"></div>
+      <div class="hint" style="margin-top:8px">Use the 5-point scale below with 0 at the center.</div>
+      <div class="buttons"><button class="secondary" data-go="7" type="button">◀ Back</button><button data-next="9" type="button">Next: mark Wealthy points ▶</button></div>
+    </div>
+
+    <!-- Wealthy annotation (9) -->
+    <div id="page-9" class="page" data-attr-index="3">
+      <h2>9. Wealthy — Mark points of interest</h2>
+      <p class="hint">Click to add point. Dragging disabled. Delete via "Delete selected" or list button.</p>
+      <div class="images">
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Wealthy-1" src="1.jpg"/><svg id="ov-Wealthy-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Wealthy-1">0</span></div><div class="points-list" id="list-Wealthy-1"></div></div>
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Wealthy-2" src="2.jpg"/><svg id="ov-Wealthy-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Wealthy-2">0</span></div><div class="points-list" id="list-Wealthy-2"></div></div>
+      </div>
+      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div>
+      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="10" type="button">Next: Boring — Rating ▶</button></div>
+    </div>
+
+    <!-- Boring rating (10) -->
+    <div id="page-10" class="page" data-attr-index="4">
+      <h2>10. Boring — Pairwise comparison</h2>
+      <div class="images"><img src="1.jpg" alt="image1"><img src="2.jpg" alt="image2"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <div style="font-weight:600">Image 1</div>
+        <div style="text-align:center;font-weight:700">Which image looks more boring?</div>
+        <div style="font-weight:600">Image 2</div>
+      </div>
+      <div class="pair-attr" id="rating-Boring"></div>
+      <div class="hint" style="margin-top:8px">Use the 5-point scale below with 0 at the center.</div>
+      <div class="buttons"><button class="secondary" data-go="9" type="button">◀ Back</button><button data-next="11" type="button">Next: mark Boring points ▶</button></div>
+    </div>
+
+    <!-- Boring annotation (11) -->
+    <div id="page-11" class="page" data-attr-index="4">
+      <h2>11. Boring — Mark points of interest</h2>
+      <p class="hint">Click to add point. Dragging disabled. Delete via "Delete selected" or list button.</p>
+      <div class="images">
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Boring-1" src="1.jpg"/><svg id="ov-Boring-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Boring-1">0</span></div><div class="points-list" id="list-Boring-1"></div></div>
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Boring-2" src="2.jpg"/><svg id="ov-Boring-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Boring-2">0</span></div><div class="points-list" id="list-Boring-2"></div></div>
+      </div>
+      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div>
+      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="12" type="button">Next: Depressing — Rating ▶</button></div>
+    </div>
+
+    <!-- Depressing rating (12) -->
+    <div id="page-12" class="page" data-attr-index="5">
+      <h2>12. Depressing — Pairwise comparison</h2>
+      <div class="images"><img src="1.jpg" alt="image1"><img src="2.jpg" alt="image2"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <div style="font-weight:600">Image 1</div>
+        <div style="text-align:center;font-weight:700">Which image looks more depressing?</div>
+        <div style="font-weight:600">Image 2</div>
+      </div>
+      <div class="pair-attr" id="rating-Depressing"></div>
+      <div class="hint" style="margin-top:8px">Use the 5-point scale below with 0 at the center.</div>
+      <div class="buttons"><button class="secondary" data-go="11" type="button">◀ Back</button><button data-next="13" type="button">Next: mark Depressing points ▶</button></div>
+    </div>
+
+    <!-- Depressing annotation (13) -->
+    <div id="page-13" class="page" data-attr-index="5">
+      <h2>13. Depressing — Mark points of interest</h2>
+      <p class="hint">Click to add point. Dragging disabled. Delete via "Delete selected" or list button.</p>
+      <div class="images">
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Depressing-1" src="1.jpg"/><svg id="ov-Depressing-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Depressing-1">0</span></div><div class="points-list" id="list-Depressing-1"></div></div>
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Depressing-2" src="2.jpg"/><svg id="ov-Depressing-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Depressing-2">0</span></div><div class="points-list" id="list-Depressing-2"></div></div>
+      </div>
+      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div>
+      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="14" type="button">Next: AI guess ▶</button></div>
+    </div>
 
     <!-- Final page 14 -->
     <div id="page-14" class="page">
@@ -136,6 +254,17 @@
   (function(){
     'use strict';
 
+    /***** CONFIG - REPLACE THESE *****/
+    // Replace APPS_SCRIPT_URL with your deployed Apps Script Web App URL (from Deploy > New deployment > Web app)
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx1aPRXyQxbfC0QaVCg8ILe78Y3GuFGjwZyk_n4pMrEkiJwav0Hedal_oFHFPsAeZcV/exec'; // e.g. https://script.google.com/macros/s/XXXXX/exec
+
+    // Optional: if you want to auto-redirect participants back to Prolific completion page after successful submit,
+    // set this to the completion URL Prolific gave you:
+    // e.g. 'https://app.prolific.co/submissions/complete?cc=YOUR_COMPLETION_CODE'
+    const PROLIFIC_COMPLETION_URL = null;
+
+    /***** END CONFIG *****/
+
     var ATTRIBUTES = ['Safe','Lively','Beautiful','Wealthy','Boring','Depressing'];
 
     // Global state
@@ -150,7 +279,14 @@
     function qa(s){ return Array.prototype.slice.call(document.querySelectorAll(s)); }
     function genId(){ return 'p' + Math.random().toString(36).substr(2,9); }
     function clonePointsForAttr(attr){ var src=state.points[attr]; return { '1.jpg': src['1.jpg'].map(function(p){ return {x:p.x,y:p.y,id:p.id}; }), '2.jpg': src['2.jpg'].map(function(p){ return {x:p.x,y:p.y,id:p.id}; }) }; }
-    function findIndexById(attr,imageName,id){ var arr=state.points[attr][imageName]; for(var i=0;i<arr.length;i++){ if(arr[i].id===id) return i; } return -1; }
+
+    // read query param helper
+    function getQueryParam(name) {
+      try {
+        const u = new URL(window.location.href);
+        return u.searchParams.get(name);
+      } catch(e) { return null; }
+    }
 
     // Build rating controls for all attributes
     function buildRatingControls(){
@@ -159,11 +295,16 @@
         if(!container) return;
         container.innerHTML = '';
         var row = document.createElement('div'); row.className='attr-row';
-        var left = document.createElement('div'); left.style.minWidth='140px'; var strong = document.createElement('strong'); strong.textContent = attr; left.appendChild(strong); row.appendChild(left);
+        var left = document.createElement('div'); left.style.minWidth='140px';
+        var strong = document.createElement('strong'); strong.textContent = attr;
+        left.appendChild(strong);
+        row.appendChild(left);
+
         var scale = document.createElement('div'); scale.className='scale';
         var vals = [1,0.5,0,-0.5,-1];
         vals.forEach(function(v){
-          var lab = document.createElement('label'); lab.style.display='inline-flex'; lab.style.flexDirection='column'; lab.style.alignItems='center';
+          var lab = document.createElement('label');
+          lab.style.display='inline-flex'; lab.style.flexDirection='column'; lab.style.alignItems='center'; lab.style.marginRight='12px';
           var inp = document.createElement('input'); inp.type='radio'; inp.name = attr; inp.value = String(v);
           var txt = document.createTextNode(String(v));
           var small = document.createElement('small');
@@ -175,7 +316,17 @@
           lab.appendChild(inp); lab.appendChild(txt); lab.appendChild(document.createElement('br')); lab.appendChild(small);
           scale.appendChild(lab);
         });
-        row.appendChild(scale); container.appendChild(row);
+        row.appendChild(scale);
+        container.appendChild(row);
+
+        // Add a prominent arrow hint right below the scale to make direction clear and close to controls
+        var arrowDiv = document.createElement('div');
+        arrowDiv.style.textAlign = 'center';
+        arrowDiv.style.marginTop = '8px';
+        arrowDiv.style.fontSize = '18px';
+        arrowDiv.style.fontWeight = '700';
+        arrowDiv.innerHTML = '<span style="font-size:28px; margin-right:10px">◀</span> Image 1 more &nbsp;&nbsp; <span style="font-size:20px; padding:0 8px; background:#f1f5f9; border-radius:6px;">0</span> &nbsp;&nbsp; Image 2 more <span style="font-size:28px; margin-left:10px">▶</span>';
+        container.appendChild(arrowDiv);
       });
     }
 
@@ -183,13 +334,20 @@
     function ensureInitialHistory(){ ATTRIBUTES.forEach(function(attr){ if(state.historyByAttr[attr].length===0) state.historyByAttr[attr].push({op:'init', snapshot: clonePointsForAttr(attr)}); }); }
     function pushOp(attr,op){ try{ state.historyByAttr[attr].push(op); if(state.historyByAttr[attr].length>400) state.historyByAttr[attr].shift(); }catch(e){ console.warn('pushOp err',e); } }
 
-    function undoForAttr(attr){ var h = state.historyByAttr[attr]; if(!h || h.length<=1){ alert('There is no undoable operation on this page.'); return; } var last = h.pop(); switch(last.op){
+    function undoForAttr(attr){
+      var h = state.historyByAttr[attr];
+      if(!h || h.length<=1){ alert('There is no undoable operation on this page.'); return; }
+      var last = h.pop();
+      switch(last.op){
         case 'add': {
-          var arr = state.points[attr][last.image]; for(var i=0;i<arr.length;i++){ if(arr[i].id===last.id){ arr.splice(i,1); break; } }
+          var arr = state.points[attr][last.image];
+          for(var i=0;i<arr.length;i++){ if(arr[i].id===last.id){ arr.splice(i,1); break; } }
           break;
         }
         case 'delete': {
-          var arr2 = state.points[attr][last.image]; var idx = Math.max(0, Math.min(arr2.length, last.index)); arr2.splice(idx,0,{x:last.point.x,y:last.point.y,id:last.point.id});
+          var arr2 = state.points[attr][last.image];
+          var idx = Math.max(0, Math.min(arr2.length, last.index));
+          arr2.splice(idx,0,{x:last.point.x,y:last.point.y,id:last.point.id});
           break;
         }
         case 'clear': {
@@ -210,42 +368,363 @@
     function getOverlayEl(attr,imageName){ return document.getElementById('ov-' + attr + '-' + (imageName==='1.jpg'?1:2)); }
     function getImgEl(attr,imageName){ return document.getElementById('img-' + attr + '-' + (imageName==='1.jpg'?1:2)); }
 
-    function findNearest(attr,imageName,clientX,clientY){ var ov = getOverlayEl(attr,imageName); if(!ov) return -1; var rect = ov.getBoundingClientRect(); var cx = clientX - rect.left, cy = clientY - rect.top; var w = rect.width, h = rect.height; var best=-1,bestD=Infinity; var arr = state.points[attr][imageName]||[]; for(var i=0;i<arr.length;i++){ var m=arr[i]; var mx=m.x*w, my=m.y*h; var d = Math.hypot(mx-cx, my-cy); if(d < bestD){ bestD = d; best = i; } } return (bestD <= 18)?best:-1; }
+    function findNearest(attr,imageName,clientX,clientY){
+      var ov = getOverlayEl(attr,imageName);
+      if(!ov) return -1;
+      var rect = ov.getBoundingClientRect();
+      var cx = clientX - rect.left, cy = clientY - rect.top;
+      var w = rect.width, h = rect.height;
+      var best=-1,bestD=Infinity;
+      var arr = state.points[attr][imageName]||[];
+      for(var i=0;i<arr.length;i++){
+        var m=arr[i];
+        var mx=m.x*w, my=m.y*h;
+        var d = Math.hypot(mx-cx, my-cy);
+        if(d < bestD){ bestD = d; best = i; }
+      }
+      return (bestD <= 18)?best:-1;
+    }
 
-    function renderMarkers(attr,imageName){ var ov = getOverlayEl(attr,imageName); var img = document.getElementById('img-' + attr + '-' + (imageName==='1.jpg'?1:2)); if(!ov || !img) return; var rect = img.getBoundingClientRect(); var w = rect.width, h = rect.height; ov.setAttribute('width', w); ov.setAttribute('height', h); ov.setAttribute('viewBox','0 0 '+w+' '+h); while(ov.firstChild) ov.removeChild(ov.firstChild); var arr = state.points[attr][imageName] || []; for(var i=0;i<arr.length;i++){ var m = arr[i]; var cx = m.x * w, cy = m.y * h; var NS = 'http://www.w3.org/2000/svg'; var halo = document.createElementNS(NS,'circle'); halo.setAttribute('cx',cx); halo.setAttribute('cy',cy); halo.setAttribute('r',18); halo.setAttribute('class','marker-halo'); var dot = document.createElementNS(NS,'circle'); dot.setAttribute('cx',cx); dot.setAttribute('cy',cy); dot.setAttribute('r',(m.id===active.selectedId)?8:6); dot.setAttribute('class','marker-dot'); dot.setAttribute('data-id',m.id); dot.setAttribute('data-attr',attr); dot.setAttribute('data-image',imageName); dot.setAttribute('style','cursor:pointer'); var labelBg = document.createElementNS(NS,'circle'); labelBg.setAttribute('cx',cx+12); labelBg.setAttribute('cy',cy-12); labelBg.setAttribute('r',10); labelBg.setAttribute('fill','#111'); labelBg.setAttribute('opacity',0.7); var text = document.createElementNS(NS,'text'); text.setAttribute('x',cx+12); text.setAttribute('y',cy-8); text.setAttribute('class','marker-label'); text.textContent = String(i+1); if(m.id===active.selectedId) halo.setAttribute('fill','rgba(239,68,68,0.22)'); ov.appendChild(halo); ov.appendChild(dot); ov.appendChild(labelBg); ov.appendChild(text); } updateCounts(attr); updateListDisplay(attr,imageName); }
+    function renderMarkers(attr,imageName){
+      var ov = getOverlayEl(attr,imageName);
+      var img = document.getElementById('img-' + attr + '-' + (imageName==='1.jpg'?1:2));
+      if(!ov || !img) return;
+      var rect = img.getBoundingClientRect();
+      var w = rect.width, h = rect.height;
+      ov.setAttribute('width', w);
+      ov.setAttribute('height', h);
+      ov.setAttribute('viewBox','0 0 '+w+' '+h);
+      while(ov.firstChild) ov.removeChild(ov.firstChild);
+      var arr = state.points[attr][imageName] || [];
+      for(var i=0;i<arr.length;i++){
+        var m = arr[i];
+        var cx = m.x * w, cy = m.y * h;
+        var NS = 'http://www.w3.org/2000/svg';
+        var halo = document.createElementNS(NS,'circle'); halo.setAttribute('cx',cx); halo.setAttribute('cy',cy); halo.setAttribute('r',18); halo.setAttribute('class','marker-halo');
+        var dot = document.createElementNS(NS,'circle'); dot.setAttribute('cx',cx); dot.setAttribute('cy',cy); dot.setAttribute('r',(m.id===active.selectedId)?8:6); dot.setAttribute('class','marker-dot');
+        dot.setAttribute('data-id',m.id); dot.setAttribute('data-attr',attr); dot.setAttribute('data-image',imageName); dot.setAttribute('style','cursor:pointer');
+        var labelBg = document.createElementNS(NS,'circle'); labelBg.setAttribute('cx',cx+12); labelBg.setAttribute('cy',cy-12); labelBg.setAttribute('r',10); labelBg.setAttribute('fill','#111'); labelBg.setAttribute('opacity',0.7);
+        var text = document.createElementNS(NS,'text'); text.setAttribute('x',cx+12); text.setAttribute('y',cy-8); text.setAttribute('class','marker-label'); text.textContent = String(i+1);
+        if(m.id===active.selectedId) halo.setAttribute('fill','rgba(239,68,68,0.22)');
+        ov.appendChild(halo); ov.appendChild(dot); ov.appendChild(labelBg); ov.appendChild(text);
+      }
+      updateCounts(attr);
+      updateListDisplay(attr,imageName);
+    }
 
-    function updateCounts(attr){ var el1 = document.getElementById('count-'+attr+'-1'); var el2 = document.getElementById('count-'+attr+'-2'); if(el1) el1.textContent = state.points[attr]['1.jpg'].length; if(el2) el2.textContent = state.points[attr]['2.jpg'].length; }
-    function updateListDisplay(attr,imageName){ var id = (imageName==='1.jpg'?1:2); var listEl = document.getElementById('list-'+attr+'-'+id); if(!listEl) return; listEl.innerHTML = ''; var arr = state.points[attr][imageName] || []; arr.forEach(function(p,i){ var div = document.createElement('div'); div.textContent = '#'+(i+1) + ' — x=' + p.x + ', y=' + p.y; var btn = document.createElement('button'); btn.textContent = 'Delete'; btn.style.marginLeft='8px'; btn.addEventListener('click', function(){ var removed = arr.splice(i,1)[0]; pushOp(attr,{op:'delete', image:imageName, index:i, point: removed}); renderMarkers(attr,imageName); }); div.appendChild(btn); listEl.appendChild(div); }); }
+    function updateCounts(attr){
+      var el1 = document.getElementById('count-'+attr+'-1');
+      var el2 = document.getElementById('count-'+attr+'-2');
+      if(el1) el1.textContent = state.points[attr]['1.jpg'].length;
+      if(el2) el2.textContent = state.points[attr]['2.jpg'].length;
+    }
+
+    function updateListDisplay(attr,imageName){
+      var id = (imageName==='1.jpg'?1:2);
+      var listEl = document.getElementById('list-'+attr+'-'+id);
+      if(!listEl) return;
+      listEl.innerHTML = '';
+      var arr = state.points[attr][imageName] || [];
+      arr.forEach(function(p,i){
+        var div = document.createElement('div');
+        div.textContent = '#'+(i+1) + ' — x=' + p.x + ', y=' + p.y;
+        var btn = document.createElement('button'); btn.textContent = 'Delete'; btn.style.marginLeft='8px';
+        btn.addEventListener('click', function(){
+          var removed = arr.splice(i,1)[0];
+          pushOp(attr,{op:'delete', image:imageName, index:i, point: removed});
+          renderMarkers(attr,imageName);
+        });
+        div.appendChild(btn);
+        listEl.appendChild(div);
+      });
+    }
 
     function refreshAll(){ ATTRIBUTES.forEach(function(a){ renderMarkers(a,'1.jpg'); renderMarkers(a,'2.jpg'); }); }
 
     // Setup overlay (click to add/select). Drag disabled.
-    function setupOverlay(attr,imageName){ var imgId = 'img-' + attr + '-' + (imageName==='1.jpg'?1:2); var ovId = 'ov-' + attr + '-' + (imageName==='1.jpg'?1:2); var img = document.getElementById(imgId); var ov = document.getElementById(ovId); if(!img || !ov) return; function resize(){ var r = img.getBoundingClientRect(); ov.setAttribute('width', r.width); ov.setAttribute('height', r.height); ov.setAttribute('viewBox','0 0 '+r.width+' '+r.height); renderMarkers(attr,imageName); } img.addEventListener('load', resize); window.addEventListener('resize', resize); if(img.complete) setTimeout(resize,50);
-      ov.addEventListener('click', function(ev){ var nearest = findNearest(attr,imageName,ev.clientX,ev.clientY); if(nearest >= 0){ var m = state.points[attr][imageName][nearest]; active.selectedId = m.id; active.selectedAttr = attr; active.selectedImage = imageName; renderMarkers(attr,imageName); } else { var rect = ov.getBoundingClientRect(); var cx = ev.clientX - rect.left; var cy = ev.clientY - rect.top; var nx = +(cx/rect.width).toFixed(4); var ny = +(cy/rect.height).toFixed(4); var id = genId(); var p = { x: nx, y: ny, id: id }; state.points[attr][imageName].push(p); active.selectedId = id; active.selectedAttr = attr; active.selectedImage = imageName; renderMarkers(attr,imageName); pushOp(attr,{op:'add', image: imageName, id: id, point: p}); } }); }
+    function setupOverlay(attr,imageName){
+      var imgId = 'img-' + attr + '-' + (imageName==='1.jpg'?1:2);
+      var ovId = 'ov-' + attr + '-' + (imageName==='1.jpg'?1:2);
+      var img = document.getElementById(imgId);
+      var ov = document.getElementById(ovId);
+      if(!img || !ov) return;
+      function resize(){
+        var r = img.getBoundingClientRect();
+        ov.setAttribute('width', r.width);
+        ov.setAttribute('height', r.height);
+        ov.setAttribute('viewBox','0 0 '+r.width+' '+r.height);
+        renderMarkers(attr,imageName);
+      }
+      img.addEventListener('load', resize);
+      window.addEventListener('resize', resize);
+      if(img.complete) setTimeout(resize,50);
+
+      ov.addEventListener('click', function(ev){
+        var nearest = findNearest(attr,imageName,ev.clientX,ev.clientY);
+        if(nearest >= 0){
+          var m = state.points[attr][imageName][nearest];
+          active.selectedId = m.id; active.selectedAttr = attr; active.selectedImage = imageName;
+          renderMarkers(attr,imageName);
+        } else {
+          var rect = ov.getBoundingClientRect();
+          var cx = ev.clientX - rect.left;
+          var cy = ev.clientY - rect.top;
+          var nx = +(cx/rect.width).toFixed(4);
+          var ny = +(cy/rect.height).toFixed(4);
+          var id = genId();
+          var p = { x: nx, y: ny, id: id };
+          state.points[attr][imageName].push(p);
+          active.selectedId = id; active.selectedAttr = attr; active.selectedImage = imageName;
+          renderMarkers(attr,imageName);
+          pushOp(attr,{op:'add', image: imageName, id: id, point: p});
+        }
+      });
+    }
 
     function initAllOverlays(){ ATTRIBUTES.forEach(function(attr){ setupOverlay(attr,'1.jpg'); setupOverlay(attr,'2.jpg'); }); }
 
     // Controls binding
     function bindControls(){
-      qa('[data-undo]').forEach(function(b){ b.addEventListener('click', function(){ var page = b.closest('.page'); if(!page || typeof page.dataset.attrIndex==='undefined'){ alert('No attribute on this page.'); return; } var idx = parseInt(page.dataset.attrIndex,10); var attr = ATTRIBUTES[idx]; undoForAttr(attr); }); });
+      qa('[data-undo]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var page = b.closest('.page');
+          if(!page || typeof page.dataset.attrIndex==='undefined'){ alert('No attribute on this page.'); return; }
+          var idx = parseInt(page.dataset.attrIndex,10);
+          var attr = ATTRIBUTES[idx];
+          undoForAttr(attr);
+        });
+      });
 
-      qa('[data-delete-selected]').forEach(function(b){ b.addEventListener('click', function(){ var page = b.closest('.page'); if(!page || typeof page.dataset.attrIndex==='undefined') return; var idx = parseInt(page.dataset.attrIndex,10); var attr = ATTRIBUTES[idx]; if(!active.selectedId || active.selectedAttr !== attr) { alert('No selected point on this page.'); return; } var imgs = ['1.jpg','2.jpg']; for(var i=0;i<imgs.length;i++){ var arr = state.points[attr][imgs[i]]; for(var j=0;j<arr.length;j++){ if(arr[j].id === active.selectedId){ var removed = arr.splice(j,1)[0]; pushOp(attr,{op:'delete', image: imgs[i], index: j, point: removed}); active.selectedId = null; active.selectedAttr = null; active.selectedImage = null; renderMarkers(attr,'1.jpg'); renderMarkers(attr,'2.jpg'); return; } } } }); });
+      qa('[data-delete-selected]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var page = b.closest('.page');
+          if(!page || typeof page.dataset.attrIndex==='undefined') return;
+          var idx = parseInt(page.dataset.attrIndex,10);
+          var attr = ATTRIBUTES[idx];
+          if(!active.selectedId || active.selectedAttr !== attr) { alert('No selected point on this page.'); return; }
+          var imgs = ['1.jpg','2.jpg'];
+          for(var i=0;i<imgs.length;i++){
+            var arr = state.points[attr][imgs[i]];
+            for(var j=0;j<arr.length;j++){
+              if(arr[j].id === active.selectedId){
+                var removed = arr.splice(j,1)[0];
+                pushOp(attr,{op:'delete', image: imgs[i], index: j, point: removed});
+                active.selectedId = null; active.selectedAttr = null; active.selectedImage = null;
+                renderMarkers(attr,'1.jpg'); renderMarkers(attr,'2.jpg');
+                return;
+              }
+            }
+          }
+        });
+      });
 
-      qa('[data-clear]').forEach(function(b){ b.addEventListener('click', function(){ var page = b.closest('.page'); if(!page || typeof page.dataset.attrIndex==='undefined'){ if(!confirm('Clear all attributes on all pages? This cannot be undone.')) return; ATTRIBUTES.forEach(function(a){ pushOp(a,{op:'clear', prev: clonePointsForAttr(a)}); state.points[a] = {'1.jpg':[],'2.jpg':[]}; }); refreshAll(); return; } var idx = parseInt(page.dataset.attrIndex,10); var attr = ATTRIBUTES[idx]; if(!confirm('Clear all points for ' + attr + '?')) return; pushOp(attr,{op:'clear', prev: clonePointsForAttr(attr)}); state.points[attr] = {'1.jpg':[],'2.jpg':[]}; renderMarkers(attr,'1.jpg'); renderMarkers(attr,'2.jpg'); }); });
+      qa('[data-clear]').forEach(function(b){
+        b.addEventListener('click', function(){
+          var page = b.closest('.page');
+          if(!page || typeof page.dataset.attrIndex==='undefined'){
+            if(!confirm('Clear all attributes on all pages? This cannot be undone.')) return;
+            ATTRIBUTES.forEach(function(a){ pushOp(a,{op:'clear', prev: clonePointsForAttr(a)}); state.points[a] = {'1.jpg':[],'2.jpg':[]}; });
+            refreshAll();
+            return;
+          }
+          var idx = parseInt(page.dataset.attrIndex,10);
+          var attr = ATTRIBUTES[idx];
+          if(!confirm('Clear all points for ' + attr + '?')) return;
+          pushOp(attr,{op:'clear', prev: clonePointsForAttr(attr)});
+          state.points[attr] = {'1.jpg':[],'2.jpg':[]};
+          renderMarkers(attr,'1.jpg'); renderMarkers(attr,'2.jpg');
+        });
+      });
     }
 
     // Navigation
-    function showPage(n){ qa('.page').forEach(function(p){ p.classList.remove('active'); }); var el = document.getElementById('page-' + n); if(!el) return; el.classList.add('active'); window.scrollTo({top:0,behavior:'smooth'}); try{ if(el.dataset && typeof el.dataset.attrIndex !== 'undefined'){ var idx = parseInt(el.dataset.attrIndex,10); var attr=ATTRIBUTES[idx]; renderMarkers(attr,'1.jpg'); renderMarkers(attr,'2.jpg'); } }catch(e){ console.warn(e); } }
+    function showPage(n){
+      qa('.page').forEach(function(p){ p.classList.remove('active'); });
+      var el = document.getElementById('page-' + n);
+      if(!el) return;
+      el.classList.add('active');
+      window.scrollTo({top:0,behavior:'smooth'});
+      try{
+        if(el.dataset && typeof el.dataset.attrIndex !== 'undefined'){
+          var idx = parseInt(el.dataset.attrIndex,10);
+          var attr = ATTRIBUTES[idx];
+          renderMarkers(attr,'1.jpg'); renderMarkers(attr,'2.jpg');
+        }
+      }catch(e){ console.warn(e); }
+    }
 
-    function bindNavigation(){ document.addEventListener('click', function(ev){ var elNext = ev.target.closest && ev.target.closest('[data-next]'); var elGo = ev.target.closest && ev.target.closest('[data-go]'); var elBackToRating = ev.target.closest && ev.target.closest('[data-back-to-rating]'); if(elNext){ ev.preventDefault(); var page = elNext.closest('.page'); if(page && page.id === 'page-1'){ var required = [ {id:'user-id',label:'User ID'},{id:'age',label:'Age'},{id:'gender',label:'Gender'},{id:'nationality',label:'Nationality'} ]; var missing = []; for(var i=0;i<required.length;i++){ var el = document.getElementById(required[i].id); var val = el ? el.value : ''; if(!(val && String(val).trim())) missing.push(required[i].label); } if(missing.length){ alert('Please fill these required fields:' + missing.join('\n')); return; } state.demographics = { id: (q('#user-id')||{}).value.trim(), age: parseInt((q('#age')||{}).value,10), gender: (q('#gender')||{}).value, nationality: (q('#nationality')||{}).value.trim(), education: (q('#education')||{}).value || null }; var next = parseInt(elNext.dataset.next,10); showPage(next); return; } if(page && page.dataset && typeof page.dataset.attrIndex !== 'undefined'){ var idx = parseInt(page.dataset.attrIndex,10); var attr = ATTRIBUTES[idx]; var valEl = document.querySelector('input[name="' + attr + '"]:checked'); if(!valEl){ alert('Please provide a rating for ' + attr + ' before continuing.'); return; } state.pairwise[attr] = parseFloat(valEl.value); var next2 = parseInt(elNext.dataset.next,10); showPage(next2); return; } var next3 = parseInt(elNext.dataset.next,10); if(!isNaN(next3)) showPage(next3); return; } if(elBackToRating){ ev.preventDefault(); var page = elBackToRating.closest('.page'); if(page && page.dataset && typeof page.dataset.attrIndex !== 'undefined'){ var idx2 = parseInt(page.dataset.attrIndex,10); showPage(2 + idx2*2); } return; } if(elGo){ ev.preventDefault(); var target = parseInt(elGo.dataset.go,10); if(!isNaN(target)) showPage(target); return; } }); }
+    function bindNavigation(){
+      document.addEventListener('click', function(ev){
+        var elNext = ev.target.closest && ev.target.closest('[data-next]');
+        var elGo = ev.target.closest && ev.target.closest('[data-go]');
+        var elBackToRating = ev.target.closest && ev.target.closest('[data-back-to-rating]');
+
+        if(elNext){
+          ev.preventDefault();
+          var page = elNext.closest('.page');
+
+          // Page 1 validation
+          if(page && page.id === 'page-1'){
+            var required = [ {id:'user-id',label:'User ID'},{id:'age',label:'Age'},{id:'gender',label:'Gender'},{id:'nationality',label:'Nationality'} ];
+            var missing = [];
+            for(var i=0;i<required.length;i++){
+              var el = document.getElementById(required[i].id);
+              var val = el ? el.value : '';
+              if(!(val && String(val).trim())) missing.push(required[i].label);
+            }
+            if(missing.length){
+              alert('Please fill these required fields:\n' + missing.join('\n'));
+              return;
+            }
+            state.demographics = { id: (q('#user-id')||{}).value.trim(), age: parseInt((q('#age')||{}).value,10), gender: (q('#gender')||{}).value, nationality: (q('#nationality')||{}).value.trim(), education: (q('#education')||{}).value || null };
+            var next = parseInt(elNext.dataset.next,10);
+            showPage(next);
+            return;
+          }
+
+          // Rating page validation
+          if(page && page.dataset && typeof page.dataset.attrIndex !== 'undefined'){
+            var idx = parseInt(page.dataset.attrIndex,10);
+            var attr = ATTRIBUTES[idx];
+            var valEl = document.querySelector('input[name="' + attr + '"]:checked');
+            if(!valEl){
+              alert('Please provide a rating for ' + attr + ' before continuing.');
+              return;
+            }
+            state.pairwise[attr] = parseFloat(valEl.value);
+            var next2 = parseInt(elNext.dataset.next,10);
+            showPage(next2);
+            return;
+          }
+
+          var next3 = parseInt(elNext.dataset.next,10);
+          if(!isNaN(next3)) showPage(next3);
+          return;
+        }
+
+        if(elBackToRating){
+          ev.preventDefault();
+          var page = elBackToRating.closest('.page');
+          if(page && page.dataset && typeof page.dataset.attrIndex !== 'undefined'){
+            var idx2 = parseInt(page.dataset.attrIndex,10);
+            showPage(2 + idx2*2);
+          }
+          return;
+        }
+
+        if(elGo){
+          ev.preventDefault();
+          var target = parseInt(elGo.dataset.go,10);
+          if(!isNaN(target)) showPage(target);
+          return;
+        }
+      });
+    }
+
+    // Submit helper: tries to POST to Apps Script (form-encoded 'payload'), falls back to local download
+    async function submitResponse(payload) {
+      // Ensure we include PROLIFIC params if present
+      payload.prolific_pid = payload.prolific_pid || getQueryParam('PROLIFIC_PID') || getQueryParam('PROLIFICID') || null;
+      payload.pid = payload.pid || getQueryParam('pid') || (payload.demographics && payload.demographics.id) || null;
+      payload.submitted_at = new Date().toISOString();
+
+      // If APPS_SCRIPT_URL not configured, skip attempt
+      if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_YOUR_APPS') === 0) {
+        console.warn('APPS_SCRIPT_URL not set; skipping remote submit and falling back to local download.');
+        await fallbackDownload(payload);
+        return false;
+      }
+
+      try {
+        // Use application/x-www-form-urlencoded by posting a single field 'payload' with JSON string
+        const form = new URLSearchParams();
+        form.append('payload', JSON.stringify(payload));
+
+        // timeout helper
+        const controller = new AbortController();
+        const timeoutId = setTimeout(()=>controller.abort(), 12000);
+
+        const resp = await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          body: form,
+          signal: controller.signal
+          // do NOT set custom Content-Type header; let browser set application/x-www-form-urlencoded
+        });
+        clearTimeout(timeoutId);
+
+        if(!resp.ok) throw new Error('HTTP status ' + resp.status);
+
+        // Try parse response JSON
+        let j = {};
+        try { j = await resp.json(); } catch(e) { j = {}; }
+        if(j.status && j.status === 'ok') {
+          alert('Response successfully submitted.');
+          if(PROLIFIC_COMPLETION_URL) {
+            // small delay so user sees message
+            setTimeout(()=> window.location.href = PROLIFIC_COMPLETION_URL, 600);
+          }
+          return true;
+        } else {
+          console.warn('Unexpected server response', j);
+          // still treat as success? here treat as failure and fallback
+          throw new Error('Unexpected server response');
+        }
+      } catch (err) {
+        console.warn('Remote submit failed:', err);
+        await fallbackDownload(payload);
+        return false;
+      }
+    }
+
+    async function fallbackDownload(payload) {
+      // Create JSON file and trigger download
+      const jsonStr = JSON.stringify(payload, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const fname = (payload && payload.demographics && payload.demographics.id ? payload.demographics.id : 'response') + '_survey.json';
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fname;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(()=>{ URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 1500);
+      alert('Submission to server failed or not configured. The response file has been downloaded to your device. Please upload/send it as instructed by the researcher.');
+    }
 
     // Finish
-    function bindFinish(){ var finish = document.getElementById('finish'); finish && finish.addEventListener('click', function(){ var sel = document.querySelector('input[name="ai_guess"]:checked'); if(!sel){ alert('Please choose which image is more likely AI-generated before submitting.'); return; } state.ai_guess = sel.value; var payload = { demographics: state.demographics, pairwise: state.pairwise, points: state.points, ai_guess: state.ai_guess, meta: { timestamp: new Date().toISOString() } }; var out = JSON.stringify(payload, null, 2); var outEl = document.getElementById('output'); outEl && (outEl.textContent = out); try{ localStorage.setItem('lastSurvey', out); }catch(e){} var blob = new Blob([out], { type: 'application/json' }); var url = URL.createObjectURL(blob); var a = document.createElement('a'); a.href = url; a.download = (state.demographics && state.demographics.id ? state.demographics.id : 'response') + '_survey.json'; a.textContent = 'Download JSON'; a.style.display = 'inline-block'; a.style.marginTop = '8px'; a.style.padding = '8px'; a.style.background = '#eef7ff'; a.style.borderRadius = '6px'; outEl && outEl.appendChild(document.createElement('br')) && outEl.appendChild(a); alert('Thank you — your responses have been prepared for download.'); }); }
+    function bindFinish(){
+      var finish = document.getElementById('finish');
+      if(!finish) return;
+      finish.addEventListener('click', async function(){
+        var sel = document.querySelector('input[name="ai_guess"]:checked');
+        if(!sel){ alert('Please choose which image is more likely AI-generated before submitting.'); return; }
+        state.ai_guess = sel.value;
+        var payload = { demographics: state.demographics, pairwise: state.pairwise, points: state.points, ai_guess: state.ai_guess, meta: { timestamp: new Date().toISOString() } };
+
+        // Show output (like before)
+        var out = JSON.stringify(payload, null, 2);
+        var outEl = document.getElementById('output');
+        if(outEl) {
+          outEl.textContent = out;
+        }
+        try{ localStorage.setItem('lastSurvey', out); }catch(e){}
+
+        // Attempt to submit to Apps Script, fallback to local download if needed
+        await submitResponse(payload);
+      });
+    }
 
     // Init
-    window.addEventListener('DOMContentLoaded', function(){ buildRatingControls(); ensureInitialHistory(); initAllOverlays(); bindControls(); bindNavigation(); bindFinish(); console.log('Survey ready'); });
+    window.addEventListener('DOMContentLoaded', function(){
+      buildRatingControls();
+      ensureInitialHistory();
+      initAllOverlays();
+      bindControls();
+      bindNavigation();
+      bindFinish();
+      console.log('Survey ready (with Apps Script submit integration).');
+    });
 
-    // expose for debugging
+    // Expose for debugging
     window._survey = { state: state, showPage: showPage, renderAll: refreshAll };
 
   })();
