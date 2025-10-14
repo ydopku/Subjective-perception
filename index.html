@@ -35,6 +35,89 @@
     .points-list{font-size:13px;max-height:160px;overflow:auto;background:#f1f5f9;padding:8px;border-radius:6px}
     pre#output{white-space:pre-wrap;background:#0b1220;color:#cfe9ff;padding:12px;border-radius:8px;max-height:300px;overflow:auto}
     @media (max-width:720px){ .row{grid-template-columns:1fr} .images{flex-direction:column} button{width:48%} .buttons{flex-wrap:wrap;gap:8px} }
+
+    /* ---- submit overlay & lock styles ---- */
+    .container.locked * {
+      pointer-events: none !important;
+      user-select: none !important;
+      opacity: 0.6;
+    }
+
+    /* Fullscreen overlay centered card */
+    #submit-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(11,17,32,0.58);
+      z-index: 9999;
+    }
+    #submit-overlay.show {
+      display: flex;
+    }
+    #submit-overlay .card {
+      width: 360px;
+      max-width: 92%;
+      background: #fff;
+      padding: 18px 18px;
+      border-radius: 12px;
+      box-shadow: 0 12px 40px rgba(2,6,23,0.3);
+      text-align: center;
+      font-family: inherit;
+    }
+    #submit-overlay .title {
+      font-weight:700;
+      font-size:16px;
+      margin-bottom:6px;
+      color:#0f172a;
+    }
+    #submit-overlay .message {
+      color:#374151;
+      font-size:14px;
+      margin-bottom:12px;
+    }
+
+    /* Indeterminate-like progress bar animation (we animate width up to 90%) */
+    .progressbar { width:100%; height:12px; background:#eef2ff; border-radius:8px; overflow:hidden; margin-top:8px; }
+    .progressbar > div {
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg,#2563eb,#06b6d4);
+      transition: width 320ms linear;
+      border-radius:8px;
+    }
+
+    /* small spinner */
+    .spinner {
+      display:inline-block;
+      width:28px;
+      height:28px;
+      margin-left:10px;
+      vertical-align:middle;
+      border:3px solid rgba(37,99,235,0.18);
+      border-top-color: #2563eb;
+      border-radius:50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* small helper for success/fail text */
+    #submit-overlay .status-small { margin-top:10px; font-size:13px; color:#374151; }
+
+    /* confirm button style */
+    #submit-overlay .card .confirm-btn {
+      margin-top:12px;
+      background: #10b981;
+      border-radius:8px;
+      padding:8px 14px;
+      color:#fff;
+      border:none;
+      cursor:pointer;
+      font-weight:600;
+    }
+    #submit-overlay .card .confirm-btn.hidden { display:none; }
+
   </style>
 </head>
 <body>
@@ -248,6 +331,20 @@
       <div style="margin-top:12px"><h3>Output</h3><pre id="output">No submission yet.</pre></div>
     </div>
 
+  </div>
+
+  <!-- Submit overlay (insert after the main .container) -->
+  <div id="submit-overlay" role="status" aria-live="polite" aria-hidden="true">
+    <div class="card" role="dialog" aria-modal="true" aria-label="Submitting">
+      <div style="display:flex;align-items:center;justify-content:center;">
+        <div class="title">Submitting…</div>
+        <div class="spinner" aria-hidden="true"></div>
+      </div>
+      <div class="message" id="submit-overlay-message">Please wait while your response is submitted.</div>
+      <div class="progressbar" aria-hidden="true"><div id="submit-overlay-progress"></div></div>
+      <div class="status-small" id="submit-overlay-status" aria-hidden="true"></div>
+      <button id="submit-overlay-confirm" class="confirm-btn hidden" aria-hidden="true">OK</button>
+    </div>
   </div>
 
   <script>
@@ -632,7 +729,7 @@
       if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_YOUR_APPS') === 0) {
         console.warn('APPS_SCRIPT_URL not set; skipping remote submit and falling back to local download.');
         await fallbackDownload(payload);
-        return false;
+        return { ok: false, fallback: true, message: 'No endpoint configured' };
       }
 
       try {
@@ -652,32 +749,31 @@
         });
         clearTimeout(timeoutId);
 
-        if(!resp.ok) throw new Error('HTTP status ' + resp.status);
+        if(!resp.ok) {
+          // treat as failure
+          throw new Error('HTTP status ' + resp.status);
+        }
 
         // Try parse response JSON
         let j = {};
         try { j = await resp.json(); } catch(e) { j = {}; }
         if(j.status && j.status === 'ok') {
-          alert('Response successfully submitted.');
-          if(PROLIFIC_COMPLETION_URL) {
-            // small delay so user sees message
-            setTimeout(()=> window.location.href = PROLIFIC_COMPLETION_URL, 600);
-          }
-          return true;
+          // Return structured success (no browser alert)
+          return { ok: true, server: j, message: 'Response successfully submitted.' };
         } else {
+          // Unexpected server response - treat as failure
           console.warn('Unexpected server response', j);
-          // still treat as success? here treat as failure and fallback
           throw new Error('Unexpected server response');
         }
       } catch (err) {
         console.warn('Remote submit failed:', err);
         await fallbackDownload(payload);
-        return false;
+        return { ok: false, fallback: true, message: err.message || 'Submit failed' };
       }
     }
 
     async function fallbackDownload(payload) {
-      // Create JSON file and trigger download
+      // Create JSON file and trigger download (no alert)
       const jsonStr = JSON.stringify(payload, null, 2);
       const blob = new Blob([jsonStr], { type: 'application/json' });
       const fname = (payload && payload.demographics && payload.demographics.id ? payload.demographics.id : 'response') + '_survey.json';
@@ -687,10 +783,99 @@
       document.body.appendChild(a);
       a.click();
       setTimeout(()=>{ URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 1500);
-      alert('Submission to server failed or not configured. The response file has been downloaded to your device. Please upload/send it as instructed by the researcher.');
+      // return info for caller
+      return { ok: false, fallback: true, filename: fname };
     }
 
-    // Finish
+    /* ---------- Submission overlay controls (with confirm button) ---------- */
+    (function(){
+      var overlay = null, progressEl = null, messageEl = null, statusEl = null, confirmBtn = null;
+      var animTimer = null;
+      var simulatedProgress = 0;
+      var lastSuccess = false;
+
+      function getOverlayEls() {
+        if (!overlay) {
+          overlay = document.getElementById('submit-overlay');
+          progressEl = document.getElementById('submit-overlay-progress');
+          messageEl = document.getElementById('submit-overlay-message');
+          statusEl = document.getElementById('submit-overlay-status');
+          confirmBtn = document.getElementById('submit-overlay-confirm');
+          if(confirmBtn){
+            confirmBtn.addEventListener('click', function(){
+              // on confirm, hide overlay and optionally redirect
+              hideOverlayImmediately();
+              if(lastSuccess && PROLIFIC_COMPLETION_URL){
+                // small delay for UX
+                setTimeout(function(){ window.location.href = PROLIFIC_COMPLETION_URL; }, 250);
+              }
+            });
+          }
+        }
+      }
+
+      function hideOverlayImmediately(){
+        if (!overlay) return;
+        overlay.classList.remove('show');
+        overlay.setAttribute('aria-hidden','true');
+        var cont = document.querySelector('.container');
+        if (cont) cont.classList.remove('locked');
+        try { if(progressEl) progressEl.style.width = '0%'; }catch(e){}
+        if(statusEl) statusEl.textContent = '';
+        if(confirmBtn) { confirmBtn.classList.add('hidden'); confirmBtn.setAttribute('aria-hidden','true'); }
+      }
+
+      // show overlay and start simulated progress
+      window.showSubmittingOverlay = function(message) {
+        getOverlayEls();
+        // lock UI
+        var cont = document.querySelector('.container');
+        if (cont) cont.classList.add('locked');
+
+        if (!overlay) return;
+        overlay.setAttribute('aria-hidden','false');
+        overlay.classList.add('show');
+        messageEl.textContent = message || 'Submitting... please wait';
+        statusEl.textContent = '';
+        if(confirmBtn) { confirmBtn.classList.add('hidden'); confirmBtn.setAttribute('aria-hidden','true'); }
+
+        // start simulated progress from small positive
+        simulatedProgress = 4;
+        progressEl.style.width = simulatedProgress + '%';
+        // increase slowly toward 90%
+        clearInterval(animTimer);
+        animTimer = setInterval(function(){
+          var inc = 1 + Math.random()*6;
+          simulatedProgress = Math.min(90, simulatedProgress + inc);
+          progressEl.style.width = simulatedProgress + '%';
+        }, 350);
+      };
+
+      // show final status: if success -> show confirm button and don't auto-hide.
+      // if failure -> show message and auto-hide after a short delay.
+      window.hideSubmittingOverlay = function(success, finalMessage) {
+        getOverlayEls();
+        clearInterval(animTimer);
+        lastSuccess = !!success;
+        // set to 100% quickly
+        try { progressEl.style.width = '100%'; } catch(e){}
+        // show final message
+        if (statusEl) statusEl.textContent = finalMessage || (success ? 'Submitted.' : 'Submission failed.');
+        if(success){
+          // show confirm button (user must click)
+          if(confirmBtn){ confirmBtn.classList.remove('hidden'); confirmBtn.setAttribute('aria-hidden','false'); }
+          // keep overlay visible until user confirms
+        } else {
+          // auto hide after a short pause
+          setTimeout(function(){
+            hideOverlayImmediately();
+          }, 1400);
+        }
+      };
+
+    })(); // end overlay controls IIFE
+
+    /* --------- Replace existing bindFinish with this version (updates output display) --------- */
     function bindFinish(){
       var finish = document.getElementById('finish');
       if(!finish) return;
@@ -700,16 +885,31 @@
         state.ai_guess = sel.value;
         var payload = { demographics: state.demographics, pairwise: state.pairwise, points: state.points, ai_guess: state.ai_guess, meta: { timestamp: new Date().toISOString() } };
 
-        // Show output (like before)
-        var out = JSON.stringify(payload, null, 2);
+        // update Output area immediately so user sees what's being submitted
         var outEl = document.getElementById('output');
-        if(outEl) {
-          outEl.textContent = out;
-        }
-        try{ localStorage.setItem('lastSurvey', out); }catch(e){}
+        if(outEl) outEl.textContent = JSON.stringify(payload, null, 2);
 
-        // Attempt to submit to Apps Script, fallback to local download if needed
-        await submitResponse(payload);
+        // show overlay and lock UI
+        showSubmittingOverlay('Submitting your response — please wait.');
+
+        // call submitResponse and process structured result (no alerts in submitResponse)
+        let res = { ok:false };
+        try {
+          res = await submitResponse(payload); // returns object {ok: true/false, message, ...}
+        } catch(err) {
+          console.error('submitResponse threw error', err);
+          res = { ok: false, fallback: true, message: (err && err.message) ? err.message : 'Unknown error' };
+        }
+
+        // Show appropriate final overlay state
+        if(res.ok){
+          // success: set final message and show confirm button on overlay
+          hideSubmittingOverlay(true, 'Submission complete.');
+        } else if(res.fallback){
+          hideSubmittingOverlay(false, 'Submission failed — response saved locally.');
+        } else {
+          hideSubmittingOverlay(false, 'Submission failed.');
+        }
       });
     }
 
@@ -721,7 +921,7 @@
       bindControls();
       bindNavigation();
       bindFinish();
-      console.log('Survey ready (with Apps Script submit integration).');
+      console.log('Survey ready (with Apps Script submit integration and improved overlay).');
     });
 
     // Expose for debugging
@@ -731,3 +931,4 @@
   </script>
 </body>
 </html>
+
