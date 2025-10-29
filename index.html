@@ -354,7 +354,7 @@
 
     /***** CONFIG *****/
     // 使用你给出的 Apps Script URL（已替换）
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzn69EBA7s9VdCv7bA2RsaFQVkWtzalTQGQjQO9MiMpcIAfFLtrRHAkEIIwCErbfZzJ/exec';
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyp1cnD7KynfdYKedHfHEcHgPFC7Q1ioGI86adeNK6czpFdPfs4b3Pywxtlb-83XOVu/exec';
     // 若希望最后点击 OK 后跳转到 Prolific completion 页面，可设置：
     const PROLIFIC_COMPLETION_URL = null;
     /***** END CONFIG *****/
@@ -1145,7 +1145,6 @@
       bindControls();
       bindNavigation();
       bindFinish();
-      bindResetSubmission();
       // check server by Prolific id, then check local
       checkServerThenLocalOnLoad();
       console.log('Survey ready (APPS_SCRIPT_URL=', APPS_SCRIPT_URL, ')');
@@ -1294,7 +1293,7 @@
 (function(){
   'use strict';
   // Ensure APPS_SCRIPT_URL exists
-  window.APPS_SCRIPT_URL = window.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbzn69EBA7s9VdCv7bA2RsaFQVkWtzalTQGQjQO9MiMpcIAfFLtrRHAkEIIwCErbfZzJ/exec';
+  window.APPS_SCRIPT_URL = window.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbyp1cnD7KynfdYKedHfHEcHgPFC7Q1ioGI86adeNK6czpFdPfs4b3Pywxtlb-83XOVu/exec';
 
   function jsonpAssign(workerId, n, callbackName, mode){
     mode = mode || 'balanced';
