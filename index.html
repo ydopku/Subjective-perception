@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Street Perception Survey (demo)</title>
+  <title>Street Perception Survey</title>
   <style>
     :root{--accent:#2563eb;--muted:#6b7280}
     body{font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;margin:0;background:#f8fafc;color:#0f172a}
@@ -36,102 +36,37 @@
     pre#output{white-space:pre-wrap;background:#0b1220;color:#cfe9ff;padding:12px;border-radius:8px;max-height:300px;overflow:auto}
     @media (max-width:720px){ .row{grid-template-columns:1fr} .images{flex-direction:column} button{width:48%} .buttons{flex-wrap:wrap;gap:8px} }
 
-    /* ---- submit overlay & lock styles ---- */
-    .container.locked * {
-      pointer-events: none !important;
-      user-select: none !important;
-      opacity: 0.6;
-    }
-
-    /* Fullscreen overlay centered card */
-    #submit-overlay {
-      position: fixed;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(11,17,32,0.58);
-      z-index: 9999;
-    }
-    #submit-overlay.show {
-      display: flex;
-    }
-    #submit-overlay .card {
-      width: 360px;
-      max-width: 92%;
-      background: #fff;
-      padding: 18px 18px;
-      border-radius: 12px;
-      box-shadow: 0 12px 40px rgba(2,6,23,0.3);
-      text-align: center;
-      font-family: inherit;
-    }
-    #submit-overlay .title {
-      font-weight:700;
-      font-size:16px;
-      margin-bottom:6px;
-      color:#0f172a;
-    }
-    #submit-overlay .message {
-      color:#374151;
-      font-size:14px;
-      margin-bottom:12px;
-    }
-
+    .container.locked * { pointer-events: none !important; user-select: none !important; opacity: 0.6; }
+    #submit-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(11,17,32,0.58); z-index: 9999; }
+    #submit-overlay.show { display: flex; }
+    #submit-overlay .card { width: 360px; max-width: 92%; background: #fff; padding: 18px 18px; border-radius: 12px; box-shadow: 0 12px 40px rgba(2,6,23,0.3); text-align: center; font-family: inherit; }
+    #submit-overlay .title { font-weight:700; font-size:16px; margin-bottom:6px; color:#0f172a; }
+    #submit-overlay .message { color:#374151; font-size:14px; margin-bottom:12px; }
     .progressbar { width:100%; height:12px; background:#eef2ff; border-radius:8px; overflow:hidden; margin-top:8px; }
-    .progressbar > div {
-      height:100%;
-      width:0%;
-      background: linear-gradient(90deg,#2563eb,#06b6d4);
-      transition: width 320ms linear;
-      border-radius:8px;
-    }
-
-    .spinner {
-      display:inline-block;
-      width:28px;
-      height:28px;
-      margin-left:10px;
-      vertical-align:middle;
-      border:3px solid rgba(37,99,235,0.18);
-      border-top-color: #2563eb;
-      border-radius:50%;
-      animation: spin 1s linear infinite;
-    }
+    .progressbar > div { height:100%; width:0%; background: linear-gradient(90deg,#2563eb,#06b6d4); transition: width 320ms linear; border-radius:8px; }
+    .spinner { display:inline-block; width:28px; height:28px; margin-left:10px; vertical-align:middle; border:3px solid rgba(37,99,235,0.18); border-top-color: #2563eb; border-radius:50%; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
     #submit-overlay .status-small { margin-top:10px; font-size:13px; color:#374151; }
-    #submit-overlay .card .confirm-btn {
-      margin-top:12px;
-      background: #10b981;
-      border-radius:8px;
-      padding:8px 14px;
-      color:#fff;
-      border:none;
-      cursor:pointer;
-      font-weight:600;
-    }
+    #submit-overlay .card .confirm-btn { margin-top:12px; background: #10b981; border-radius:8px; padding:8px 14px; color:#fff; border:none; cursor:pointer; font-weight:600; }
     #submit-overlay .card .confirm-btn.hidden { display:none; }
-
-    /* small note under submit button */
     #post-submit-note { margin-top:8px; font-weight:700; color:#065f46; }
-
   </style>
 </head>
 
 <body data-pair-ids="">
-<div id="loading-overlay" style="position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(255,255,255,0.95); z-index:10000; text-align:center; transition: opacity 0.3s;">
+
+<div id="loading-overlay" style="position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(255,255,255,0.98); z-index:10000; text-align:center; transition: opacity 0.3s;">
   <div style="font-size: 1.2rem; font-weight: 600; color: #111827;">Loading Survey...</div>
-  <div style="font-size: 0.9rem; color: #6b7280; margin-top: 8px;">Please wait, fetching images from server.</div>
+  <div style="font-size: 0.9rem; color: #6b7280; margin-top: 8px;">Initializing survey images...</div>
   <div class="spinner" style="margin-top: 16px;"></div>
-  <div id="loading-error" style="display:none; margin-top: 16px; color: #b91c1c; font-weight: 600;">
-    Error loading images. Please try refreshing the page.
+  <div id="loading-error" style="display:none; margin-top: 16px; color: #b91c1c; font-weight: 600; padding:0 20px;">
+    Error loading images. Please ensure images are public or refresh the page.
   </div>
 </div>
+
 <div class="container">
     <h1>Street Perception Survey</h1>
 
-    <!-- Page 1: demographics -->
     <div id="page-1" class="page active">
       <h2>1. Participant information</h2>
       <div class="row">
@@ -151,251 +86,7 @@
           <label for="nationality">Nationality (required)</label>
           <select id="nationality" required>
             <option value="">Please choose...</option>
-            <option value="Afghanistan">Afghanistan</option>
-            <option value="Åland Islands">Åland Islands</option>
-            <option value="Albania">Albania</option>
-            <option value="Algeria">Algeria</option>
-            <option value="American Samoa">American Samoa</option>
-            <option value="Andorra">Andorra</option>
-            <option value="Angola">Angola</option>
-            <option value="Anguilla">Anguilla</option>
-            <option value="Antarctica">Antarctica</option>
-            <option value="Antigua and Barbuda">Antigua and Barbuda</option>
-            <option value="Argentina">Argentina</option>
-            <option value="Armenia">Armenia</option>
-            <option value="Aruba">Aruba</option>
-            <option value="Australia">Australia</option>
-            <option value="Austria">Austria</option>
-            <option value="Azerbaijan">Azerbaijan</option>
-            <option value="Bahamas">Bahamas</option>
-            <option value="Bahrain">Bahrain</option>
-            <option value="Bangladesh">Bangladesh</option>
-            <option value="Barbados">Barbados</option>
-            <option value="Belarus">Belarus</option>
-            <option value="Belgium">Belgium</option>
-            <option value="Belize">Belize</option>
-            <option value="Benin">Benin</option>
-            <option value="Bermuda">Bermuda</option>
-            <option value="Bhutan">Bhutan</option>
-            <option value="Bolivia">Bolivia</option>
-            <option value="Bosnia and Herzegovina">Bosnia and Herzegovina</option>
-            <option value="Botswana">Botswana</option>
-            <option value="Bouvet Island">Bouvet Island</option>
-            <option value="Brazil">Brazil</option>
-            <option value="British Indian Ocean Territory">British Indian Ocean Territory</option>
-            <option value="Brunei Darussalam">Brunei Darussalam</option>
-            <option value="Bulgaria">Bulgaria</option>
-            <option value="Burkina Faso">Burkina Faso</option>
-            <option value="Burundi">Burundi</option>
-            <option value="Cambodia">Cambodia</option>
-            <option value="Cameroon">Cameroon</option>
-            <option value="Canada">Canada</option>
-            <option value="Cape Verde">Cape Verde</option>
-            <option value="Cayman Islands">Cayman Islands</option>
-            <option value="Central African Republic">Central African Republic</option>
-            <option value="Chad">Chad</option>
-            <option value="Chile">Chile</option>
-            <option value="China">China</option>
-            <option value="Christmas Island">Christmas Island</option>
-            <option value="Cocos (Keeling) Islands">Cocos (Keeling) Islands</option>
-            <option value="Colombia">Colombia</option>
-            <option value="Comoros">Comoros</option>
-            <option value="Congo">Congo</option>
-            <option value="Congo, The Democratic Republic of The">Congo, The Democratic Republic of The</option>
-            <option value="Cook Islands">Cook Islands</option>
-            <option value="Costa Rica">Costa Rica</option>
-            <option value="Cote D'ivoire">Cote D'ivoire</option>
-            <option value="Croatia">Croatia</option>
-            <option value="Cuba">Cuba</option>
-            <option value="Cyprus">Cyprus</option>
-            <option value="Czech Republic">Czech Republic</option>
-            <option value="Denmark">Denmark</option>
-            <option value="Djibouti">Djibouti</option>
-            <option value="Dominica">Dominica</option>
-            <option value="Dominican Republic">Dominican Republic</option>
-            <option value="Ecuador">Ecuador</option>
-            <option value="Egypt">Egypt</option>
-            <option value="El Salvador">El Salvador</option>
-            <option value="Equatorial Guinea">Equatorial Guinea</option>
-            <option value="Eritrea">Eritrea</option>
-            <option value="Estonia">Estonia</option>
-            <option value="Ethiopia">Ethiopia</option>
-            <option value="Falkland Islands (Malvinas)">Falkland Islands (Malvinas)</option>
-            <option value="Faroe Islands">Faroe Islands</option>
-            <option value="Fiji">Fiji</option>
-            <option value="Finland">Finland</option>
-            <option value="France">France</option>
-            <option value="French Guiana">French Guiana</option>
-            <option value="French Polynesia">French Polynesia</option>
-            <option value="French Southern Territories">French Southern Territories</option>
-            <option value="Gabon">Gabon</option>
-            <option value="Gambia">Gambia</option>
-            <option value="Georgia">Georgia</option>
-            <option value="Germany">Germany</option>
-            <option value="Ghana">Ghana</option>
-            <option value="Gibraltar">Gibraltar</option>
-            <option value="Greece">Greece</option>
-            <option value="Greenland">Greenland</option>
-            <option value="Grenada">Grenada</option>
-            <option value="Guadeloupe">Guadeloupe</option>
-            <option value="Guam">Guam</option>
-            <option value="Guatemala">Guatemala</option>
-            <option value="Guernsey">Guernsey</option>
-            <option value="Guinea">Guinea</option>
-            <option value="Guinea-bissau">Guinea-bissau</option>
-            <option value="Guyana">Guyana</option>
-            <option value="Haiti">Haiti</option>
-            <option value="Heard Island and Mcdonald Islands">Heard Island and Mcdonald Islands</option>
-            <option value="Holy See (Vatican City State)">Holy See (Vatican City State)</option>
-            <option value="Honduras">Honduras</option>
-            <option value="Hong Kong">Hong Kong</option>
-            <option value="Hungary">Hungary</option>
-            <option value="Iceland">Iceland</option>
-            <option value="India">India</option>
-            <option value="Indonesia">Indonesia</option>
-            <option value="Iran, Islamic Republic of">Iran, Islamic Republic of</option>
-            <option value="Iraq">Iraq</option>
-            <option value="Ireland">Ireland</option>
-            <option value="Isle of Man">Isle of Man</option>
-            <option value="Israel">Israel</option>
-            <option value="Italy">Italy</option>
-            <option value="Jamaica">Jamaica</option>
-            <option value="Japan">Japan</option>
-            <option value="Jersey">Jersey</option>
-            <option value="Jordan">Jordan</option>
-            <option value="Kazakhstan">Kazakhstan</option>
-            <option value="Kenya">Kenya</option>
-            <option value="Kiribati">Kiribati</option>
-            <option value="Korea, Democratic People's Republic of">Korea, Democratic People's Republic of</option>
-            <option value="Korea, Republic of">Korea, Republic of</option>
-            <option value="Kuwait">Kuwait</option>
-            <option value="Kyrgyzstan">Kyrgyzstan</option>
-            <option value="Lao People's Democratic Republic">Lao People's Democratic Republic</option>
-            <option value="Latvia">Latvia</option>
-            <option value="Lebanon">Lebanon</option>
-            <option value="Lesotho">Lesotho</option>
-            <option value="Liberia">Liberia</option>
-            <option value="Libyan Arab Jamahiriya">Libyan Arab Jamahiriya</option>
-            <option value="Liechtenstein">Liechtenstein</option>
-            <option value="Lithuania">Lithuania</option>
-            <option value="Luxembourg">Luxembourg</option>
-            <option value="Macao">Macao</option>
-            <option value="Macedonia, The Former Yugoslav Republic of">Macedonia, The Former Yugoslav Republic of</option>
-            <option value="Madagascar">Madagascar</option>
-            <option value="Malawi">Malawi</option>
-            <option value="Malaysia">Malaysia</option>
-            <option value="Maldives">Maldives</option>
-            <option value="Mali">Mali</option>
-            <option value="Malta">Malta</option>
-            <option value="Marshall Islands">Marshall Islands</option>
-            <option value="Martinique">Martinique</option>
-            <option value="Mauritania">Mauritania</option>
-            <option value="Mauritius">Mauritius</option>
-            <option value="Mayotte">Mayotte</option>
-            <option value="Mexico">Mexico</option>
-            <option value="Micronesia, Federated States of">Micronesia, Federated States of</option>
-            <option value="Moldova, Republic of">Moldova, Republic of</option>
-            <option value="Monaco">Monaco</option>
-            <option value="Mongolia">Mongolia</option>
-            <option value="Montenegro">Montenegro</option>
-            <option value="Montserrat">Montserrat</option>
-            <option value="Morocco">Morocco</option>
-            <option value="Mozambique">Mozambique</option>
-            <option value="Myanmar">Myanmar</option>
-            <option value="Namibia">Namibia</option>
-            <option value="Nauru">Nauru</option>
-            <option value="Nepal">Nepal</option>
-            <option value="Netherlands">Netherlands</option>
-            <option value="Netherlands Antilles">Netherlands Antilles</option>
-            <option value="New Caledonia">New Caledonia</option>
-            <option value="New Zealand">New Zealand</option>
-            <option value="Nicaragua">Nicaragua</option>
-            <option value="Niger">Niger</option>
-            <option value="Nigeria">Nigeria</option>
-            <option value="Niue">Niue</option>
-            <option value="Norfolk Island">Norfolk Island</option>
-            <option value="Northern Mariana Islands">Northern Mariana Islands</option>
-            <option value="Norway">Norway</option>
-            <option value="Oman">Oman</option>
-            <option value="Pakistan">Pakistan</option>
-            <option value="Palau">Palau</option>
-            <option value="Palestinian Territory, Occupied">Palestinian Territory, Occupied</option>
-            <option value="Panama">Panama</option>
-            <option value="Papua New Guinea">Papua New Guinea</option>
-            <option value="Paraguay">Paraguay</option>
-            <option value="Peru">Peru</option>
-            <option value="Philippines">Philippines</option>
-            <option value="Pitcairn">Pitcairn</option>
-            <option value="Poland">Poland</option>
-            <option value="Portugal">Portugal</option>
-            <option value="Puerto Rico">Puerto Rico</option>
-            <option value="Qatar">Qatar</option>
-            <option value="Reunion">Reunion</option>
-            <option value="Romania">Romania</option>
-            <option value="Russian Federation">Russian Federation</option>
-            <option value="Rwanda">Rwanda</option>
-            <option value="Saint Helena">Saint Helena</option>
-            <option value="Saint Kitts and Nevis">Saint Kitts and Nevis</option>
-            <option value="Saint Lucia">Saint Lucia</option>
-            <option value="Saint Pierre and Miquelon">Saint Pierre and Miquelon</option>
-            <option value="Saint Vincent and The Grenadines">Saint Vincent and The Grenadines</option>
-            <option value="Samoa">Samoa</option>
-            <option value="San Marino">San Marino</option>
-            <option value="Sao Tome and Principe">Sao Tome and Principe</option>
-            <option value="Saudi Arabia">Saudi Arabia</option>
-            <option value="Senegal">Senegal</option>
-            <option value="Serbia">Serbia</option>
-            <option value="Seychelles">Seychelles</option>
-            <option value="Sierra Leone">Sierra Leone</option>
-            <option value="Singapore">Singapore</option>
-            <option value="Slovakia">Slovakia</option>
-            <option value="Slovenia">Slovenia</option>
-            <option value="Solomon Islands">Solomon Islands</option>
-            <option value="Somalia">Somalia</option>
-            <option value="South Africa">South Africa</option>
-            <option value="South Georgia and The South Sandwich Islands">South Georgia and The South Sandwich Islands</option>
-            <option value="Spain">Spain</option>
-            <option value="Sri Lanka">Sri Lanka</option>
-            <option value="Sudan">Sudan</option>
-            <option value="Suriname">Suriname</option>
-            <option value="Svalbard and Jan Mayen">Svalbard and Jan Mayen</option>
-            <option value.="Swaziland">Swaziland</option>
-            <option value="Sweden">Sweden</option>
-            <option value="Switzerland">Switzerland</option>
-            <option value="Syrian Arab Republic">Syrian Arab Republic</option>
-            <option value="Taiwan, Province of China">Taiwan, Province of China</option>
-            <option value="Tajikistan">Tajikistan</option>
-            <option value="Tanzania, United Republic of">Tanzania, United Republic of</option>
-            <option value="Thailand">Thailand</option>
-            <option value="Timor-leste">Timor-leste</option>
-            <option value="Togo">Togo</option>
-            <option value="Tokelau">Tokelau</option>
-            <option value="Tonga">Tonga</option>
-            <option value="Trinidad and Tobago">Trinidad and Tobago</option>
-            <option value="Tunisia">Tunisia</option>
-            <option value="Turkey">Turkey</option>
-            <option value="Turkmenistan">Turkmenistan</option>
-            <option value="Turks and Caicos Islands">Turks and Caicos Islands</option>
-            <option value="Tuvalu">Tuvalu</option>
-            <option value="Uganda">Uganda</option>
-            <option value="Ukraine">Ukraine</option>
-            <option value="United Arab Emirates">United Arab Emirates</option>
-            <option value="United Kingdom">United Kingdom</option>
-            <option value="United States">United States</option>
-            <option value="United States Minor Outlying Islands">United States Minor Outlying Islands</option>
-            <option value="Uruguay">Uruguay</option>
-            <option value="Uzbekistan">Uzbekistan</option>
-            <option value="Vanuatu">Vanuatu</option>
-            <option value="Venezuela">Venezuela</option>
-            <option value="Viet Nam">Viet Nam</option>
-            <option value="Virgin Islands, British">Virgin Islands, British</option>
-            <option value="Virgin Islands, U.S.">Virgin Islands, U.S.</option>
-            <option value="Wallis and Futuna">Wallis and Futuna</option>
-            <option value="Western Sahara">Western Sahara</option>
-            <option value="Yemen">Yemen</option>
-            <option value="Zambia">Zambia</option>
-            <option value="Zimbabwe">Zimbabwe</option>
-            <option value="Other">Other</option>
+            <option value="Afghanistan">Afghanistan</option><option value="Åland Islands">Åland Islands</option><option value="Albania">Albania</option><option value="Algeria">Algeria</option><option value="American Samoa">American Samoa</option><option value="Andorra">Andorra</option><option value="Angola">Angola</option><option value="Anguilla">Anguilla</option><option value="Antarctica">Antarctica</option><option value="Antigua and Barbuda">Antigua and Barbuda</option><option value="Argentina">Argentina</option><option value="Armenia">Armenia</option><option value="Aruba">Aruba</option><option value="Australia">Australia</option><option value="Austria">Austria</option><option value="Azerbaijan">Azerbaijan</option><option value="Bahamas">Bahamas</option><option value="Bahrain">Bahrain</option><option value="Bangladesh">Bangladesh</option><option value="Barbados">Barbados</option><option value="Belarus">Belarus</option><option value="Belgium">Belgium</option><option value="Belize">Belize</option><option value="Benin">Benin</option><option value="Bermuda">Bermuda</option><option value="Bhutan">Bhutan</option><option value="Bolivia">Bolivia</option><option value="Bosnia and Herzegovina">Bosnia and Herzegovina</option><option value="Botswana">Botswana</option><option value="Bouvet Island">Bouvet Island</option><option value="Brazil">Brazil</option><option value="British Indian Ocean Territory">British Indian Ocean Territory</option><option value="Brunei Darussalam">Brunei Darussalam</option><option value="Bulgaria">Bulgaria</option><option value="Burkina Faso">Burkina Faso</option><option value="Burundi">Burundi</option><option value="Cambodia">Cambodia</option><option value="Cameroon">Cameroon</option><option value="Canada">Canada</option><option value="Cape Verde">Cape Verde</option><option value="Cayman Islands">Cayman Islands</option><option value="Central African Republic">Central African Republic</option><option value="Chad">Chad</option><option value="Chile">Chile</option><option value="China">China</option><option value="Christmas Island">Christmas Island</option><option value="Cocos (Keeling) Islands">Cocos (Keeling) Islands</option><option value="Colombia">Colombia</option><option value="Comoros">Comoros</option><option value="Congo">Congo</option><option value="Congo, The Democratic Republic of The">Congo, The Democratic Republic of The</option><option value="Cook Islands">Cook Islands</option><option value="Costa Rica">Costa Rica</option><option value="Cote D'ivoire">Cote D'ivoire</option><option value="Croatia">Croatia</option><option value="Cuba">Cuba</option><option value="Cyprus">Cyprus</option><option value="Czech Republic">Czech Republic</option><option value="Denmark">Denmark</option><option value="Djibouti">Djibouti</option><option value="Dominica">Dominica</option><option value="Dominican Republic">Dominican Republic</option><option value="Ecuador">Ecuador</option><option value="Egypt">Egypt</option><option value="El Salvador">El Salvador</option><option value="Equatorial Guinea">Equatorial Guinea</option><option value="Eritrea">Eritrea</option><option value="Estonia">Estonia</option><option value="Ethiopia">Ethiopia</option><option value="Falkland Islands (Malvinas)">Falkland Islands (Malvinas)</option><option value="Faroe Islands">Faroe Islands</option><option value="Fiji">Fiji</option><option value="Finland">Finland</option><option value="France">France</option><option value="French Guiana">French Guiana</option><option value="French Polynesia">French Polynesia</option><option value="French Southern Territories">French Southern Territories</option><option value="Gabon">Gabon</option><option value="Gambia">Gambia</option><option value="Georgia">Georgia</option><option value="Germany">Germany</option><option value="Ghana">Ghana</option><option value="Gibraltar">Gibraltar</option><option value="Greece">Greece</option><option value="Greenland">Greenland</option><option value="Grenada">Grenada</option><option value="Guadeloupe">Guadeloupe</option><option value="Guam">Guam</option><option value="Guatemala">Guatemala</option><option value="Guernsey">Guernsey</option><option value="Guinea">Guinea</option><option value="Guinea-bissau">Guinea-bissau</option><option value="Guyana">Guyana</option><option value="Haiti">Haiti</option><option value="Heard Island and Mcdonald Islands">Heard Island and Mcdonald Islands</option><option value="Holy See (Vatican City State)">Holy See (Vatican City State)</option><option value="Honduras">Honduras</option><option value="Hong Kong">Hong Kong</option><option value="Hungary">Hungary</option><option value="Iceland">Iceland</option><option value="India">India</option><option value="Indonesia">Indonesia</option><option value="Iran, Islamic Republic of">Iran, Islamic Republic of</option><option value="Iraq">Iraq</option><option value="Ireland">Ireland</option><option value="Isle of Man">Isle of Man</option><option value="Israel">Israel</option><option value="Italy">Italy</option><option value="Jamaica">Jamaica</option><option value="Japan">Japan</option><option value="Jersey">Jersey</option><option value="Jordan">Jordan</option><option value="Kazakhstan">Kazakhstan</option><option value="Kenya">Kenya</option><option value="Kiribati">Kiribati</option><option value="Korea, Democratic People's Republic of">Korea, Democratic People's Republic of</option><option value="Korea, Republic of">Korea, Republic of</option><option value="Kuwait">Kuwait</option><option value="Kyrgyzstan">Kyrgyzstan</option><option value="Lao People's Democratic Republic">Lao People's Democratic Republic</option><option value="Latvia">Latvia</option><option value="Lebanon">Lebanon</option><option value="Lesotho">Lesotho</option><option value="Liberia">Liberia</option><option value="Libyan Arab Jamahiriya">Libyan Arab Jamahiriya</option><option value="Liechtenstein">Liechtenstein</option><option value="Lithuania">Lithuania</option><option value="Luxembourg">Luxembourg</option><option value="Macao">Macao</option><option value="Macedonia, The Former Yugoslav Republic of">Macedonia, The Former Yugoslav Republic of</option><option value="Madagascar">Madagascar</option><option value="Malawi">Malawi</option><option value="Malaysia">Malaysia</option><option value="Maldives">Maldives</option><option value="Mali">Mali</option><option value="Malta">Malta</option><option value="Marshall Islands">Marshall Islands</option><option value="Martinique">Martinique</option><option value="Mauritania">Mauritania</option><option value="Mauritius">Mauritius</option><option value="Mayotte">Mayotte</option><option value="Mexico">Mexico</option><option value="Micronesia, Federated States of">Micronesia, Federated States of</option><option value="Moldova, Republic of">Moldova, Republic of</option><option value="Monaco">Monaco</option><option value="Mongolia">Mongolia</option><option value="Montenegro">Montenegro</option><option value="Montserrat">Montserrat</option><option value="Morocco">Morocco</option><option value="Mozambique">Mozambique</option><option value="Myanmar">Myanmar</option><option value="Namibia">Namibia</option><option value="Nauru">Nauru</option><option value="Nepal">Nepal</option><option value="Netherlands">Netherlands</option><option value="Netherlands Antilles">Netherlands Antilles</option><option value="New Caledonia">New Caledonia</option><option value="New Zealand">New Zealand</option><option value="Nicaragua">Nicaragua</option><option value="Niger">Niger</option><option value="Nigeria">Nigeria</option><option value="Niue">Niue</option><option value="Norfolk Island">Norfolk Island</option><option value="Northern Mariana Islands">Northern Mariana Islands</option><option value="Norway">Norway</option><option value="Oman">Oman</option><option value="Pakistan">Pakistan</option><option value="Palau">Palau</option><option value="Palestinian Territory, Occupied">Palestinian Territory, Occupied</option><option value="Panama">Panama</option><option value="Papua New Guinea">Papua New Guinea</option><option value="Paraguay">Paraguay</option><option value="Peru">Peru</option><option value="Philippines">Philippines</option><option value="Pitcairn">Pitcairn</option><option value="Poland">Poland</option><option value="Portugal">Portugal</option><option value="Puerto Rico">Puerto Rico</option><option value="Qatar">Qatar</option><option value="Reunion">Reunion</option><option value="Romania">Romania</option><option value="Russian Federation">Russian Federation</option><option value="Rwanda">Rwanda</option><option value="Saint Helena">Saint Helena</option><option value="Saint Kitts and Nevis">Saint Kitts and Nevis</option><option value="Saint Lucia">Saint Lucia</option><option value="Saint Pierre and Miquelon">Saint Pierre and Miquelon</option><option value="Saint Vincent and The Grenadines">Saint Vincent and The Grenadines</option><option value="Samoa">Samoa</option><option value="San Marino">San Marino</option><option value="Sao Tome and Principe">Sao Tome and Principe</option><option value="Saudi Arabia">Saudi Arabia</option><option value="Senegal">Senegal</option><option value="Serbia">Serbia</option><option value="Seychelles">Seychelles</option><option value="Sierra Leone">Sierra Leone</option><option value="Singapore">Singapore</option><option value="Slovakia">Slovakia</option><option value="Slovenia">Slovenia</option><option value="Solomon Islands">Solomon Islands</option><option value="Somalia">Somalia</option><option value="South Africa">South Africa</option><option value="South Georgia and The South Sandwich Islands">South Georgia and The South Sandwich Islands</option><option value="Spain">Spain</option><option value="Sri Lanka">Sri Lanka</option><option value="Sudan">Sudan</option><option value="Suriname">Suriname</option><option value="Svalbard and Jan Mayen">Svalbard and Jan Mayen</option><option value="Swaziland">Swaziland</option><option value="Sweden">Sweden</option><option value="Switzerland">Switzerland</option><option value="Syrian Arab Republic">Syrian Arab Republic</option><option value="Taiwan, Province of China">Taiwan, Province of China</option><option value="Tajikistan">Tajikistan</option><option value="Tanzania, United Republic of">Tanzania, United Republic of</option><option value="Thailand">Thailand</option><option value="Timor-leste">Timor-leste</option><option value="Togo">Togo</option><option value="Tokelau">Tokelau</option><option value="Tonga">Tonga</option><option value="Trinidad and Tobago">Trinidad and Tobago</option><option value="Tunisia">Tunisia</option><option value="Turkey">Turkey</option><option value="Turkmenistan">Turkmenistan</option><option value="Turks and Caicos Islands">Turks and Caicos Islands</option><option value="Tuvalu">Tuvalu</option><option value="Uganda">Uganda</option><option value="Ukraine">Ukraine</option><option value="United Arab Emirates">United Arab Emirates</option><option value="United Kingdom">United Kingdom</option><option value="United States">United States</option><option value="United States Minor Outlying Islands">United States Minor Outlying Islands</option><option value="Uruguay">Uruguay</option><option value="Uzbekistan">Uzbekistan</option><option value="Vanuatu">Vanuatu</option><option value="Venezuela">Venezuela</option><option value="Viet Nam">Viet Nam</option><option value="Virgin Islands, British">Virgin Islands, British</option><option value="Virgin Islands, U.S.">Virgin Islands, U.S.</option><option value="Wallis and Futuna">Wallis and Futuna</option><option value="Western Sahara">Western Sahara</option><option value="Yemen">Yemen</option><option value="Zambia">Zambia</option><option value="Zimbabwe">Zimbabwe</option><option value="Other">Other</option>
           </select>
         </div>
         <div>
@@ -406,10 +97,9 @@
       <div class="buttons"><div></div><button id="to-page-2" data-next="2" type="button">Next: Safe — Rating ▶</button></div>
     </div>
 
-    <!-- Safe rating (page 2) -->
     <div id="page-2" class="page" data-attr-index="0">
       <h2>2. Safe — Pairwise comparison</h2>
-      <div class="images"><img class="survey-img-1" src="1.jpg" alt="image1"><img class="survey-img-2" src="2.jpg" alt="image2"></div>
+      <div class="images"><img class="survey-img-1" src=""><img class="survey-img-2" src=""></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
         <div style="font-weight:600">Image 1</div>
         <div style="text-align:center;font-weight:700">Which image looks safer?</div>
@@ -420,18 +110,17 @@
       <div class="buttons"><button class="secondary" data-go="1" type="button">◀ Back</button><button data-next="3" type="button">Next: mark Safe points ▶</button></div>
     </div>
 
-    <!-- Safe annotation (page 3) -->
     <div id="page-3" class="page" data-attr-index="0">
       <h2>3. Safe — Mark points of interest</h2>
-      <p class="hint">Click on the image to add a point. To remove a point, select it then use "Delete selected" or the delete button in the list. Dragging is disabled.</p>
+      <p class="hint">Click on the image to add a point. To remove a point, select it then use "Delete selected".</p>
       <div class="images">
         <div style="flex:1;text-align:center">
-          <div class="regions-wrap"><img id="img-Safe-1" class="survey-img-1" src="1.jpg" alt="1" /><svg id="ov-Safe-1" class="overlay"></svg></div>
+          <div class="regions-wrap"><img id="img-Safe-1" class="survey-img-1" src="" /><svg id="ov-Safe-1" class="overlay"></svg></div>
           <div style="margin-top:8px"><strong>Image 1</strong> — Points: <span id="count-Safe-1">0</span></div>
           <div class="points-list" id="list-Safe-1"></div>
         </div>
         <div style="flex:1;text-align:center">
-          <div class="regions-wrap"><img id="img-Safe-2" class="survey-img-2" src="2.jpg" alt="2" /><svg id="ov-Safe-2" class="overlay"></svg></div>
+          <div class="regions-wrap"><img id="img-Safe-2" class="survey-img-2" src="" /><svg id="ov-Safe-2" class="overlay"></svg></div>
           <div style="margin-top:8px"><strong>Image 2</strong> — Points: <span id="count-Safe-2">0</span></div>
           <div class="points-list" id="list-Safe-2"></div>
         </div>
@@ -440,10 +129,9 @@
       <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="4" type="button">Next: Lively — Rating ▶</button></div>
     </div>
 
-    <!-- Lively rating (4) -->
     <div id="page-4" class="page" data-attr-index="1">
       <h2>4. Lively — Pairwise comparison</h2>
-      <div class="images"><img class="survey-img-1" src="1.jpg" alt="image1"><img class="survey-img-2" src="2.jpg" alt="image2"></div>
+      <div class="images"><img class="survey-img-1" src=""><img class="survey-img-2" src=""></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
         <div style="font-weight:600">Image 1</div>
         <div style="text-align:center;font-weight:700">Which image looks livelier?</div>
@@ -453,23 +141,19 @@
       <div class="hint" style="margin-top:8px">Use the 5-point scale below with 0 at the center.</div>
       <div class="buttons"><button class="secondary" data-go="3" type="button">◀ Back</button><button data-next="5" type="button">Next: mark Lively points ▶</button></div>
     </div>
-
-    <!-- Lively annotation (5) -->
     <div id="page-5" class="page" data-attr-index="1">
       <h2>5. Lively — Mark points of interest</h2>
-      <p class="hint">Click to add point. Dragging disabled. Delete via "Delete selected" or list button.</p>
       <div class="images">
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Lively-1" class="survey-img-1" src="1.jpg"/><svg id="ov-Lively-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Lively-1">0</span></div><div class="points-list" id="list-Lively-1"></div></div>
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Lively-2" class="survey-img-2" src="2.jpg"/><svg id="ov-Lively-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Lively-2">0</span></div><div class="points-list" id="list-Lively-2"></div></div>
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Lively-1" class="survey-img-1" src="" /><svg id="ov-Lively-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Lively-1">0</span></div><div class="points-list" id="list-Lively-1"></div></div>
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Lively-2" class="survey-img-2" src="" /><svg id="ov-Lively-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Lively-2">0</span></div><div class="points-list" id="list-Lively-2"></div></div>
       </div>
       <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div>
       <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="6" type="button">Next: Beautiful — Rating ▶</button></div>
     </div>
 
-    <!-- Beautiful rating (6) -->
     <div id="page-6" class="page" data-attr-index="2">
       <h2>6. Beautiful — Pairwise comparison</h2>
-      <div class="images"><img class="survey-img-1" src="1.jpg" alt="image1"><img class="survey-img-2" src="2.jpg" alt="image2"></div>
+      <div class="images"><img class="survey-img-1" src=""><img class="survey-img-2" src=""></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
         <div style="font-weight:600">Image 1</div>
         <div style="text-align:center;font-weight:700">Which image looks more beautiful?</div>
@@ -479,23 +163,19 @@
       <div class="hint" style="margin-top:8px">Use the 5-point scale below with 0 at the center.</div>
       <div class="buttons"><button class="secondary" data-go="5" type="button">◀ Back</button><button data-next="7" type="button">Next: mark Beautiful points ▶</button></div>
     </div>
-
-    <!-- Beautiful annotation (7) -->
     <div id="page-7" class="page" data-attr-index="2">
       <h2>7. Beautiful — Mark points of interest</h2>
-      <p class="hint">Click to add point. Dragging disabled. Delete via "Delete selected" or list button.</p>
       <div class="images">
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Beautiful-1" class="survey-img-1" src="1.jpg"/><svg id="ov-Beautiful-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Beautiful-1">0</span></div><div class="points-list" id="list-Beautiful-1"></div></div>
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Beautiful-2" class="survey-img-2" src="2.jpg"/><svg id="ov-Beautiful-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Beautiful-2">0</span></div><div class="points-list" id="list-Beautiful-2"></div></div>
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Beautiful-1" class="survey-img-1" src="" /><svg id="ov-Beautiful-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Beautiful-1">0</span></div><div class="points-list" id="list-Beautiful-1"></div></div>
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Beautiful-2" class="survey-img-2" src="" /><svg id="ov-Beautiful-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Beautiful-2">0</span></div><div class="points-list" id="list-Beautiful-2"></div></div>
       </div>
       <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div>
       <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="8" type="button">Next: Wealthy — Rating ▶</button></div>
     </div>
 
-    <!-- Wealthy rating (8) -->
     <div id="page-8" class="page" data-attr-index="3">
       <h2>8. Wealthy — Pairwise comparison</h2>
-      <div class="images"><img class="survey-img-1" src="1.jpg" alt="image1"><img class="survey-img-2" src="2.jpg" alt="image2"></div>
+      <div class="images"><img class="survey-img-1" src=""><img class="survey-img-2" src=""></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
         <div style="font-weight:600">Image 1</div>
         <div style="text-align:center;font-weight:700">Which image looks wealthier?</div>
@@ -505,23 +185,19 @@
       <div class="hint" style="margin-top:8px">Use the 5-point scale below with 0 at the center.</div>
       <div class="buttons"><button class="secondary" data-go="7" type="button">◀ Back</button><button data-next="9" type="button">Next: mark Wealthy points ▶</button></div>
     </div>
-
-    <!-- Wealthy annotation (9) -->
     <div id="page-9" class="page" data-attr-index="3">
       <h2>9. Wealthy — Mark points of interest</h2>
-      <p class="hint">Click to add point. Dragging disabled. Delete via "Delete selected" or list button.</p>
       <div class="images">
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Wealthy-1" class="survey-img-1" src="1.jpg"/><svg id="ov-Wealthy-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Wealthy-1">0</span></div><div class="points-list" id="list-Wealthy-1"></div></div>
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Wealthy-2" class="survey-img-2" src="2.jpg"/><svg id="ov-Wealthy-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Wealthy-2">0</span></div><div class="points-list" id="list-Wealthy-2"></div></div>
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Wealthy-1" class="survey-img-1" src="" /><svg id="ov-Wealthy-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Wealthy-1">0</span></div><div class="points-list" id="list-Wealthy-1"></div></div>
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Wealthy-2" class="survey-img-2" src="" /><svg id="ov-Wealthy-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Wealthy-2">0</span></div><div class="points-list" id="list-Wealthy-2"></div></div>
       </div>
       <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div>
       <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="10" type="button">Next: Boring — Rating ▶</button></div>
     </div>
 
-    <!-- Boring rating (10) -->
     <div id="page-10" class="page" data-attr-index="4">
       <h2>10. Boring — Pairwise comparison</h2>
-      <div class="images"><img class="survey-img-1" src="1.jpg" alt="image1"><img class="survey-img-2" src="2.jpg" alt="image2"></div>
+      <div class="images"><img class="survey-img-1" src=""><img class="survey-img-2" src=""></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
         <div style="font-weight:600">Image 1</div>
         <div style="text-align:center;font-weight:700">Which image looks more boring?</div>
@@ -531,23 +207,19 @@
       <div class="hint" style="margin-top:8px">Use the 5-point scale below with 0 at the center.</div>
       <div class="buttons"><button class="secondary" data-go="9" type="button">◀ Back</button><button data-next="11" type="button">Next: mark Boring points ▶</button></div>
     </div>
-
-    <!-- Boring annotation (11) -->
     <div id="page-11" class="page" data-attr-index="4">
       <h2>11. Boring — Mark points of interest</h2>
-      <p class="hint">Click to add point. Dragging disabled. Delete via "Delete selected" or list button.</p>
       <div class="images">
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Boring-1" class="survey-img-1" src="1.jpg"/><svg id="ov-Boring-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Boring-1">0</span></div><div class="points-list" id="list-Boring-1"></div></div>
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Boring-2" class="survey-img-2" src="2.jpg"/><svg id="ov-Boring-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Boring-2">0</span></div><div class="points-list" id="list-Boring-2"></div></div>
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Boring-1" class="survey-img-1" src="" /><svg id="ov-Boring-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Boring-1">0</span></div><div class="points-list" id="list-Boring-1"></div></div>
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Boring-2" class="survey-img-2" src="" /><svg id="ov-Boring-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Boring-2">0</span></div><div class="points-list" id="list-Boring-2"></div></div>
       </div>
       <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div>
       <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="12" type="button">Next: Depressing — Rating ▶</button></div>
     </div>
 
-    <!-- Depressing rating (12) -->
     <div id="page-12" class="page" data-attr-index="5">
       <h2>12. Depressing — Pairwise comparison</h2>
-      <div class="images"><img class="survey-img-1" src="1.jpg" alt="image1"><img class="survey-img-2" src="2.jpg" alt="image2"></div>
+      <div class="images"><img class="survey-img-1" src=""><img class="survey-img-2" src=""></div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
         <div style="font-weight:600">Image 1</div>
         <div style="text-align:center;font-weight:700">Which image looks more depressing?</div>
@@ -557,23 +229,19 @@
       <div class="hint" style="margin-top:8px">Use the 5-point scale below with 0 at the center.</div>
       <div class="buttons"><button class="secondary" data-go="11" type="button">◀ Back</button><button data-next="13" type="button">Next: mark Depressing points ▶</button></div>
     </div>
-
-    <!-- Depressing annotation (13) -->
     <div id="page-13" class="page" data-attr-index="5">
       <h2>13. Depressing — Mark points of interest</h2>
-      <p class="hint">Click to add point. Dragging disabled. Delete via "Delete selected" or list button.</p>
       <div class="images">
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Depressing-1" class="survey-img-1" src="1.jpg"/><svg id="ov-Depressing-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Depressing-1">0</span></div><div class="points-list" id="list-Depressing-1"></div></div>
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Depressing-2" class="survey-img-2" src="2.jpg"/><svg id="ov-Depressing-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Depressing-2">0</span></div><div class="points-list" id="list-Depressing-2"></div></div>
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Depressing-1" class="survey-img-1" src="" /><svg id="ov-Depressing-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Depressing-1">0</span></div><div class="points-list" id="list-Depressing-1"></div></div>
+        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Depressing-2" class="survey-img-2" src="" /><svg id="ov-Depressing-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Depressing-2">0</span></div><div class="points-list" id="list-Depressing-2"></div></div>
       </div>
       <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div>
       <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="14" type="button">Next: AI guess ▶</button></div>
     </div>
 
-    <!-- Final page 14 -->
     <div id="page-14" class="page">
       <h2>14. Which image is more likely generated by AI?</h2>
-      <div class="images"><img id="final-img-1" class="survey-img-1" src="1.jpg" alt="img1"><img id="final-img-2" class="survey-img-2" src="2.jpg" alt="img2"></div>
+      <div class="images"><img id="final-img-1" class="survey-img-1" src=""><img id="final-img-2" class="survey-img-2" src=""></div>
       <div style="margin-top:12px">
         <label><input type="radio" name="ai_guess" value="1"> Image 1</label>
         <label><input type="radio" name="ai_guess" value="2"> Image 2</label>
@@ -588,10 +256,9 @@
       <div style="margin-top:12px"><h3>Output</h3><pre id="output">No submission yet.</pre></div>
     </div>
 
-  </div>
+</div>
 
-  <!-- Submit overlay -->
-  <div id="submit-overlay" role="status" aria-live="polite" aria-hidden="true">
+<div id="submit-overlay" role="status" aria-live="polite" aria-hidden="true">
     <div class="card" role="dialog" aria-modal="true" aria-label="Submitting">
       <div style="display:flex;align-items:center;justify-content:center;">
         <div class="title" id="submit-overlay-title">Submitting…</div>
@@ -602,1339 +269,398 @@
       <div class="status-small" id="submit-overlay-status" aria-hidden="true"></div>
       <button id="submit-overlay-confirm" class="confirm-btn hidden" aria-hidden="true">OK</button>
     </div>
-  </div>
-  <script>
-  // REPLACE this URL with your deployed Web App URL (the one you get from 'Deploy > New deployment' in Apps Script)
-  // Example format: https://script.google.com/macros/s/AKfy.../exec
-  window.APPS_SCRIPT_URL = window.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbx259OJWMPe2KdsSsYFur6gQkk3oCzl4-qdldqQfDmdz80JRCvrSLM-jY28rvAlPtV5/exec';
-
-  // Small safety: ensure loadDriveImageInto exists as a no-op to avoid errors before patch scripts run
-  window.loadDriveImageInto = window.loadDriveImageInto || function(imgEl, fileId, opts){
-    opts = opts || {};
-    if(!imgEl) return;
-    if(!fileId) { if(opts.fallback) imgEl.src = opts.fallback; return; }
-    // try JSONP proxy path (demo.html later will also create a dynamic JSONP loader)
-    // if this runs early, just set a placeholder; later code will patch it
-    imgEl.src = 'https://drive.google.com/uc?export=view&id=' + encodeURIComponent(fileId);
-  };
-
-  (function(){
-    'use strict';
-
-    /***** CONFIG *****/
-    // 使用你给出的 Apps Script URL（已替换）
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx259OJWMPe2KdsSsYFur6gQkk3oCzl4-qdldqQfDmdz80JRCvrSLM-jY28rvAlPtV5/exec';
-    // 若希望最后点击 OK 后跳转到 Prolific completion 页面，可设置：
-    const PROLIFIC_COMPLETION_URL = null;
-    /***** END CONFIG *****/
-
-    var ATTRIBUTES = ['Safe','Lively','Beautiful','Wealthy','Boring','Depressing'];
-    var state = { demographics:{}, pairwise:{}, points:{}, historyByAttr:{}, ai_guess:null };
-    var active = { selectedId:null, selectedAttr:null, selectedImage:null };
-
-    ATTRIBUTES.forEach(function(attr){ state.points[attr] = { '1.jpg':[], '2.jpg':[] }; state.historyByAttr[attr] = []; });
-
-    // helpers
-    function q(s){ return document.querySelector(s); }
-    function qa(s){ return Array.prototype.slice.call(document.querySelectorAll(s)); }
-    function genId(){ return 'p' + Math.random().toString(36).substr(2,9); }
-    function clonePointsForAttr(attr){ var src=state.points[attr]; return { '1.jpg': src['1.jpg'].map(function(p){ return {x:p.x,y:p.y,id:p.id}; }), '2.jpg': src['2.jpg'].map(function(p){ return {x:p.x,y:p.y,id:p.id}; }) }; }
-
-    // UUID v4 generator
-    function uuidv4(){
-      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){
-        var r = Math.random()*16|0, v = c==='x'? r : (r&0x3|0x8);
-        return v.toString(16);
-      });
-    }
-
-    // read query param helper
-    function getQueryParam(name) {
-      try { const u = new URL(window.location.href); return u.searchParams.get(name); } catch(e) { return null; }
-    }
-
-    // Build rating controls for all attributes
-    function buildRatingControls(){
-      ATTRIBUTES.forEach(function(attr){
-        var container = document.getElementById('rating-' + attr);
-        if(!container) return;
-        container.innerHTML = '';
-        var row = document.createElement('div'); row.className='attr-row';
-        var left = document.createElement('div'); left.style.minWidth='140px';
-        var strong = document.createElement('strong'); strong.textContent = attr;
-        left.appendChild(strong);
-        row.appendChild(left);
-
-        var scale = document.createElement('div'); scale.className='scale';
-        var vals = [1,0.5,0,-0.5,-1];
-        vals.forEach(function(v){
-          var lab = document.createElement('label');
-          lab.style.display='inline-flex'; lab.style.flexDirection='column'; lab.style.alignItems='center'; lab.style.marginRight='12px';
-          var inp = document.createElement('input'); inp.type='radio'; inp.name = attr; inp.value = String(v);
-          var txt = document.createTextNode(String(v));
-          var small = document.createElement('small');
-          if(v===1) small.textContent='1: Image1 much more';
-          else if(v===0.5) small.textContent='0.5: slightly more';
-          else if(v===0) small.textContent='0: equal';
-          else if(v===-0.5) small.textContent='-0.5: slightly less';
-          else small.textContent='-1: much less';
-          lab.appendChild(inp); lab.appendChild(txt); lab.appendChild(document.createElement('br')); lab.appendChild(small);
-          scale.appendChild(lab);
-        });
-        row.appendChild(scale);
-        container.appendChild(row);
-
-        var arrowDiv = document.createElement('div');
-        arrowDiv.style.textAlign = 'center';
-        arrowDiv.style.marginTop = '8px';
-        arrowDiv.style.fontSize = '18px';
-        arrowDiv.style.fontWeight = '700';
-        arrowDiv.innerHTML = '<span style="font-size:28px; margin-right:10px">◀</span> Image 1 more &nbsp;&nbsp; <span style="font-size:20px; padding:0 8px; background:#f1f5f9; border-radius:6px;">0</span> &nbsp;&nbsp; Image 2 more <span style="font-size:28px; margin-left:10px">▶</span>';
-        container.appendChild(arrowDiv);
-      });
-    }
-
-    // per-attribute operation log
-    function ensureInitialHistory(){ ATTRIBUTES.forEach(function(attr){ if(state.historyByAttr[attr].length===0) state.historyByAttr[attr].push({op:'init', snapshot: clonePointsForAttr(attr)}); }); }
-    function pushOp(attr,op){ try{ state.historyByAttr[attr].push(op); if(state.historyByAttr[attr].length>400) state.historyByAttr[attr].shift(); }catch(e){ console.warn('pushOp err',e); } }
-
-    function undoForAttr(attr){
-      var h = state.historyByAttr[attr];
-      if(!h || h.length<=1){ alert('There is no undoable operation on this page.'); return; }
-      var last = h.pop();
-      switch(last.op){
-        case 'add': {
-          var arr = state.points[attr][last.image];
-          for(var i=0;i<arr.length;i++){ if(arr[i].id===last.id){ arr.splice(i,1); break; } }
-          break;
-        }
-        case 'delete': {
-          var arr2 = state.points[attr][last.image];
-          var idx = Math.max(0, Math.min(arr2.length, last.index));
-          arr2.splice(idx,0,{x:last.point.x,y:last.point.y,id:last.point.id});
-          break;
-        }
-        case 'clear': {
-          state.points[attr] = { '1.jpg': last.prev['1.jpg'].map(function(p){ return {x:p.x,y:p.y,id:p.id}; }), '2.jpg': last.prev['2.jpg'].map(function(p){ return {x:p.x,y:p.y,id:p.id}; }) };
-          break;
-        }
-        case 'init': {
-          state.points[attr] = { '1.jpg': last.snapshot['1.jpg'].map(function(p){ return {x:p.x,y:p.y,id:p.id}; }), '2.jpg': last.snapshot['2.jpg'].map(function(p){ return {x:p.x,y:p.y,id:p.id}; }) };
-          break;
-        }
-        default: console.warn('Unknown op to undo', last); break;
-      }
-      active.selectedId = null; active.selectedAttr = null; active.selectedImage = null;
-      renderMarkers(attr,'1.jpg'); renderMarkers(attr,'2.jpg');
-    }
-
-    // Rendering utilities
-    function getOverlayEl(attr,imageName){ return document.getElementById('ov-' + attr + '-' + (imageName==='1.jpg'?1:2)); }
-    function getImgEl(attr,imageName){ return document.getElementById('img-' + attr + '-' + (imageName==='1.jpg'?1:2)); }
-
-    function findNearest(attr,imageName,clientX,clientY){
-      var ov = getOverlayEl(attr,imageName);
-      if(!ov) return -1;
-      var rect = ov.getBoundingClientRect();
-      var cx = clientX - rect.left, cy = clientY - rect.top;
-      var w = rect.width, h = rect.height;
-      var best=-1,bestD=Infinity;
-      var arr = state.points[attr][imageName]||[];
-      for(var i=0;i<arr.length;i++){
-        var m=arr[i];
-        var mx=m.x*w, my=m.y*h;
-        var d = Math.hypot(mx-cx, my-cy);
-        if(d < bestD){ bestD = d; best = i; }
-      }
-      return (bestD <= 18)?best:-1;
-    }
-
-    function renderMarkers(attr,imageName){
-      var ov = getOverlayEl(attr,imageName);
-      var img = document.getElementById('img-' + attr + '-' + (imageName==='1.jpg'?1:2));
-      if(!ov || !img) return;
-      var rect = img.getBoundingClientRect();
-      var w = rect.width, h = rect.height;
-      ov.setAttribute('width', w);
-      ov.setAttribute('height', h);
-      ov.setAttribute('viewBox','0 0 '+w+' '+h);
-      while(ov.firstChild) ov.removeChild(ov.firstChild);
-      var arr = state.points[attr][imageName] || [];
-      for(var i=0;i<arr.length;i++){
-        var m = arr[i];
-        var cx = m.x * w, cy = m.y * h;
-        var NS = 'http://www.w3.org/2000/svg';
-        var halo = document.createElementNS(NS,'circle'); halo.setAttribute('cx',cx); halo.setAttribute('cy',cy); halo.setAttribute('r',18); halo.setAttribute('class','marker-halo');
-        var dot = document.createElementNS(NS,'circle'); dot.setAttribute('cx',cx); dot.setAttribute('cy',cy); dot.setAttribute('r',(m.id===active.selectedId)?8:6); dot.setAttribute('class','marker-dot');
-        dot.setAttribute('data-id',m.id); dot.setAttribute('data-attr',attr); dot.setAttribute('data-image',imageName); dot.setAttribute('style','cursor:pointer');
-        var labelBg = document.createElementNS(NS,'circle'); labelBg.setAttribute('cx',cx+12); labelBg.setAttribute('cy',cy-12); labelBg.setAttribute('r',10); labelBg.setAttribute('fill','#111'); labelBg.setAttribute('opacity',0.7);
-        var text = document.createElementNS(NS,'text'); text.setAttribute('x',cx+12); text.setAttribute('y',cy-8); text.setAttribute('class','marker-label'); text.textContent = String(i+1);
-        if(m.id===active.selectedId) halo.setAttribute('fill','rgba(239,68,68,0.22)');
-        ov.appendChild(halo); ov.appendChild(dot); ov.appendChild(labelBg); ov.appendChild(text);
-      }
-      updateCounts(attr);
-      updateListDisplay(attr,imageName);
-    }
-
-    function updateCounts(attr){
-      var el1 = document.getElementById('count-'+attr+'-1');
-      var el2 = document.getElementById('count-'+attr+'-2');
-      if(el1) el1.textContent = state.points[attr]['1.jpg'].length;
-      if(el2) el2.textContent = state.points[attr]['2.jpg'].length;
-    }
-
-    function updateListDisplay(attr,imageName){
-      var id = (imageName==='1.jpg'?1:2);
-      var listEl = document.getElementById('list-'+attr+'-'+id);
-      if(!listEl) return;
-      listEl.innerHTML = '';
-      var arr = state.points[attr][imageName] || [];
-      arr.forEach(function(p,i){
-        var div = document.createElement('div');
-        div.textContent = '#'+(i+1) + ' — x=' + p.x + ', y=' + p.y;
-        var btn = document.createElement('button'); btn.textContent = 'Delete'; btn.style.marginLeft='8px';
-        btn.addEventListener('click', function(){
-          var removed = arr.splice(i,1)[0];
-          pushOp(attr,{op:'delete', image:imageName, index:i, point: removed});
-          renderMarkers(attr,imageName);
-        });
-        div.appendChild(btn);
-        listEl.appendChild(div);
-      });
-    }
-
-    function refreshAll(){ ATTRIBUTES.forEach(function(a){ renderMarkers(a,'1.jpg'); renderMarkers(a,'2.jpg'); }); }
-
-    // Setup overlay (click to add/select). Drag disabled.
-    function setupOverlay(attr,imageName){
-      var imgId = 'img-' + attr + '-' + (imageName==='1.jpg'?1:2);
-      var ovId = 'ov-' + attr + '-' + (imageName==='1.jpg'?1:2);
-      var img = document.getElementById(imgId);
-      var ov = document.getElementById(ovId);
-      if(!img || !ov) return;
-      function resize(){
-        var r = img.getBoundingClientRect();
-        ov.setAttribute('width', r.width);
-        ov.setAttribute('height', r.height);
-        ov.setAttribute('viewBox','0 0 '+r.width+' '+r.height);
-        renderMarkers(attr,imageName);
-      }
-      img.addEventListener('load', resize);
-      window.addEventListener('resize', resize);
-      if(img.complete) setTimeout(resize,50);
-
-      ov.addEventListener('click', function(ev){
-        var nearest = findNearest(attr,imageName,ev.clientX,ev.clientY);
-        if(nearest >= 0){
-          var m = state.points[attr][imageName][nearest];
-          active.selectedId = m.id; active.selectedAttr = attr; active.selectedImage = imageName;
-          renderMarkers(attr,imageName);
-        } else {
-          var rect = ov.getBoundingClientRect();
-          var cx = ev.clientX - rect.left;
-          var cy = ev.clientY - rect.top;
-          var nx = +(cx/rect.width).toFixed(4);
-          var ny = +(cy/rect.height).toFixed(4);
-          var id = genId();
-          var p = { x: nx, y: ny, id: id };
-          state.points[attr][imageName].push(p);
-          active.selectedId = id; active.selectedAttr = attr; active.selectedImage = imageName;
-          renderMarkers(attr,imageName);
-          pushOp(attr,{op:'add', image: imageName, id: id, point: p});
-        }
-      });
-    }
-
-    function initAllOverlays(){ ATTRIBUTES.forEach(function(attr){ setupOverlay(attr,'1.jpg'); setupOverlay(attr,'2.jpg'); }); }
-
-    // Controls binding
-    function bindControls(){
-      qa('[data-undo]').forEach(function(b){
-        b.addEventListener('click', function(){
-          var page = b.closest('.page');
-          if(!page || typeof page.dataset.attrIndex==='undefined'){ alert('No attribute on this page.'); return; }
-          var idx = parseInt(page.dataset.attrIndex,10);
-          var attr = ATTRIBUTES[idx];
-          undoForAttr(attr);
-        });
-      });
-
-      qa('[data-delete-selected]').forEach(function(b){
-        b.addEventListener('click', function(){
-          var page = b.closest('.page');
-          if(!page || typeof page.dataset.attrIndex==='undefined') return;
-          var idx = parseInt(page.dataset.attrIndex,10);
-          var attr = ATTRIBUTES[idx];
-          if(!active.selectedId || active.selectedAttr !== attr) { alert('No selected point on this page.'); return; }
-          var imgs = ['1.jpg','2.jpg'];
-          for(var i=0;i<imgs.length;i++){
-            var arr = state.points[attr][imgs[i]];
-            for(var j=0;j<arr.length;j++){
-              if(arr[j].id === active.selectedId){
-                var removed = arr.splice(j,1)[0];
-                pushOp(attr,{op:'delete', image: imgs[i], index: j, point: removed});
-                active.selectedId = null; active.selectedAttr = null; active.selectedImage = null;
-                renderMarkers(attr,'1.jpg'); renderMarkers(attr,'2.jpg');
-                return;
-              }
-            }
-          }
-        });
-      });
-
-      qa('[data-clear]').forEach(function(b){
-        b.addEventListener('click', function(){
-          var page = b.closest('.page');
-          if(!page || typeof page.dataset.attrIndex==='undefined'){
-            if(!confirm('Clear all attributes on all pages? This cannot be undone.')) return;
-            ATTRIBUTES.forEach(function(a){ pushOp(a,{op:'clear', prev: clonePointsForAttr(a)}); state.points[a] = {'1.jpg':[],'2.jpg':[]}; });
-            refreshAll();
-            return;
-          }
-          var idx = parseInt(page.dataset.attrIndex,10);
-          var attr = ATTRIBUTES[idx];
-          if(!confirm('Clear all points for ' + attr + '?')) return;
-          pushOp(attr,{op:'clear', prev: clonePointsForAttr(attr)});
-          state.points[attr] = {'1.jpg':[],'2.jpg':[]};
-          renderMarkers(attr,'1.jpg'); renderMarkers(attr,'2.jpg');
-        });
-      });
-    }
-
-    // Navigation
-    function showPage(n){
-      qa('.page').forEach(function(p){ p.classList.remove('active'); });
-      var el = document.getElementById('page-' + n);
-      if(!el) return;
-      el.classList.add('active');
-      window.scrollTo({top:0,behavior:'smooth'});
-      try{
-        if(el.dataset && typeof el.dataset.attrIndex !== 'undefined'){
-          var idx = parseInt(el.dataset.attrIndex,10);
-          var attr = ATTRIBUTES[idx];
-          renderMarkers(attr,'1.jpg'); renderMarkers(attr,'2.jpg');
-        }
-      }catch(e){ console.warn(e); }
-    }
-
-    function bindNavigation(){
-      document.addEventListener('click', function(ev){
-        var elNext = ev.target.closest && ev.target.closest('[data-next]');
-        var elGo = ev.target.closest && ev.target.closest('[data-go]');
-        var elBackToRating = ev.target.closest && ev.target.closest('[data-back-to-rating]');
-
-        if(elNext){
-          ev.preventDefault();
-          var page = elNext.closest('.page');
-
-          // Page 1 validation
-          if(page && page.id === 'page-1'){
-            var required = [ {id:'user-id',label:'User ID'},{id:'age',label:'Age'},{id:'gender',label:'Gender'},{id:'nationality',label:'Nationality'} ];
-            var missing = [];
-            for(var i=0;i<required.length;i++){
-              var el = document.getElementById(required[i].id);
-              var val = el ? el.value : '';
-              if(!(val && String(val).trim())) missing.push(required[i].label);
-            }
-            if(missing.length){
-              alert('Please fill these required fields:\n' + missing.join('\n'));
-              return;
-            }
-            state.demographics = { id: (q('#user-id')||{}).value.trim(), age: parseInt((q('#age')||{}).value,10), gender: (q('#gender')||{}).value, nationality: (q('#nationality')||{}).value.trim(), education: (q('#education')||{}).value || null };
-            var next = parseInt(elNext.dataset.next,10);
-            showPage(next);
-            return;
-          }
-
-          // Rating page validation
-          if(page && page.dataset && typeof page.dataset.attrIndex !== 'undefined'){
-            var idx = parseInt(page.dataset.attrIndex,10);
-            var attr = ATTRIBUTES[idx];
-            var valEl = document.querySelector('input[name="' + attr + '"]:checked');
-            if(!valEl){
-              alert('Please provide a rating for ' + attr + ' before continuing.');
-              return;
-            }
-            state.pairwise[attr] = parseFloat(valEl.value);
-            var next2 = parseInt(elNext.dataset.next,10);
-            showPage(next2);
-            return;
-          }
-
-          var next3 = parseInt(elNext.dataset.next,10);
-          if(!isNaN(next3)) showPage(next3);
-          return;
-        }
-
-        if(elBackToRating){
-          ev.preventDefault();
-          var page = elBackToRating.closest('.page');
-          if(page && page.dataset && typeof page.dataset.attrIndex !== 'undefined'){
-            var idx2 = parseInt(page.dataset.attrIndex,10);
-            showPage(2 + idx2*2);
-          }
-          return;
-        }
-
-        if(elGo){
-          ev.preventDefault();
-          var target = parseInt(elGo.dataset.go,10);
-          if(!isNaN(target)) showPage(target);
-          return;
-        }
-      });
-    }
-
-    /* ---------- Prolific / pair id helpers ---------- */
-    // Priority: URL PROLIFIC_PID (case-insensitive variants), then participant_id / worker_id query params, then anon_worker_id in localStorage
-    function getProlificPid(){
-      var possible = getQueryParam('PROLIFIC_PID') || getQueryParam('PROLIFICID') || getQueryParam('prolific_pid') || getQueryParam('participant_id') || getQueryParam('worker_id');
-      if(possible && possible.trim()) return possible.trim();
-      var stored = localStorage.getItem('anon_worker_id');
-      if(stored && stored.trim()) return stored;
-      return '';
-    }
-
-    function getPairIds(){
-      if(window.PAIR_IDS){
-        if(Array.isArray(window.PAIR_IDS)) return window.PAIR_IDS.slice();
-        if(typeof window.PAIR_IDS === 'string') return window.PAIR_IDS.split(',').map(s=>s.trim()).filter(Boolean);
-      }
-      var bodyPairs = document.body.getAttribute('data-pair-ids');
-      if(bodyPairs && bodyPairs.trim()) return bodyPairs.split(',').map(s=>s.trim()).filter(Boolean);
-      var q = getQueryParam('pair_ids') || getQueryParam('pair_id');
-      if(q && q.trim()) return q.split(',').map(s=>s.trim()).filter(Boolean);
-      var imgs = Array.from(document.querySelectorAll('#page-14 .images img')).map(function(img){
-        try { var src = img.getAttribute('src') || ''; var segs = src.split('/'); return segs[segs.length-1] || src; } catch(e){ return ''; }
-      }).filter(Boolean);
-      if(imgs.length >= 2) return ['pair_' + imgs[0] + '_' + imgs[1]];
-      if(imgs.length === 1) return ['pair_' + imgs[0]];
-      return [];
-    }
-
-    /* ---------- localStorage helpers for per-pair submission tracking ---------- */
-    const LS_KEY_SUBMITTED_PAIRS = 'survey_submitted_pairs'; // stores JSON: { pair_id: { submissionId, ts } }
-
-    function readSubmittedPairs(){
-      try {
-        var raw = localStorage.getItem(LS_KEY_SUBMITTED_PAIRS);
-        if(!raw) return {};
-        return JSON.parse(raw || '{}');
-      } catch(e) { return {}; }
-    }
-    function writeSubmittedPairs(obj){
-      try { localStorage.setItem(LS_KEY_SUBMITTED_PAIRS, JSON.stringify(obj)); } catch(e){ console.warn('writeSubmittedPairs error', e); }
-    }
-    function markPairAsLocallySubmitted(pairId, submissionId){
-      var map = readSubmittedPairs();
-      map[pairId] = { submissionId: submissionId || ('local-' + Date.now()), ts: (new Date()).toISOString() };
-      writeSubmittedPairs(map);
-    }
-    function removeLocalSubmissionForPair(pairId){
-      try {
-        var map = readSubmittedPairs();
-        if(map && map[pairId]){ delete map[pairId]; writeSubmittedPairs(map); }
-      } catch(e){ console.warn(e); }
-    }
-    function areAllCurrentPairsSubmitted(){
-      var pairIds = getPairIds();
-      if(!pairIds || pairIds.length === 0) return false;
-      var map = readSubmittedPairs();
-      return pairIds.every(function(p){ return map.hasOwnProperty(p); });
-    }
-    function getAlreadySubmittedListForCurrent(){
-      var pairIds = getPairIds();
-      var map = readSubmittedPairs();
-      return pairIds.filter(function(p){ return map.hasOwnProperty(p); }).map(function(p){ return { pair:p, info:map[p] }; });
-    }
-
-    /* ---------- UI: mark as submitted, show note, persist per-pair ---------- */
-    function markAsSubmitted(message, serverObj){
-      try {
-        var pairIds = getPairIds();
-        var sid = (serverObj && serverObj.submissionId) ? serverObj.submissionId : ('local-' + Date.now());
-        // mark each pair
-        pairIds.forEach(function(p){ markPairAsLocallySubmitted(p, sid); });
-        var finish = document.getElementById('finish');
-        if(finish){
-          finish.disabled = true;
-          finish.dataset.locked = '1';
-          finish.setAttribute('aria-disabled','true');
-          finish.textContent = 'Submitted — Please do not resubmit';
-          finish.title = 'Please do not resubmit';
-        }
-        // show note under button
-        var note = document.getElementById('post-submit-note');
-        if(note){
-          var suffix = sid ? (' Submission ID: ' + sid) : '';
-          note.textContent = (message || 'Submitted') + suffix;
-        }
-        // update output box with server info
-        var out = document.getElementById('output');
-        if(out){
-          var payloadSummary = { status: message || 'submitted', server: serverObj || null, recordedAt: new Date().toISOString(), pair_ids: pairIds };
-          out.textContent = JSON.stringify(payloadSummary, null, 2);
-        }
-      } catch(err){
-        console.warn('markAsSubmitted error', err);
-      }
-    }
-
-    /* ---------- Submission helper (robust, shows raw server text on overlay) ---------- */
-    async function submitResponse(payload) {
-      payload.prolific_pid = payload.prolific_pid || getProlificPid() || null;
-      payload.pair_ids = payload.pair_ids || getPairIds() || [];
-      payload.submitted_at = new Date().toISOString();
-
-      function showServerTextOnOverlay(text) {
-        try {
-          var s = document.getElementById('submit-overlay-status');
-          if (s) s.textContent = text.substring(0, 800);
-        } catch(e){ console.warn(e); }
-      }
-
-      if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('script.google.com') === -1) {
-        console.warn('APPS_SCRIPT_URL not set correctly; falling back to download.');
-        await fallbackDownload(payload);
-        return { ok:false, fallback:true, message:'no_endpoint' };
-      }
-
-      const maxAttempts = 2;
-      let attempt = 0;
-      while(attempt < maxAttempts){
-        attempt++;
-        try {
-          console.log('Submitting payload (attempt ' + attempt + ') to', APPS_SCRIPT_URL, payload);
-          const form = new URLSearchParams();
-          form.append('payload', JSON.stringify(payload));
-
-          const controller = new AbortController();
-          const timeoutMs = 30000; // 30s
-          const timeoutId = setTimeout(()=>controller.abort(), timeoutMs);
-
-          const resp = await fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            body: form,
-            signal: controller.signal,
-          });
-          clearTimeout(timeoutId);
-
-          console.log('Fetch completed. status=', resp.status, 'ok=', resp.ok);
-          let raw = '';
-          try { raw = await resp.text(); console.log('Server raw response text:', raw); } catch(e){ console.warn('Failed to read response text', e); }
-
-          showServerTextOnOverlay('HTTP ' + resp.status + ' — ' + (raw || '[no body]'));
-
-          if(!resp.ok){
-            try {
-              const parsed = JSON.parse(raw || '{}');
-              if(parsed.status === 'ok') return { ok:true, server:parsed, message:'ok' };
-              if(parsed.status === 'duplicate') return { ok:false, server:parsed, status:'duplicate', duplicates: parsed.duplicates || [], message: parsed.message || 'duplicate' };
-              return { ok:false, server:parsed, status:'error', message: parsed.message || ('HTTP ' + resp.status) };
-            } catch(e){
-              console.warn('Non-JSON error body', raw);
-              if(attempt < maxAttempts) { await new Promise(r=>setTimeout(r, 600)); continue; }
-              else { showServerTextOnOverlay('Server error (non-JSON): ' + raw); await fallbackDownload(payload); return { ok:false, fallback:true, message: 'server_nonjson', raw: raw }; }
-            }
-          }
-
-          let j = {};
-          try { j = JSON.parse(raw || '{}'); } catch(e){ try { j = await resp.json(); } catch(e2){ j = {}; } }
-
-          if(j.status === 'ok') return { ok:true, server:j, message: j.message || 'ok' };
-          if(j.status === 'duplicate') return { ok:false, server:j, status:'duplicate', duplicates: j.duplicates || [], message: j.message || 'duplicate' };
-
-          return { ok:false, server:j, status:'error', message: j.message || 'unexpected_server_response', raw: raw };
-
-        } catch (err) {
-          console.warn('submitResponse attempt', attempt, 'failed:', err);
-          try { document.getElementById('submit-overlay-status').textContent = String(err).substring(0,800); } catch(e){}
-          if(attempt < maxAttempts) { await new Promise(r=>setTimeout(r, 600)); continue; }
-          await fallbackDownload(payload);
-          return { ok:false, fallback:true, message: err.message || 'network_error' };
-        }
-      }
-    }
-
-    async function fallbackDownload(payload) {
-      const jsonStr = JSON.stringify(payload, null, 2);
-      const blob = new Blob([jsonStr], { type: 'application/json' });
-      const fname = (payload && payload.demographics && payload.demographics.id ? payload.demographics.id : 'response') + '_survey.json';
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = fname;
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(()=>{ URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 1500);
-      return { ok:false, fallback:true, filename: fname };
-    }
-
-    /* ---------- Submission overlay controls (with confirm button) ---------- */
-    (function(){
-      var overlay = null, progressEl = null, messageEl = null, statusEl = null, confirmBtn = null;
-      var animTimer = null;
-      var simulatedProgress = 0;
-      var lastSuccess = false;
-      var lastServerObj = null;
-
-      function getOverlayEls() {
-        if (!overlay) {
-          overlay = document.getElementById('submit-overlay');
-          progressEl = document.getElementById('submit-overlay-progress');
-          messageEl = document.getElementById('submit-overlay-message');
-          statusEl = document.getElementById('submit-overlay-status');
-          confirmBtn = document.getElementById('submit-overlay-confirm');
-          if(confirmBtn){
-            confirmBtn.addEventListener('click', function(){
-              // ensure we mark as submitted in UI/localStorage before leaving
-              if(lastSuccess && lastServerObj){
-                markAsSubmitted('Submission complete.', lastServerObj);
-              } else if(lastSuccess){
-                markAsSubmitted('Submission complete.', {});
-              }
-              // hide overlay and optionally redirect to Prolific
-              hideOverlayImmediately();
-              if(lastSuccess && PROLIFIC_COMPLETION_URL){
-                setTimeout(function(){ window.location.href = PROLIFIC_COMPLETION_URL; }, 250);
-              }
-            });
-          }
-        }
-      }
-
-      function hideOverlayImmediately(){
-        if (!overlay) return;
-        overlay.classList.remove('show');
-        overlay.setAttribute('aria-hidden','true');
-        var cont = document.querySelector('.container');
-        if (cont) cont.classList.remove('locked');
-        try { if(progressEl) progressEl.style.width = '0%'; }catch(e){}
-        if(statusEl) statusEl.textContent = '';
-        if(confirmBtn) { confirmBtn.classList.add('hidden'); confirmBtn.setAttribute('aria-hidden','true'); }
-      }
-
-      window.showSubmittingOverlay = function(message) {
-        getOverlayEls();
-        var cont = document.querySelector('.container');
-        if (cont) cont.classList.add('locked');
-
-        if (!overlay) return;
-        overlay.setAttribute('aria-hidden','false');
-        overlay.classList.add('show');
-        messageEl.textContent = message || 'Submitting... please wait';
-        statusEl.textContent = '';
-        if(confirmBtn) { confirmBtn.classList.add('hidden'); confirmBtn.setAttribute('aria-hidden','true'); }
-
-        simulatedProgress = 4;
-        progressEl.style.width = simulatedProgress + '%';
-        clearInterval(animTimer);
-        animTimer = setInterval(function(){
-          var inc = 1 + Math.random()*6;
-          simulatedProgress = Math.min(90, simulatedProgress + inc);
-          progressEl.style.width = simulatedProgress + '%';
-        }, 350);
-      };
-
-      window.hideSubmittingOverlay = function(success, finalMessage, serverObj) {
-        getOverlayEls();
-        clearInterval(animTimer);
-        lastSuccess = !!success;
-        lastServerObj = serverObj || null;
-        try { progressEl.style.width = '100%'; } catch(e){}
-        if (statusEl) statusEl.textContent = finalMessage || (success ? 'Submitted.' : 'Submission failed.');
-        if(success){
-          if(confirmBtn){ confirmBtn.classList.remove('hidden'); confirmBtn.setAttribute('aria-hidden','false'); }
-        } else {
-          setTimeout(function(){ hideOverlayImmediately(); }, 1400);
-        }
-      };
-
-    })();
-
-    /* --------- bindFinish (includes submissionId/localStorage and per-pair handling) --------- */
-    function bindFinish(){
-      var finish = document.getElementById('finish');
-      if(!finish) return;
-      finish.addEventListener('click', async function(){
-        // If finish is locked (already submitted for current pair), give quick UX feedback
-        if(finish.dataset.locked === '1') {
-          var note = document.getElementById('post-submit-note');
-          if(note && note.textContent.trim()) {
-            return;
-          } else {
-            alert('Please do not resubmit.');
-            return;
-          }
-        }
-
-        var sel = document.querySelector('input[name="ai_guess"]:checked');
-        if(!sel){ alert('Please choose which image is more likely AI-generated before submitting.'); return; }
-
-        // lock UI immediately
-        finish.dataset.locked = '1';
-        finish.disabled = true;
-
-        state.ai_guess = sel.value;
-
-        // submissionId: reuse existing in localStorage or create new
-        var storageKey = 'survey_last_submission_id';
-        var submissionId = localStorage.getItem(storageKey);
-        if(!submissionId){
-          submissionId = uuidv4();
-          localStorage.setItem(storageKey, submissionId);
-        }
-
-        var payload = { demographics: state.demographics, pairwise: state.pairwise, points: state.points, ai_guess: state.ai_guess, meta: { timestamp: new Date().toISOString() }, submissionId: submissionId };
-        // --- FIX: 在此处手动添加 pair_ids ---
-        payload.pair_ids = getPairIds() || [];
-        // --- END FIX ---
-        // show payload in output area for transparency
-        var outEl = document.getElementById('output');
-        if(outEl) outEl.textContent = JSON.stringify(payload, null, 2);
-
-        // Check whether current pair(s) are already submitted locally; if so, short-circuit with a friendly message
-        var already = getAlreadySubmittedListForCurrent();
-        if(already.length > 0){
-          var pairList = already.map(x=>x.pair).join(', ');
-          markAsSubmitted('Already submitted for pair(s): ' + pairList, { submissionId: already[0].info.submissionId });
-          showSubmittingOverlay('Submission detected: already submitted — see message below.');
-          hideSubmittingOverlay(true, 'Already submitted for pair(s): ' + pairList, { submissionId: already[0].info.submissionId });
-          return;
-        }
-
-        // show overlay
-        showSubmittingOverlay('Submitting your response — please wait.');
-
-        // call submitResponse
-        let res = { ok:false };
-        try {
-          res = await window.submitResponse(payload);
-        } catch(err) {
-          console.error('submitResponse threw error', err);
-          res = { ok:false, fallback:true, message: err && err.message ? err.message : 'Unknown error' };
-        }
-
-        // handle response
-        if(res.ok){
-          hideSubmittingOverlay(true, 'Submission complete.', res.server || {});
-          markAsSubmitted('Submission complete.', res.server || {});
-          // --- 新增：在输出区域显示调试日志 ---
-          if(outEl && res.serverData && res.serverData.debug_log) {
-            outEl.textContent = "--- Submission Payload (Client) ---\n" + JSON.stringify(payload, null, 2) + 
-                              "\n\n--- Server Debug Log (Success) ---\n" + res.serverData.debug_log.join("\n");
-          }
-          // --- 结束新增 ---
-        } else if(res.status === 'duplicate' || (res.server && res.server.status === 'duplicate')){
-          var dupList = (res.duplicates && res.duplicates.length) ? res.duplicates : ((res.server && res.server.duplicates) ? res.server.duplicates : []);
-          var sid = (res.server && res.server.submissionId) ? res.server.submissionId : (res.submissionId || localStorage.getItem('survey_last_submission_id') || ('local-' + Date.now()));
-          dupList.forEach(function(p){ markPairAsLocallySubmitted(p, sid); });
-          hideSubmittingOverlay(true, 'Duplicate detected (already submitted).', res.server || {});
-          markAsSubmitted('Duplicate detected (already submitted).', res.server || { submissionId: sid });
-        } else {
-          hideSubmittingOverlay(false, 'Submission failed — saved locally.');
-          finish.dataset.locked = '0';
-          finish.disabled = false;
-          // --- 新增：在输出区域显示错误日志 ---
-          if(outEl && res.serverData && res.serverData.debug_log) {
-            outEl.textContent = "--- Submission Payload (Client) ---\n" + JSON.stringify(payload, null, 2) + 
-                              "\n\n--- Server Debug Log (ERROR) ---\n" + res.serverData.debug_log.join("\n");
-          } else if (outEl) {
-            outEl.textContent = "--- Submission Payload (Client) ---\n" + JSON.stringify(payload, null, 2) + 
-                              "\n\n--- Server Error ---\n" + (res.message || 'Unknown error');
-          }
-          // --- 结束新增 ---
-        }
-      });
-    }
-
-    // On load: check server for existing submission by prolific id, then check local storage
-    async function checkServerThenLocalOnLoad(){
-      try {
-        var pid = getProlificPid();
-        if(pid && pid.trim()){
-          // Try fetch GET first
-          var url = APPS_SCRIPT_URL + '?action=check&prolific_id=' + encodeURIComponent(pid);
-          try {
-            var r = await fetch(url, { method:'GET'});
-            if(r && r.ok){
-              var j = await r.json().catch(()=>null);
-              if(j){
-                // Expected format: { submitted: true/false, pairs: [...], submissionId: '...' }
-                if(j.submitted === true || (j.status && j.status==='submitted')){
-                  // mark as submitted and disable finish
-                  markAsSubmitted('Server: already submitted for this Prolific ID', { submissionId: j.submissionId || (j.serverSubmissionId || '') });
-                  return;
-                }
-              }
-            }
-          } catch(err){
-            // fetch failed - perhaps CORS - fallback to JSONP check below
-            console.warn('Server check via fetch failed, falling back to JSONP', err);
-            // continue to jsonpCheck
-          }
-
-          // JSONP fallback
-          await new Promise(function(resolve){
-            var cbName = 'jsonp_check_' + Math.random().toString(36).slice(2,10);
-            window[cbName] = function(resp){
-              try { window[cbName] = undefined; } catch(e){}
-              var el = document.getElementById('jsonp-' + cbName);
-              if(el && el.parentNode) el.parentNode.removeChild(el);
-              if(resp && (resp.submitted === true || resp.status === 'submitted')){
-                markAsSubmitted('Server: already submitted for this Prolific ID', { submissionId: resp.submissionId || '' });
-              }
-              resolve();
-            };
-            var s = document.createElement('script');
-            s.id = 'jsonp-' + cbName;
-            s.src = APPS_SCRIPT_URL + '?action=check&prolific_id=' + encodeURIComponent(pid) + '&callback=' + encodeURIComponent(cbName);
-            s.async = true;
-            s.onerror = function(){ resolve(); };
-            document.head.appendChild(s);
-          });
-        }
-      } catch(e){
-        console.warn('checkServerThenLocalOnLoad error', e);
-      } finally {
-        // after server check, still check local markers
-        checkLocalSubmissionOnLoad();
-      }
-    }
-
-    // On load: if current pair_ids already recorded locally, show message & lock accordingly
-    function checkLocalSubmissionOnLoad(){
-      var pairIds = getPairIds();
-      if(!pairIds || pairIds.length === 0) return;
-      var already = getAlreadySubmittedListForCurrent();
-      if(already.length > 0){
-        var finish = document.getElementById('finish');
-        if(finish){
-          finish.disabled = true;
-          finish.dataset.locked = '1';
-          finish.textContent = 'Submitted — Please do not resubmit';
-          finish.title = 'Please do not resubmit';
-        }
-        var note = document.getElementById('post-submit-note');
-        if(note){
-          var pairs = already.map(x=>x.pair).join(', ');
-          var sid = already[0] && already[0].info ? already[0].info.submissionId : '';
-          note.textContent = 'You have already submitted for pair(s): ' + pairs + (sid ? (' (Submission ID: ' + sid + ')') : '');
-        }
-      }
-    }
-
-    // Init UI and events
-    window.addEventListener('DOMContentLoaded', function(){
-      buildRatingControls();
-      ensureInitialHistory();
-      initAllOverlays();
-      bindControls();
-      bindNavigation();
-      bindFinish();
-      
-      // --- (新) 自动填充 User ID 以修复 ID 不匹配的 bug ---
-      try {
-        var prolificId = getProlificPid() || ''; // (来自 line 778)
-        if(prolificId) {
-          var userIdInput = document.getElementById('user-id');
-          if(userIdInput) {
-            userIdInput.value = prolificId;
-            userIdInput.readOnly = true; // 设为只读
-            userIdInput.style.backgroundColor = '#f1f5f9'; // 灰色背景
-          }
-        }
-      } catch(e) { console.warn('Failed to auto-fill user-id', e); }
-      // --- (结束新) ---
-
-      // checkServerThenLocalOnLoad(); // (已注释掉)
-      console.log('Survey ready (APPS_SCRIPT_URL=', APPS_SCRIPT_URL, ')');
-    });
-
-    // expose for debug
-    window._survey = { state: state, getProlificPid: getProlificPid, getPairIds: getPairIds, uuidv4: uuidv4, readSubmittedPairs: readSubmittedPairs, removeLocalSubmissionForPair: removeLocalSubmissionForPair };
-
-    /* ========== handle assignment callback from injected JSONP (and robustly set images) ========== */
-    window.onAssignedReady = function(rawAssigned){
-      try {
-        var assignedList = [];
-        if(!rawAssigned) assignedList = [];
-        else if(Array.isArray(rawAssigned)) assignedList = rawAssigned;
-        else if(typeof rawAssigned === 'object') assignedList = [rawAssigned];
-        else assignedList = [];
-
-        if(!assignedList.length){
-          console.warn('onAssignedReady: no assigned pairs');
-          return;
-        }
-
-        // prefer first non-locally-submitted pair
-        var submitted = readSubmittedPairs();
-        var chosen = null;
-        for(var i=0;i<assignedList.length;i++){
-          var p = assignedList[i] || {};
-          var pid = p.pair_id || p.pair || ('pair_' + ((p.image1||p.img1||'').split('/').pop() || Date.now()));
-          if(!submitted[pid]){ chosen = p; break; }
-        }
-        if(!chosen) chosen = assignedList[0];
-
-        var pairId = chosen.pair_id || chosen.pair || ('pair_' + ((chosen.image1||chosen.img1||'').split('/').pop() || Date.now()));
-        window.PAIR_IDS = [pairId];
-        try { document.body.setAttribute('data-pair-ids', window.PAIR_IDS.join(',')); } catch(e){}
-
-        // extract urls from many possible field names
-        function buildUrls(obj){
-          if(!obj) return [null,null];
-          if(obj.img1 && obj.img2) return [obj.img1, obj.img2];
-          if(obj.image1 && obj.image2) return [obj.image1, obj.image2];
-          if(obj.img_url1 && obj.img_url2) return [obj.img_url1, obj.img_url2];
-          if(obj.image_url1 && obj.image_url2) return [obj.image_url1, obj.image_url2];
-          if(obj.file_id1 && obj.file_id2) return ['https://drive.google.com/uc?export=view&id=' + obj.file_id1, 'https://drive.google.com/uc?export=view&id=' + obj.file_id2];
-          if(obj.fileId1 && obj.fileId2) return ['https://drive.google.com/uc?export=view&id=' + obj.fileId1, 'https://drive.google.com/uc?export=view&id=' + obj.fileId2];
-          if(obj.file1 && obj.file2) return [obj.file1, obj.file2];
-          if(obj.url1 && obj.url2) return [obj.url1, obj.url2];
-          var a = obj.img1 || obj.image1 || obj.file1 || obj.url1 || obj.image_a || obj.imageA || null;
-          var b = obj.img2 || obj.image2 || obj.file2 || obj.url2 || obj.image_b || obj.imageB || null;
-          return [a,b];
-        }
-        var urls = buildUrls(chosen);
-
-        // helper: set image src with fallback attempts
-        function setImageWithFallback(imgEl, url){
-          if(!imgEl || !url) return;
-          imgEl.crossOrigin = 'anonymous';
-          var originalUrl = url;
-          // add cache buster to avoid stale cached placeholder
-          function makeUrl(u, tryIndex){
-            var cb = '_cb' + String(tryIndex||0) + '_' + Date.now();
-            if(u.indexOf('?') === -1) return u + '?cachebust=' + cb;
-            return u + '&cachebust=' + cb;
-          }
-          var attempts = [
-            makeUrl(originalUrl,0),
-            // fallback: try export=download
-            (originalUrl.indexOf('uc?export=view&id=') !== -1) ? makeUrl(originalUrl.replace('uc?export=view&id=','uc?export=download&id='),1) : null,
-            // fallback2: drive googleusercontent
-            (originalUrl.indexOf('uc?export=download&id=') !== -1 || originalUrl.indexOf('uc?export=view&id=') !== -1) ? makeUrl('https://drive.googleusercontent.com/uc?export=view&id=' + (originalUrl.split('id=')[1] || ''),2) : null
-          ].filter(Boolean);
-
-          var attemptIndex = 0;
-          imgEl.onerror = function(){
-            attemptIndex++;
-            if(attemptIndex < attempts.length){
-              imgEl.src = attempts[attemptIndex];
-            } else {
-              // final fallback to local placeholder
-              imgEl.src = (imgEl.id && imgEl.id.match(/2\b/)) ? '2.jpg' : '1.jpg';
-            }
-          };
-          // kick off first attempt
-          imgEl.src = attempts[0];
-        }
-
-
-        // // list of explicit ids to update
-        // var explicitIds = [
-        //   'img-Safe-1','img-Safe-2','img-Lively-1','img-Lively-2','img-Beautiful-1','img-Beautiful-2',
-        //   'img-Wealthy-1','img-Wealthy-2','img-Boring-1','img-Boring-2','img-Depressing-1','img-Depressing-2',
-        //   'final-img-1','final-img-2'
-        // ];
-        // explicitIds.forEach(function(id, idx){
-        //   var el = document.getElementById(id);
-        //   if(el){
-        //     var useIdx = 0;
-        //     if(id.match(/2\b/) || id.indexOf('-2')!==-1 || id.indexOf('final-img-2')!==-1) useIdx = 1;
-        //     var urlToSet = urls[useIdx] || urls[0] || urls[1] || el.getAttribute('src');
-        //     if(urlToSet) setImageWithFallback(el, urlToSet);
-        //   }
-        // });
-
-        // // update any <img> under .images
-        // var imgs = document.querySelectorAll('.images img');
-        // Array.prototype.forEach.call(imgs, function(imgEl, i){
-        //   var current = (imgEl.getAttribute('src') || '').toLowerCase();
-        //   var idx2 = (i % 2 === 0) ? 0 : 1;
-        //   var url2 = urls[idx2] || urls[0] || urls[1];
-        //   // if placeholder or obviously local, replace
-        //   if(current.indexOf('1.jpg') !== -1 || current.indexOf('2.jpg') !== -1 || current.indexOf('placeholder') !== -1 || current.trim()===''){
-        //     if(url2) setImageWithFallback(imgEl, url2);
-        //   } else {
-        //     // if current is a drive link but not matching assigned, still override to assigned
-        //     if((current.indexOf('drive.google.com') !== -1 || current.indexOf('drive.googleusercontent.com') !== -1) && url2){
-        //       setImageWithFallback(imgEl, url2);
-        //     }
-        //   }
-        // });
-
-        // init overlays after small delay
-        setTimeout(function(){ try { initAllOverlays(); } catch(e) { console.warn(e); } }, 350);
-
-        console.info('Assigned pair selected:', pairId, chosen);
-      } catch(e){
-        console.warn('onAssignedReady error', e);
-      }
-    };
-
-    // If assignedPairs already present (server injected earlier), call onAssignedReady immediately
-    if(window.assignedPairs && window.assignedPairs.length){
-      try { onAssignedReady(window.assignedPairs); } catch(e){ console.warn(e); }
-    }
-
-  })();
-  </script>
-
-<!-- Hidden iframe + form injected to submit to Apps Script (doPost) -->
-<iframe id="submit-frame" name="submit-frame" style="display:none;"></iframe>
-<form id="submit-form" method="POST" action="" target="submit-frame" style="display:none;">
-  <input type="hidden" name="payload" id="submit-payload" value="">
-</form>
-
-<!-- Apps Script integration injected: JSONP assign + iframe submit + override submitResponse -->
-<script>
-(function(){
-  'use strict';
-  // Ensure APPS_SCRIPT_URL exists
-  window.APPS_SCRIPT_URL = window.APPS_SCRIPT_URL || 'https://script.google.com/macros/s/AKfycbx259OJWMPe2KdsSsYFur6gQkk3oCzl4-qdldqQfDmdz80JRCvrSLM-jY28rvAlPtV5/exec';
-
-  function jsonpAssign(workerId, n, callbackName, mode){
-    mode = mode || 'balanced';
-    window[callbackName] = function(resp){
-      try { window[callbackName] = undefined; } catch(e){}
-      var el = document.getElementById('jsonp-'+callbackName);
-      if(el && el.parentNode) el.parentNode.removeChild(el);
-
-      try {
-        var assignedList = [];
-        if(!resp){
-          assignedList = [];
-        } else if(Array.isArray(resp.assigned)){
-          assignedList = resp.assigned;
-        } else if(resp.assigned && typeof resp.assigned === 'object'){
-          assignedList = [resp.assigned];
-        } else if(Array.isArray(resp)){
-          assignedList = resp;
-        } else if(resp && typeof resp === 'object' && Object.keys(resp).length > 0 && resp.assigned === undefined){
-          var keys = Object.keys(resp);
-          if(keys.indexOf('pair_id') !== -1 || keys.indexOf('img1') !== -1 || keys.indexOf('file_id1') !== -1 || keys.indexOf('image1') !== -1){
-            assignedList = [resp];
-          } else {
-            assignedList = [];
-          }
-        } else {
-          assignedList = [];
-        }
-
-        window.assignedPairs = assignedList;
-        window.PAIR_IDS = assignedList.map(function(p){ return p.pair_id || p.pair || ''; }).filter(Boolean);
-        try { if(typeof onAssignedReady === 'function') onAssignedReady(assignedList); } catch(e){ console.warn('onAssignedReady threw', e); }
-      } catch(err){
-        console.warn('jsonpAssign parse error', err, resp);
-      }
-    };
-    var cb = encodeURIComponent(callbackName);
-    var url = window.APPS_SCRIPT_URL + '?action=assign&worker_id=' + encodeURIComponent(workerId)
-              + '&n=' + encodeURIComponent(n) + '&callback=' + cb + '&mode=' + encodeURIComponent(mode);
-    var s = document.createElement('script'); s.src = url; s.id = 'jsonp-'+callbackName; s.async = true;
-    document.head.appendChild(s);
-  }
-
-  function submitViaIframe(payload, timeoutMs){
-    timeoutMs = timeoutMs || 20000;
-    return new Promise(function(resolve, reject){
-      try {
-        var form = document.getElementById('submit-form');
-        var input = document.getElementById('submit-payload');
-        if(!form || !input){
-          return resolve({ok:false, message:'submit form not found'});
-        }
-        form.action = window.APPS_SCRIPT_URL;
-        input.value = JSON.stringify(payload);
-
-        function onMessage(e){
-          try {
-            var data = e.data || {};
-            if(data && (data.status === 'ok' || data.status === 'error')){
-              window.removeEventListener('message', onMessage);
-              clearTimeout(to);
-              console.log("Server response received:", data); // <--- 新增: 在控制台记录
-              if(data.status === 'ok') resolve({ok:true, submissionId: data.submissionId, serverData: data}); // <--- 修改
-              else resolve({ok:false, message: data.message, serverData: data}); // <--- 修改
-            }
-          } catch(err){
-            window.removeEventListener('message', onMessage);
-            clearTimeout(to);
-            reject(err);
-          }
-        }
-        window.addEventListener('message', onMessage, false);
-
-        var to = setTimeout(function(){
-          window.removeEventListener('message', onMessage);
-          resolve({ok:false, message:'timeout'});
-        }, timeoutMs);
-
-        // submit
-        form.submit();
-      } catch(err){
-        reject(err);
-      }
-    });
-  }
-
-  // Override global submitResponse if not present
-  window.submitResponse = window.submitResponse || function(payload){
-    return submitViaIframe(payload, 30000).then(function(res){
-      if(res.ok){
-        return { ok:true, server:{submissionId: res.submissionId} };
-      } else {
-        return { ok:false, message: res.message || 'error' };
-      }
-    }).catch(function(err){
-      return { ok:false, message: String(err) };
-    });
-  };
-
-  // Auto-request assignment on DOMContentLoaded if not already requested by page
-  document.addEventListener('DOMContentLoaded', function(){
-    try {
-      var workerId = (function(){
-        var params = new URLSearchParams(window.location.search);
-        return params.get('PROLIFIC_PID') || params.get('participant_id') || params.get('worker_id') || localStorage.getItem('anon_worker_id');
-      })();
-      if(!workerId){
-        workerId = 'anon-' + Math.random().toString(36).slice(2);
-        localStorage.setItem('anon_worker_id', workerId);
-      }
-      // Request 1 pair by default (as you requested)
-      if(!window.assignedPairs || window.assignedPairs.length === 0){
-        jsonpAssign(workerId, 1, 'handleAssignFromInjected', 'balanced');
-      }
-    } catch(e){
-      console.warn('injected assign failed', e);
-    }
-  });
-
-})();
-</script>
-<style>
-/* (保留的功能) 保持按钮布局一致 */
-.buttons { display:flex !important; justify-content:space-between !important; align-items:center !important; gap:12px !important; margin-top:12px !important; }
-#submit-overlay-confirm { display:inline-block !important; }
-</style>
+</div>
 
 <script>
 (function() {
-  'use strict';
-  
-  // (新) 在顶层作用域定义图像缓存
-  // 我们将在 onAssignedReady 中手动清除它
-  window._driveImageCache = {};
-  
-  // 1. (关键) 立即捕获“旧”的 onAssignedReady (来自 v1.18 补丁)
-  //    (v1.18 补丁在您的 1358-1414 行中)
-  var originalOnAssignedReady = window.onAssignedReady;
+    'use strict';
 
-  /**
-   * (新) 图像加载器 (返回 Promise)
-   * (已修复：确保它正确使用 fileId 作为缓存键)
-   */
-  function loadDriveImagePromise(fileId, opts){
-    opts = opts || {};
-    return new Promise(function(resolve, reject) {
-      
-      if(!fileId){
-        return reject(new Error("No File ID provided."));
-      }
-
-      // --- (关键修复) 检查特定 fileId 的缓存 ---
-      if (window._driveImageCache[fileId]) {
-        console.log("Cache HIT for fileId: " + fileId);
-        return resolve(window._driveImageCache[fileId]);
-      }
-      console.log("Cache MISS for fileId: " + fileId + ". Fetching...");
-      // --- (结束修复) ---
-
-      var cbName = 'proxy_cb_' + Math.random().toString(36).slice(2,9);
-      var timedOut = false;
-      var timeoutMs = opts.timeout || 60000; // 60s 超时
-      var script = document.createElement('script');
-
-      function cleanup(){
-        try { if(script.parentNode) script.parentNode.removeChild(script); } catch(e){}
-        try { if(window[cbName]) { delete window[cbName]; } } catch(e){ window[cbName]=undefined; }
-      }
-
-      var to = setTimeout(function(){
-        timedOut = true;
-        cleanup();
-        reject(new Error("Image load timed out for fileId: " + fileId));
-      }, timeoutMs);
-
-      window[cbName] = function(resp){
-        if(timedOut) return; // 超时已处理
-        clearTimeout(to);
-        try {
-          if(resp && resp.ok && resp.dataUrl){
-            // (关键修复) 存入缓存
-            window._driveImageCache[fileId] = resp.dataUrl;
-            resolve(resp.dataUrl); // 成功！
-          } else {
-            reject(new Error("Proxy returned an error: " + (resp.message || 'Unknown error')));
-          }
-        } catch(e){ 
-          reject(new Error("Invalid response from proxy: " + e.message));
-        }
-        cleanup();
-      };
-
-      if(!window.APPS_SCRIPT_URL){ 
-        clearTimeout(to);
-        delete window[cbName];
-        return reject(new Error("APPS_SCRIPT_URL is not defined."));
-      }
-      
-      script.src = window.APPS_SCRIPT_URL + '?action=proxy&file_id=' + encodeURIComponent(fileId) + '&callback=' + cbName + '&_cb=' + Date.now();
-      
-      script.id = 'jsonp-' + cbName;
-      script.async = true;
-      script.onerror = function(){
-        if(timedOut) return;
-        clearTimeout(to);
-        cleanup();
-        reject(new Error("Script error (e.g., 404) for proxy request."));
-      };
-      document.head.appendChild(script);
-    });
-  }
-  
-/**
-   * (新) 图像应用器 (统一版本)
-   * (已修复：不再依赖脆弱的 src.includes() 或 ID，而是使用统一的类名)
-   */
-  function applyImagesToPage(url1, url2) {
-    if (!url1 || !url2) return;
-
-    // 1. 统一查找所有图像 1
-    var all_images_1 = document.querySelectorAll('.survey-img-1');
-    all_images_1.forEach(function(imgEl) {
-      imgEl.src = url1;
-    });
-
-    // 2. 统一查找所有图像 2
-    var all_images_2 = document.querySelectorAll('.survey-img-2');
-    all_images_2.forEach(function(imgEl) {
-      imgEl.src = url2;
-    });
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxKvkPVvLtx7IF420Z9RRBXXhcFMowe6AiFg_AD9plWme9D83mQNIAVDvKfgXxt3nV9/exec';
     
-    // 3. 触发重绘/重排
-    setTimeout(function(){ 
-      window.dispatchEvent(new Event('resize')); 
-      console.log("Applied images (unified) and triggered resize.");
-    }, 100); 
-  }
+    const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
+    var state = { demographics: {}, pairwise: {}, points: {}, historyByAttr: {}, ai_guess: null };
+    var active = { selectedId: null, selectedAttr: null, selectedImage: null };
+    var assignedPairInfo = null;
 
-  /**
-   * (新) 覆盖 onAssignedReady (这是新的核心逻辑)
-   */
-  window.onAssignedReady = async function(assigned){
-    var overlay = document.getElementById('loading-overlay');
-    var overlayError = document.getElementById('loading-error');
+    ATTRIBUTES.forEach(a => {
+        state.points[a] = { '1.jpg': [], '2.jpg': [] };
+        // [Fix 1] Init history as empty array
+        state.historyByAttr[a] = [];
+    });
+
+    function q(s) { return document.querySelector(s); }
+    function qa(s) { return Array.from(document.querySelectorAll(s)); }
+    function uuidv4() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8); return v.toString(16); }); }
+    function getQueryParam(n) { try { return new URL(window.location.href).searchParams.get(n); } catch (e) { return null; } }
     
-    // --- (关键修复：解决“仍显示旧图像”的 bug) ---
-    // 在加载新图像之前，清除旧的图像缓存！
-    window._driveImageCache = {};
-    console.log("Image cache CLEARED for new assignment.");
-    // --- (结束修复) ---
-
-    try {
-      console.log('Assignment received:', assigned);
-      var a = Array.isArray(assigned) ? (assigned[0] || {}) : (assigned || {});
-      
-      if (!a.file_id1 || !a.file_id2) {
-        throw new Error("Assignment received, but file_id1 or file_id2 is missing.");
-      }
-
-      // (修复了递归 bug)
-      if (originalOnAssignedReady && typeof originalOnAssignedReady === 'function') {
-        try {
-          originalOnAssignedReady(assigned); // 调用 v1.18 的原始函数 (设置 pair_id)
-        } catch(e) {
-          console.error("Error in originalOnAssignedReady:", e);
-        }
-      } else {
-        console.warn("originalOnAssignedReady not found. Running fallback assignment.");
-        var pairId = a.pair_id || ('pair_' + Date.now());
-        window.PAIR_IDS = [pairId];
-        try { document.body.setAttribute('data-pair-ids', window.PAIR_IDS.join(',')); } catch(e){}
-      }
-
-      // --- 串行加载图像 (保持不变) ---
-      var url1 = await loadDriveImagePromise(a.file_id1, {timeout: 60000});
-      var url2 = await loadDriveImagePromise(a.file_id2, {timeout: 60000});
-      
-      // 成功！应用图像
-      applyImagesToPage(url1, url2);
-      
-      // 隐藏覆盖层
-      if (overlay) overlay.style.display = 'none';
-
-    } catch (err) {
-      // 图像加载失败
-      console.error('Image loading failed:', err);
-      if (overlayError) overlayError.style.display = 'block';
+    function getProlificPid() {
+        var p = getQueryParam('PROLIFIC_PID') || getQueryParam('PROLIFICID') || getQueryParam('participant_id') || getQueryParam('worker_id');
+        if (p) return p.trim();
+        var s = localStorage.getItem('anon_worker_id');
+        if (!s) { s = 'anon-' + Math.random().toString(36).slice(2); localStorage.setItem('anon_worker_id', s); }
+        return s;
     }
-  };
 
-  // (新) 确保在 DOM 加载时自动填充 User ID (保持不变)
-  document.addEventListener('DOMContentLoaded', function(){
-    try {
-      // (新) 确保 getProlificPid 存在 (它在 778 行定义)
-      var prolificId = (typeof getProlificPid === 'function') ? getProlificPid() : '';
-      if(prolificId) {
-        var userIdInput = document.getElementById('user-id');
-        if(userIdInput) {
-          userIdInput.value = prolificId;
-          userIdInput.readOnly = true;
-          userIdInput.style.backgroundColor = '#f1f5f9';
+    function getFastDriveUrl(fileId) {
+        return 'https://lh3.googleusercontent.com/d/' + fileId;
+    }
+
+    function jsonp(url, callback) {
+        var cbName = 'cb_' + Math.random().toString(36).slice(2);
+        window[cbName] = function(data) {
+            delete window[cbName];
+            var el = document.getElementById('sc-' + cbName);
+            if(el) el.remove();
+            callback(data);
+        };
+        var s = document.createElement('script');
+        s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
+        s.id = 'sc-' + cbName;
+        s.onerror = function() { callback({ error: 'Network error' }); };
+        document.body.appendChild(s);
+    }
+
+    function requestAssignment() {
+        var workerId = getProlificPid();
+        var url = APPS_SCRIPT_URL + '?action=assign&worker_id=' + encodeURIComponent(workerId);
+        jsonp(url, function(data) {
+            if (data && (data.pair_id || data.file_id1)) {
+                assignedPairInfo = data;
+                applyImages(data.file_id1, data.file_id2);
+            } else {
+                document.getElementById('loading-error').style.display = 'block';
+                document.getElementById('loading-error').textContent = "No tasks available or error: " + (data.error || 'Unknown');
+            }
+        });
+    }
+
+    function applyImages(fid1, fid2) {
+        if (!fid1 || !fid2) return;
+        var url1 = getFastDriveUrl(fid1);
+        var url2 = getFastDriveUrl(fid2);
+        
+        console.log("--- Images Loaded ---");
+        console.log("Image 1 URL:", url1);
+        console.log("Image 2 URL:", url2);
+
+        qa('.survey-img-1').forEach(img => img.src = url1);
+        qa('.survey-img-2').forEach(img => img.src = url2);
+
+        var count = 0;
+        function checkDone() {
+            count++;
+            if (count >= 2) {
+                document.getElementById('loading-overlay').style.display = 'none';
+                initOverlays();
+            }
         }
-      }
-    } catch(e) { console.warn('Failed to auto-fill user-id', e); }
-  });
+        var i1 = new Image(); i1.onload = checkDone; i1.onerror = function(){ qa('.survey-img-1').forEach(img => img.src = 'https://drive.google.com/uc?export=view&id=' + fid1); checkDone(); }; i1.src = url1;
+        var i2 = new Image(); i2.onload = checkDone; i2.onerror = function(){ qa('.survey-img-2').forEach(img => img.src = 'https://drive.google.com/uc?export=view&id=' + fid2); checkDone(); }; i2.src = url2;
+        
+        document.body.dataset.pairIds = assignedPairInfo.pair_id || ('pair_' + fid1.slice(-5));
+    }
 
-  // --- (保留) 您想要的功能 4, 5, 6 ---
+    function buildRatingControls() {
+        ATTRIBUTES.forEach(attr => {
+            var container = document.getElementById('rating-' + attr);
+            if (!container) return;
+            container.innerHTML = '';
+            
+            var row = document.createElement('div'); row.className='attr-row';
+            var left = document.createElement('div'); left.style.minWidth='140px';
+            var strong = document.createElement('strong'); strong.textContent = attr;
+            left.appendChild(strong);
+            row.appendChild(left);
 
-  // 4) Prevent duplicate submissions: wrap submitResponse with an in-progress guard
-  if(typeof window.submitResponse === 'function'){
-    var origSubmit = window.submitResponse;
-    window._submissionInProgress = window._submissionInProgress || false;
-    window.submitResponse = function(payload){
-      if(window._submissionInProgress){
-        console.warn('submitResponse: submission already in progress — ignoring duplicate call.');
-        return Promise.resolve({ ok:false, message:'duplicate_in_progress' });
-      }
-      window._submissionInProgress = true;
-      return Promise.resolve(origSubmit(payload)).then(function(res){
-        window._submissionInProgress = false;
-        return res;
-      }).catch(function(err){
-        window._submissionInProgress = false;
-        throw err;
-      });
+            var scale = document.createElement('div'); scale.className='scale';
+            var vals = [1,0.5,0,-0.5,-1];
+            vals.forEach(function(v){
+              var lab = document.createElement('label');
+              lab.style.display='inline-flex'; lab.style.flexDirection='column'; lab.style.alignItems='center'; lab.style.marginRight='12px';
+              var inp = document.createElement('input'); inp.type='radio'; inp.name = attr; inp.value = String(v);
+              var txt = document.createTextNode(String(v));
+              var small = document.createElement('small');
+              if(v===1) small.textContent='1: Image1 much more';
+              else if(v===0.5) small.textContent='0.5: slightly more';
+              else if(v===0) small.textContent='0: equal';
+              else if(v===-0.5) small.textContent='-0.5: slightly less';
+              else small.textContent='-1: much less';
+              lab.appendChild(inp); lab.appendChild(txt); lab.appendChild(document.createElement('br')); lab.appendChild(small);
+              scale.appendChild(lab);
+            });
+            row.appendChild(scale);
+            container.appendChild(row);
+
+            var arrowDiv = document.createElement('div');
+            arrowDiv.style.textAlign = 'center';
+            arrowDiv.style.marginTop = '8px';
+            arrowDiv.style.fontSize = '18px';
+            arrowDiv.style.fontWeight = '700';
+            arrowDiv.innerHTML = '<span style="font-size:28px; margin-right:10px">◀</span> Image 1 more    <span style="font-size:20px; padding:0 8px; background:#f1f5f9; border-radius:6px;">0</span>    Image 2 more <span style="font-size:28px; margin-left:10px">▶</span>';
+            container.appendChild(arrowDiv);
+        });
+    }
+
+    function renderMarkers(attr, imgKey) {
+        var idx = (imgKey === '1.jpg' ? 1 : 2);
+        var ov = document.getElementById(`ov-${attr}-${idx}`);
+        var img = document.getElementById(`img-${attr}-${idx}`);
+        if (!ov || !img) return;
+        
+        var pts = state.points[attr][imgKey];
+        var rect = img.getBoundingClientRect();
+        if(rect.width < 50) return; 
+
+        ov.setAttribute('viewBox', `0 0 ${rect.width} ${rect.height}`);
+        ov.innerHTML = ''; 
+
+        pts.forEach((p, i) => {
+            var cx = p.x * rect.width, cy = p.y * rect.height;
+            var isSel = (p.id === active.selectedId);
+            var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            g.style.cursor = 'pointer';
+            g.onclick = (e) => { e.stopPropagation(); selectPoint(attr, imgKey, p.id); };
+
+            var halo = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            halo.setAttribute('cx',cx); halo.setAttribute('cy',cy); halo.setAttribute('r',18); halo.setAttribute('class','marker-halo');
+            
+            var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', cx); circle.setAttribute('cy', cy);
+            circle.setAttribute('r', isSel ? 8 : 6);
+            circle.setAttribute('class', 'marker-dot');
+            
+            var labelBg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            labelBg.setAttribute('cx',cx+12); labelBg.setAttribute('cy',cy-12); labelBg.setAttribute('r',10); labelBg.setAttribute('fill','#111'); labelBg.setAttribute('opacity',0.7);
+            
+            var label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            label.setAttribute('x', cx + 12); label.setAttribute('y', cy - 8);
+            label.textContent = i + 1;
+            label.setAttribute('class','marker-label');
+
+            if(isSel) halo.setAttribute('fill','rgba(239,68,68,0.22)');
+            g.appendChild(halo); g.appendChild(circle); g.appendChild(labelBg); g.appendChild(label);
+            ov.appendChild(g);
+        });
+        
+        document.getElementById(`count-${attr}-${idx}`).textContent = pts.length;
+        var listEl = document.getElementById(`list-${attr}-${idx}`);
+        listEl.innerHTML = pts.map((p, i) => {
+            var selStyle = (p.id === active.selectedId) ? 'font-weight:bold;color:#2563eb' : '';
+            return `<div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;${selStyle}">
+                <span>#${i+1} — x=${p.x}, y=${p.y}</span>
+                <button class="small secondary" onclick="window.deletePoint('${attr}','${imgKey}',${i})">Delete</button>
+            </div>`;
+        }).join('');
+    }
+
+    function initOverlays() {
+        ATTRIBUTES.forEach(attr => {
+            ['1.jpg', '2.jpg'].forEach(k => {
+                var idx = (k === '1.jpg' ? 1 : 2);
+                var ov = document.getElementById(`ov-${attr}-${idx}`);
+                if (!ov) return;
+                ov.onclick = function(e) {
+                    if(e.target.tagName !== 'svg') return;
+                    var rect = ov.getBoundingClientRect();
+                    var x = parseFloat(((e.clientX - rect.left) / rect.width).toFixed(4));
+                    var y = parseFloat(((e.clientY - rect.top) / rect.height).toFixed(4));
+                    var id = uuidv4();
+                    // [Fix] Snapshot BEFORE adding
+                    pushHistory(attr);
+                    state.points[attr][k].push({ x: x, y: y, id: id });
+                    selectPoint(attr, k, id);
+                };
+                renderMarkers(attr, k);
+            });
+        });
+        window.addEventListener('resize', () => { ATTRIBUTES.forEach(a => { renderMarkers(a,'1.jpg'); renderMarkers(a,'2.jpg'); }); });
+    }
+
+    window.selectPoint = function(attr, imgKey, id) {
+        active.selectedId = id; active.selectedAttr = attr; active.selectedImage = imgKey;
+        renderMarkers(attr, imgKey);
     };
-  }
+    window.deletePoint = function(attr, imgKey, idx) {
+        // [Fix] Snapshot BEFORE deleting
+        pushHistory(attr);
+        state.points[attr][imgKey].splice(idx, 1);
+        active.selectedId = null;
+        renderMarkers(attr, imgKey);
+    };
 
-  // 5) Hide/remove any UI control that resets submission state (if present)
-  try {
-    var resetEls = document.querySelectorAll('[id*="reset"][id*="submit"], .reset-submission, #reset-submit');
-    resetEls.forEach(function(el){ try{ el.style.display='none'; el.disabled = true; }catch(e){} });
-  } catch(e){}
+    // [Fix] Simple deep clone history mechanism
+    function pushHistory(attr) {
+        var snap = { '1.jpg': state.points[attr]['1.jpg'].map(p=>({...p})), '2.jpg': state.points[attr]['2.jpg'].map(p=>({...p})) };
+        state.historyByAttr[attr].push(snap);
+        if(state.historyByAttr[attr].length > 20) state.historyByAttr[attr].shift();
+    }
 
-  // 6) Keep button positions consistent by ensuring their container exists and applying CSS
-  window.addEventListener('resize', function(){ try{ var bs = document.querySelectorAll('.buttons'); bs.forEach(function(b){ b.style.minHeight = '44px'; }); }catch(e){} });
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('button');
+        if (!btn) return;
+        
+        var page = btn.closest('.page');
 
-  console.info('Survey runtime patch applied (v1.24): image-cache-clear/submit-guard/recursion-fix');
+        if (btn.dataset.next) {
+            var curPage = document.querySelector('.page.active');
+            if (curPage.id === 'page-1') {
+                var required = [ {id:'user-id',label:'User ID'},{id:'age',label:'Age'},{id:'gender',label:'Gender'},{id:'nationality',label:'Nationality'} ];
+                var missing = [];
+                for(var i=0;i<required.length;i++){
+                  var el = document.getElementById(required[i].id);
+                  var val = el ? el.value : '';
+                  if(!(val && String(val).trim())) missing.push(required[i].label);
+                }
+                if(missing.length){
+                  alert('Please fill these required fields:\n' + missing.join('\n'));
+                  return;
+                }
+                state.demographics = {
+                    id: document.getElementById('user-id').value,
+                    age: document.getElementById('age').value,
+                    gender: document.getElementById('gender').value,
+                    nationality: document.getElementById('nationality').value,
+                    education: document.getElementById('education').value
+                };
+            }
+            if (curPage.dataset.attrIndex) {
+                var attr = ATTRIBUTES[parseInt(curPage.dataset.attrIndex)];
+                var sel = document.querySelector(`input[name="${attr}"]:checked`);
+                if (!sel) { alert('Please provide a rating for ' + attr + ' before continuing.'); return; }
+                state.pairwise[attr] = parseFloat(sel.value);
+            }
+            showPage(parseInt(btn.dataset.next));
+        }
+        
+        if (btn.dataset.go) showPage(parseInt(btn.dataset.go));
+        
+        if (btn.hasAttribute('data-back-to-rating')) {
+            if(page && page.dataset.attrIndex) {
+                var idx = parseInt(page.dataset.attrIndex);
+                showPage(2 + idx * 2);
+            }
+        }
+        
+        // [Fix] Undo Logic - Pop the top and replace current state
+        if (btn.hasAttribute('data-undo')) {
+            if(page && page.dataset.attrIndex) {
+                var attr = ATTRIBUTES[parseInt(page.dataset.attrIndex)];
+                var h = state.historyByAttr[attr];
+                if(h.length > 0) {
+                    var last = h.pop(); // [Fix] Directly pop and use
+                    state.points[attr] = { '1.jpg': last['1.jpg'].map(p=>({...p})), '2.jpg': last['2.jpg'].map(p=>({...p})) };
+                    active.selectedId = null;
+                    renderMarkers(attr,'1.jpg'); renderMarkers(attr,'2.jpg');
+                } else {
+                    alert('Nothing to undo.');
+                }
+            }
+        }
+        
+        if (btn.hasAttribute('data-delete-selected')) {
+            if(page && page.dataset.attrIndex) {
+                var attr = ATTRIBUTES[parseInt(page.dataset.attrIndex)];
+                if(active.selectedId && active.selectedAttr === attr) {
+                     // [Fix] Snapshot before
+                     pushHistory(attr);
+                     var arr = state.points[active.selectedAttr][active.selectedImage];
+                     var idx = arr.findIndex(p=>p.id===active.selectedId);
+                     if(idx!==-1) {
+                         arr.splice(idx, 1);
+                         active.selectedId = null;
+                         renderMarkers(attr, active.selectedImage);
+                     }
+                } else {
+                    alert('No point selected. Click a point to select it first.');
+                }
+            }
+        }
+        
+        if (btn.hasAttribute('data-clear')) {
+            if(page && page.dataset.attrIndex) {
+                var attr = ATTRIBUTES[parseInt(page.dataset.attrIndex)];
+                if(!confirm('Clear all points for ' + attr + '?')) return;
+                pushHistory(attr);
+                state.points[attr]['1.jpg'] = []; state.points[attr]['2.jpg'] = [];
+                active.selectedId = null;
+                renderMarkers(attr,'1.jpg'); renderMarkers(attr,'2.jpg');
+            }
+        }
+        
+        if (btn.id === 'finish') {
+            if(btn.disabled) return;
+            var ai = document.querySelector('input[name="ai_guess"]:checked');
+            if(!ai) { alert('Please choose which image is more likely AI-generated before submitting.'); return; }
+            state.ai_guess = ai.value;
+            
+            btn.disabled = true;
+            btn.textContent = 'Submitting...';
+            document.getElementById('submit-overlay').classList.add('show');
+            submitData();
+        }
+    });
+
+    function showPage(n) {
+        qa('.page').forEach(p => p.classList.remove('active'));
+        var next = document.getElementById('page-' + n);
+        if(next) {
+            next.classList.add('active');
+            window.scrollTo(0,0);
+            if(next.dataset.attrIndex) {
+                var a = ATTRIBUTES[parseInt(next.dataset.attrIndex)];
+                renderMarkers(a,'1.jpg'); renderMarkers(a,'2.jpg');
+            }
+        }
+    }
+
+    function submitData() {
+        var payload = {
+            demographics: state.demographics,
+            pairwise: state.pairwise,
+            points: state.points,
+            ai_guess: state.ai_guess,
+            pair_ids: assignedPairInfo ? [assignedPairInfo.pair_id] : [],
+            meta: { timestamp: new Date().toISOString() }
+        };
+        var formData = new URLSearchParams();
+        formData.append('payload', JSON.stringify(payload));
+
+        fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData })
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('submit-overlay-progress').style.width = '100%';
+            document.getElementById('submit-overlay-status').textContent = 'Success!';
+            document.getElementById('submit-overlay-confirm').classList.remove('hidden');
+            
+            document.getElementById('finish').textContent = 'Submitted';
+            document.getElementById('post-submit-note').textContent = 'Data saved. Submission ID: ' + (data.submissionId || 'ok');
+            document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+            
+            document.getElementById('submit-overlay-confirm').onclick = function() {
+                document.getElementById('submit-overlay').classList.remove('show');
+            };
+        })
+        .catch(err => {
+            document.getElementById('submit-overlay-status').textContent = 'Error: ' + err.message;
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(payload)], {type:'application/json'}));
+            a.download = state.demographics.id + '_backup.json';
+            a.click();
+        });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        buildRatingControls();
+        var pid = getProlificPid();
+        if(pid) {
+            document.getElementById('user-id').value = pid;
+            document.getElementById('user-id').readOnly = true;
+            document.getElementById('user-id').style.background = '#f1f5f9';
+        }
+        requestAssignment();
+    });
 
 })();
 </script>
-
 </body>
 </html>
