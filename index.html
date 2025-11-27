@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Street Perception Survey</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
   <style>
     :root{--accent:#2563eb;--muted:#6b7280}
     body{font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;margin:0;background:#f8fafc;color:#0f172a}
@@ -18,23 +19,44 @@
     .buttons{display:flex;justify-content:space-between;margin-top:18px}
     button{background:var(--accent);color:#fff;padding:10px 14px;border:none;border-radius:8px;cursor:pointer}
     button.secondary{background:#eef2ff;color:#0f172a}
-    .images{display:flex;gap:12px}
-    .images img{width:48%;height:480px;object-fit:cover;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,0.06)}
+    
+    /* --- 布局修正与防拖拽核心样式 --- */
+    .images { display: flex; gap: 16px; justify-content: space-between; align-items: flex-start; }
+    .img-wrapper, .regions-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; min-width: 0; }
+    .images img, .regions-wrap img { width: auto; max-width: 100%; height: auto; max-height: 480px; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .regions-wrap { line-height: 0; display: inline-block; }
+    .regions-wrap img { pointer-events: none; user-select: none; -webkit-user-drag: none; }
+    .canvas-container { position: absolute !important; top: 0; left: 0; z-index: 10; border-radius: 8px; }
+    
     .pair-attr{margin-top:14px;padding:12px;border:1px dashed #e6eef8;border-radius:8px}
     .scale{display:flex;gap:8px;align-items:center;justify-content:center}
     .scale label{display:flex;flex-direction:column;align-items:center;font-weight:500}
     .hint{font-size:13px;color:var(--muted);margin-top:8px}
-    .regions-wrap{position:relative;display:inline-block;width:100%}
-    .regions-wrap img{display:block;width:100%;height:480px;object-fit:cover;border-radius:8px}
-    svg.overlay{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:auto}
-    .marker-dot{fill:#ef4444;stroke:#fff;stroke-width:1}
-    .marker-halo{fill:rgba(239,68,68,0.14);stroke:none}
-    .marker-label{font-size:12px;fill:#fff;text-anchor:middle;pointer-events:none}
     .controls{display:flex;gap:8px;justify-content:center;margin-top:8px}
     .small{padding:6px 8px;font-size:13px}
-    .points-list{font-size:13px;max-height:160px;overflow:auto;background:#f1f5f9;padding:8px;border-radius:6px}
     pre#output{white-space:pre-wrap;background:#0b1220;color:#cfe9ff;padding:12px;border-radius:8px;max-height:300px;overflow:auto}
-    @media (max-width:720px){ .row{grid-template-columns:1fr} .images{flex-direction:column} button{width:48%} .buttons{flex-wrap:wrap;gap:8px} }
+    
+    /* Summary Table Styles */
+    .summary-section { margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; }
+    .summary-title { font-weight: 700; color: #334155; margin-bottom: 8px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; font-size: 14px; }
+    .summary-item { background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0; }
+    .summary-item strong { display: block; font-size: 12px; color: #64748b; margin-bottom: 2px; }
+    
+    .summary-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 8px; }
+    .summary-table th, .summary-table td { padding: 10px; border: 1px solid #e2e8f0; text-align: center; }
+    .summary-table th { background: #f1f5f9; color: #475569; font-weight: 600; }
+    .summary-table td:first-child { text-align: left; font-weight: 600; color: #1e293b; }
+    .summary-table tr:nth-child(even) { background-color: #fcfcfc; }
+
+    @media (max-width:720px){ 
+        .row{grid-template-columns:1fr} 
+        .images{flex-direction:column} 
+        .img-wrapper, .regions-wrap { width: 100%; }
+        button{width:48%} 
+        .buttons{flex-wrap:wrap;gap:8px} 
+        .summary-grid { grid-template-columns: 1fr; }
+    }
 
     .container.locked * { pointer-events: none !important; user-select: none !important; opacity: 0.6; }
     #submit-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(11,17,32,0.58); z-index: 9999; }
@@ -99,154 +121,145 @@
 
     <div id="page-2" class="page" data-attr-index="0">
       <h2>2. Safe — Pairwise comparison</h2>
-      <div class="images"><img class="survey-img-1" src=""><img class="survey-img-2" src=""></div>
+      <div class="images">
+        <div class="img-wrapper"><img class="survey-img-1" src=""></div>
+        <div class="img-wrapper"><img class="survey-img-2" src=""></div>
+      </div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
         <div style="font-weight:600">Image 1</div>
         <div style="text-align:center;font-weight:700">Which image looks safer?</div>
         <div style="font-weight:600">Image 2</div>
       </div>
       <div class="pair-attr" id="rating-Safe"></div>
-      <div class="hint" style="margin-top:8px">Use the 5-point scale below with 0 at the center.</div>
       <div class="buttons"><button class="secondary" data-go="1" type="button">◀ Back</button><button data-next="3" type="button">Next: mark Safe points ▶</button></div>
     </div>
 
     <div id="page-3" class="page" data-attr-index="0">
-      <h2>3. Safe — Mark points of interest</h2>
-      <p class="hint">Click on the image to add a point. To remove a point, select it then use "Delete selected".</p>
+      <h2>3. Safe — Circle regions of interest</h2>
+      <p class="hint">Draw a circle around the areas that make you feel safe. (Draw freely; shape will close automatically)</p>
       <div class="images">
-        <div style="flex:1;text-align:center">
-          <div class="regions-wrap"><img id="img-Safe-1" class="survey-img-1" src="" /><svg id="ov-Safe-1" class="overlay"></svg></div>
-          <div style="margin-top:8px"><strong>Image 1</strong> — Points: <span id="count-Safe-1">0</span></div>
-          <div class="points-list" id="list-Safe-1"></div>
+        <div class="regions-wrap">
+            <img id="img-Safe-1" class="survey-img-1" src="" />
+            <canvas id="cvs-Safe-1"></canvas>
+            <div style="margin-top:8px; text-align:center; width:100%;"><strong>Image 1</strong> — Regions: <span id="count-Safe-1">0</span></div>
         </div>
-        <div style="flex:1;text-align:center">
-          <div class="regions-wrap"><img id="img-Safe-2" class="survey-img-2" src="" /><svg id="ov-Safe-2" class="overlay"></svg></div>
-          <div style="margin-top:8px"><strong>Image 2</strong> — Points: <span id="count-Safe-2">0</span></div>
-          <div class="points-list" id="list-Safe-2"></div>
+        <div class="regions-wrap">
+            <img id="img-Safe-2" class="survey-img-2" src="" />
+            <canvas id="cvs-Safe-2"></canvas>
+            <div style="margin-top:8px; text-align:center; width:100%;"><strong>Image 2</strong> — Regions: <span id="count-Safe-2">0</span></div>
         </div>
       </div>
-      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div>
+      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-clear type="button">Clear all</button></div>
       <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="4" type="button">Next: Lively — Rating ▶</button></div>
     </div>
 
     <div id="page-4" class="page" data-attr-index="1">
       <h2>4. Lively — Pairwise comparison</h2>
-      <div class="images"><img class="survey-img-1" src=""><img class="survey-img-2" src=""></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-        <div style="font-weight:600">Image 1</div>
-        <div style="text-align:center;font-weight:700">Which image looks livelier?</div>
-        <div style="font-weight:600">Image 2</div>
+      <div class="images">
+        <div class="img-wrapper"><img class="survey-img-1" src=""></div>
+        <div class="img-wrapper"><img class="survey-img-2" src=""></div>
       </div>
       <div class="pair-attr" id="rating-Lively"></div>
-      <div class="hint" style="margin-top:8px">Use the 5-point scale below with 0 at the center.</div>
       <div class="buttons"><button class="secondary" data-go="3" type="button">◀ Back</button><button data-next="5" type="button">Next: mark Lively points ▶</button></div>
     </div>
+
     <div id="page-5" class="page" data-attr-index="1">
-      <h2>5. Lively — Mark points of interest</h2>
+      <h2>5. Lively — Circle regions of interest</h2>
       <div class="images">
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Lively-1" class="survey-img-1" src="" /><svg id="ov-Lively-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Lively-1">0</span></div><div class="points-list" id="list-Lively-1"></div></div>
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Lively-2" class="survey-img-2" src="" /><svg id="ov-Lively-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Lively-2">0</span></div><div class="points-list" id="list-Lively-2"></div></div>
+        <div class="regions-wrap"><img id="img-Lively-1" class="survey-img-1" src="" /><canvas id="cvs-Lively-1"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Lively-1">0</span></div></div>
+        <div class="regions-wrap"><img id="img-Lively-2" class="survey-img-2" src="" /><canvas id="cvs-Lively-2"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Lively-2">0</span></div></div>
       </div>
-      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div>
+      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-clear type="button">Clear all</button></div>
       <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="6" type="button">Next: Beautiful — Rating ▶</button></div>
     </div>
 
     <div id="page-6" class="page" data-attr-index="2">
       <h2>6. Beautiful — Pairwise comparison</h2>
-      <div class="images"><img class="survey-img-1" src=""><img class="survey-img-2" src=""></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-        <div style="font-weight:600">Image 1</div>
-        <div style="text-align:center;font-weight:700">Which image looks more beautiful?</div>
-        <div style="font-weight:600">Image 2</div>
+      <div class="images">
+        <div class="img-wrapper"><img class="survey-img-1" src=""></div>
+        <div class="img-wrapper"><img class="survey-img-2" src=""></div>
       </div>
       <div class="pair-attr" id="rating-Beautiful"></div>
-      <div class="hint" style="margin-top:8px">Use the 5-point scale below with 0 at the center.</div>
       <div class="buttons"><button class="secondary" data-go="5" type="button">◀ Back</button><button data-next="7" type="button">Next: mark Beautiful points ▶</button></div>
     </div>
+
     <div id="page-7" class="page" data-attr-index="2">
-      <h2>7. Beautiful — Mark points of interest</h2>
+      <h2>7. Beautiful — Circle regions of interest</h2>
       <div class="images">
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Beautiful-1" class="survey-img-1" src="" /><svg id="ov-Beautiful-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Beautiful-1">0</span></div><div class="points-list" id="list-Beautiful-1"></div></div>
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Beautiful-2" class="survey-img-2" src="" /><svg id="ov-Beautiful-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Beautiful-2">0</span></div><div class="points-list" id="list-Beautiful-2"></div></div>
+        <div class="regions-wrap"><img id="img-Beautiful-1" class="survey-img-1" src="" /><canvas id="cvs-Beautiful-1"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Beautiful-1">0</span></div></div>
+        <div class="regions-wrap"><img id="img-Beautiful-2" class="survey-img-2" src="" /><canvas id="cvs-Beautiful-2"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Beautiful-2">0</span></div></div>
       </div>
-      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div>
+      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-clear type="button">Clear all</button></div>
       <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="8" type="button">Next: Wealthy — Rating ▶</button></div>
     </div>
 
     <div id="page-8" class="page" data-attr-index="3">
       <h2>8. Wealthy — Pairwise comparison</h2>
-      <div class="images"><img class="survey-img-1" src=""><img class="survey-img-2" src=""></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-        <div style="font-weight:600">Image 1</div>
-        <div style="text-align:center;font-weight:700">Which image looks wealthier?</div>
-        <div style="font-weight:600">Image 2</div>
+      <div class="images">
+        <div class="img-wrapper"><img class="survey-img-1" src=""></div>
+        <div class="img-wrapper"><img class="survey-img-2" src=""></div>
       </div>
       <div class="pair-attr" id="rating-Wealthy"></div>
-      <div class="hint" style="margin-top:8px">Use the 5-point scale below with 0 at the center.</div>
       <div class="buttons"><button class="secondary" data-go="7" type="button">◀ Back</button><button data-next="9" type="button">Next: mark Wealthy points ▶</button></div>
     </div>
+
     <div id="page-9" class="page" data-attr-index="3">
-      <h2>9. Wealthy — Mark points of interest</h2>
+      <h2>9. Wealthy — Circle regions of interest</h2>
       <div class="images">
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Wealthy-1" class="survey-img-1" src="" /><svg id="ov-Wealthy-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Wealthy-1">0</span></div><div class="points-list" id="list-Wealthy-1"></div></div>
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Wealthy-2" class="survey-img-2" src="" /><svg id="ov-Wealthy-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Wealthy-2">0</span></div><div class="points-list" id="list-Wealthy-2"></div></div>
+        <div class="regions-wrap"><img id="img-Wealthy-1" class="survey-img-1" src="" /><canvas id="cvs-Wealthy-1"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Wealthy-1">0</span></div></div>
+        <div class="regions-wrap"><img id="img-Wealthy-2" class="survey-img-2" src="" /><canvas id="cvs-Wealthy-2"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Wealthy-2">0</span></div></div>
       </div>
-      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div>
+      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-clear type="button">Clear all</button></div>
       <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="10" type="button">Next: Boring — Rating ▶</button></div>
     </div>
 
     <div id="page-10" class="page" data-attr-index="4">
       <h2>10. Boring — Pairwise comparison</h2>
-      <div class="images"><img class="survey-img-1" src=""><img class="survey-img-2" src=""></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-        <div style="font-weight:600">Image 1</div>
-        <div style="text-align:center;font-weight:700">Which image looks more boring?</div>
-        <div style="font-weight:600">Image 2</div>
+      <div class="images">
+        <div class="img-wrapper"><img class="survey-img-1" src=""></div>
+        <div class="img-wrapper"><img class="survey-img-2" src=""></div>
       </div>
       <div class="pair-attr" id="rating-Boring"></div>
-      <div class="hint" style="margin-top:8px">Use the 5-point scale below with 0 at the center.</div>
       <div class="buttons"><button class="secondary" data-go="9" type="button">◀ Back</button><button data-next="11" type="button">Next: mark Boring points ▶</button></div>
     </div>
+
     <div id="page-11" class="page" data-attr-index="4">
-      <h2>11. Boring — Mark points of interest</h2>
+      <h2>11. Boring — Circle regions of interest</h2>
       <div class="images">
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Boring-1" class="survey-img-1" src="" /><svg id="ov-Boring-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Boring-1">0</span></div><div class="points-list" id="list-Boring-1"></div></div>
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Boring-2" class="survey-img-2" src="" /><svg id="ov-Boring-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Boring-2">0</span></div><div class="points-list" id="list-Boring-2"></div></div>
+        <div class="regions-wrap"><img id="img-Boring-1" class="survey-img-1" src="" /><canvas id="cvs-Boring-1"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Boring-1">0</span></div></div>
+        <div class="regions-wrap"><img id="img-Boring-2" class="survey-img-2" src="" /><canvas id="cvs-Boring-2"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Boring-2">0</span></div></div>
       </div>
-      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div>
+      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-clear type="button">Clear all</button></div>
       <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="12" type="button">Next: Depressing — Rating ▶</button></div>
     </div>
 
     <div id="page-12" class="page" data-attr-index="5">
       <h2>12. Depressing — Pairwise comparison</h2>
-      <div class="images"><img class="survey-img-1" src=""><img class="survey-img-2" src=""></div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-        <div style="font-weight:600">Image 1</div>
-        <div style="text-align:center;font-weight:700">Which image looks more depressing?</div>
-        <div style="font-weight:600">Image 2</div>
+      <div class="images">
+        <div class="img-wrapper"><img class="survey-img-1" src=""></div>
+        <div class="img-wrapper"><img class="survey-img-2" src=""></div>
       </div>
       <div class="pair-attr" id="rating-Depressing"></div>
-      <div class="hint" style="margin-top:8px">Use the 5-point scale below with 0 at the center.</div>
       <div class="buttons"><button class="secondary" data-go="11" type="button">◀ Back</button><button data-next="13" type="button">Next: mark Depressing points ▶</button></div>
     </div>
+
     <div id="page-13" class="page" data-attr-index="5">
-      <h2>13. Depressing — Mark points of interest</h2>
+      <h2>13. Depressing — Circle regions of interest</h2>
       <div class="images">
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Depressing-1" class="survey-img-1" src="" /><svg id="ov-Depressing-1" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Depressing-1">0</span></div><div class="points-list" id="list-Depressing-1"></div></div>
-        <div style="flex:1;text-align:center"><div class="regions-wrap"><img id="img-Depressing-2" class="survey-img-2" src="" /><svg id="ov-Depressing-2" class="overlay"></svg></div><div style="margin-top:8px">Points: <span id="count-Depressing-2">0</span></div><div class="points-list" id="list-Depressing-2"></div></div>
+        <div class="regions-wrap"><img id="img-Depressing-1" class="survey-img-1" src="" /><canvas id="cvs-Depressing-1"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Depressing-1">0</span></div></div>
+        <div class="regions-wrap"><img id="img-Depressing-2" class="survey-img-2" src="" /><canvas id="cvs-Depressing-2"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Depressing-2">0</span></div></div>
       </div>
-      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-delete-selected type="button">Delete selected</button><button class="small secondary" data-clear type="button">Clear current attribute</button></div>
-      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="14" type="button">Next: AI guess ▶</button></div>
+      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-clear type="button">Clear all</button></div>
+      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="14" type="button">Next: Review & Submit ▶</button></div>
     </div>
 
     <div id="page-14" class="page">
-      <h2>14. Which image is more likely generated by AI?</h2>
-      <div class="images"><img id="final-img-1" class="survey-img-1" src=""><img id="final-img-2" class="survey-img-2" src=""></div>
-      <div style="margin-top:12px">
-        <label><input type="radio" name="ai_guess" value="1"> Image 1</label>
-        <label><input type="radio" name="ai_guess" value="2"> Image 2</label>
-        <label><input type="radio" name="ai_guess" value="0"> Unsure</label>
-      </div>
+      <h2>14. Review & Submit</h2>
+      
+      <p style="margin-bottom:16px">Please review your responses before submitting.</p>
+      
+      <div id="summary-container"></div>
+
       <div class="buttons"><button class="secondary" data-go="13" type="button">◀ Back</button>
         <div>
           <button id="finish" type="button">Finish and export ▶</button>
@@ -275,16 +288,15 @@
 (function() {
     'use strict';
 
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxKvkPVvLtx7IF420Z9RRBXXhcFMowe6AiFg_AD9plWme9D83mQNIAVDvKfgXxt3nV9/exec';
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz2oxF1lfvcgE9e-4rsp5CzDkoYquwxAUZiAJILPZyz6tYKnY8UrF_6OdOygF86Zsym/exec';
     
     const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
     var state = { demographics: {}, pairwise: {}, points: {}, historyByAttr: {}, ai_guess: null };
-    var active = { selectedId: null, selectedAttr: null, selectedImage: null };
     var assignedPairInfo = null;
+    var fabricCanvases = {};
 
     ATTRIBUTES.forEach(a => {
         state.points[a] = { '1.jpg': [], '2.jpg': [] };
-        // [Fix 1] Init history as empty array
         state.historyByAttr[a] = [];
     });
 
@@ -342,7 +354,7 @@
         console.log("--- Images Loaded ---");
         console.log("Image 1 URL:", url1);
         console.log("Image 2 URL:", url2);
-
+        
         qa('.survey-img-1').forEach(img => img.src = url1);
         qa('.survey-img-2').forEach(img => img.src = url2);
 
@@ -351,7 +363,6 @@
             count++;
             if (count >= 2) {
                 document.getElementById('loading-overlay').style.display = 'none';
-                initOverlays();
             }
         }
         var i1 = new Image(); i1.onload = checkDone; i1.onerror = function(){ qa('.survey-img-1').forEach(img => img.src = 'https://drive.google.com/uc?export=view&id=' + fid1); checkDone(); }; i1.src = url1;
@@ -401,98 +412,208 @@
         });
     }
 
-    function renderMarkers(attr, imgKey) {
-        var idx = (imgKey === '1.jpg' ? 1 : 2);
-        var ov = document.getElementById(`ov-${attr}-${idx}`);
-        var img = document.getElementById(`img-${attr}-${idx}`);
-        if (!ov || !img) return;
-        
-        var pts = state.points[attr][imgKey];
-        var rect = img.getBoundingClientRect();
-        if(rect.width < 50) return; 
-
-        ov.setAttribute('viewBox', `0 0 ${rect.width} ${rect.height}`);
-        ov.innerHTML = ''; 
-
-        pts.forEach((p, i) => {
-            var cx = p.x * rect.width, cy = p.y * rect.height;
-            var isSel = (p.id === active.selectedId);
-            var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            g.style.cursor = 'pointer';
-            g.onclick = (e) => { e.stopPropagation(); selectPoint(attr, imgKey, p.id); };
-
-            var halo = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            halo.setAttribute('cx',cx); halo.setAttribute('cy',cy); halo.setAttribute('r',18); halo.setAttribute('class','marker-halo');
+    // ================= FABRIC.JS LOGIC START =================
+    
+    function initFabricCanvasForPage(attr) {
+        ['1.jpg', '2.jpg'].forEach(k => {
+            var idx = (k === '1.jpg' ? 1 : 2);
+            var canvasId = `cvs-${attr}-${idx}`;
+            var canvasEl = document.getElementById(canvasId);
+            var imgEl = document.getElementById(`img-${attr}-${idx}`);
             
-            var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            circle.setAttribute('cx', cx); circle.setAttribute('cy', cy);
-            circle.setAttribute('r', isSel ? 8 : 6);
-            circle.setAttribute('class', 'marker-dot');
+            if (!canvasEl || !imgEl) return;
             
-            var labelBg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            labelBg.setAttribute('cx',cx+12); labelBg.setAttribute('cy',cy-12); labelBg.setAttribute('r',10); labelBg.setAttribute('fill','#111'); labelBg.setAttribute('opacity',0.7);
+            if (fabricCanvases[`${attr}-${idx}`]) {
+                var c = fabricCanvases[`${attr}-${idx}`];
+                c.setDimensions({ width: imgEl.clientWidth, height: imgEl.clientHeight });
+                c.calcOffset();
+                return;
+            }
+
+            var w = imgEl.clientWidth;
+            var h = imgEl.clientHeight;
             
-            var label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            label.setAttribute('x', cx + 12); label.setAttribute('y', cy - 8);
-            label.textContent = i + 1;
-            label.setAttribute('class','marker-label');
+            if(w === 0 || h === 0) return; 
+            
+            var canvas = new fabric.Canvas(canvasId, {
+                isDrawingMode: true,
+                width: w,
+                height: h
+            });
+            
+            canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+            canvas.freeDrawingBrush.width = 3;
+            canvas.freeDrawingBrush.color = "rgba(239, 68, 68, 0.8)";
 
-            if(isSel) halo.setAttribute('fill','rgba(239,68,68,0.22)');
-            g.appendChild(halo); g.appendChild(circle); g.appendChild(labelBg); g.appendChild(label);
-            ov.appendChild(g);
-        });
-        
-        document.getElementById(`count-${attr}-${idx}`).textContent = pts.length;
-        var listEl = document.getElementById(`list-${attr}-${idx}`);
-        listEl.innerHTML = pts.map((p, i) => {
-            var selStyle = (p.id === active.selectedId) ? 'font-weight:bold;color:#2563eb' : '';
-            return `<div style="margin-bottom:4px;display:flex;justify-content:space-between;align-items:center;${selStyle}">
-                <span>#${i+1} — x=${p.x}, y=${p.y}</span>
-                <button class="small secondary" onclick="window.deletePoint('${attr}','${imgKey}',${i})">Delete</button>
-            </div>`;
-        }).join('');
-    }
+            fabricCanvases[`${attr}-${idx}`] = canvas;
 
-    function initOverlays() {
-        ATTRIBUTES.forEach(attr => {
-            ['1.jpg', '2.jpg'].forEach(k => {
-                var idx = (k === '1.jpg' ? 1 : 2);
-                var ov = document.getElementById(`ov-${attr}-${idx}`);
-                if (!ov) return;
-                ov.onclick = function(e) {
-                    if(e.target.tagName !== 'svg') return;
-                    var rect = ov.getBoundingClientRect();
-                    var x = parseFloat(((e.clientX - rect.left) / rect.width).toFixed(4));
-                    var y = parseFloat(((e.clientY - rect.top) / rect.height).toFixed(4));
-                    var id = uuidv4();
-                    // [Fix] Snapshot BEFORE adding
-                    pushHistory(attr);
-                    state.points[attr][k].push({ x: x, y: y, id: id });
-                    selectPoint(attr, k, id);
-                };
-                renderMarkers(attr, k);
+            canvas.on('path:created', function(e) {
+                var originalPath = e.path;
+                
+                if (originalPath.width < 15 && originalPath.height < 15) {
+                    canvas.remove(originalPath);
+                    return;
+                }
+
+                pushHistory(attr);
+
+                var rawPoints = extractPointsFromPath(originalPath);
+                var compressedPoints = compressPoints(rawPoints, canvas.width, canvas.height);
+
+                var polyObj = new fabric.Polygon(denormalizePoints(compressedPoints, canvas.width, canvas.height), {
+                    fill: 'rgba(239, 68, 68, 0.2)',
+                    stroke: '#ef4444',
+                    strokeWidth: 2,
+                    selectable: false,
+                    evented: false
+                });
+
+                canvas.remove(originalPath);
+                canvas.add(polyObj);
+                
+                state.points[attr][k].push(compressedPoints);
+                document.getElementById(`count-${attr}-${idx}`).textContent = state.points[attr][k].length;
             });
         });
-        window.addEventListener('resize', () => { ATTRIBUTES.forEach(a => { renderMarkers(a,'1.jpg'); renderMarkers(a,'2.jpg'); }); });
     }
 
-    window.selectPoint = function(attr, imgKey, id) {
-        active.selectedId = id; active.selectedAttr = attr; active.selectedImage = imgKey;
-        renderMarkers(attr, imgKey);
-    };
-    window.deletePoint = function(attr, imgKey, idx) {
-        // [Fix] Snapshot BEFORE deleting
-        pushHistory(attr);
-        state.points[attr][imgKey].splice(idx, 1);
-        active.selectedId = null;
-        renderMarkers(attr, imgKey);
-    };
+    function extractPointsFromPath(pathObj) {
+        var points = [];
+        var cmds = pathObj.path;
+        cmds.forEach(cmd => {
+            var len = cmd.length;
+            if (len >= 3) {
+                points.push({ x: cmd[len-2], y: cmd[len-1] });
+            }
+        });
+        return points;
+    }
 
-    // [Fix] Simple deep clone history mechanism
+    // 优化后的压缩函数：基于距离过滤，大幅减少点数
+    function compressPoints(points, w, h) {
+        var result = [];
+        var lastX = -999, lastY = -999;
+        
+        // 阈值：图片尺寸的 2% (0.02)。例如 500px 的图片，点间距小于 10px 的会被忽略
+        // 你可以调整这个值：0.01 (精细) ~ 0.05 (粗糙)
+        var threshold = 0.02; 
+
+        points.forEach(p => {
+            // 归一化并保留3位小数
+            var nx = Math.round((p.x / w) * 1000) / 1000;
+            var ny = Math.round((p.y / h) * 1000) / 1000;
+            
+            // 计算与上一个点的距离
+            var dist = Math.sqrt(Math.pow(nx - lastX, 2) + Math.pow(ny - lastY, 2));
+
+            if (dist > threshold) {
+                result.push([nx, ny]);
+                lastX = nx; 
+                lastY = ny;
+            }
+        });
+        
+        // 确保多边形至少有3个点，否则 FabricJS 可能会报错或画不出
+        if (result.length < 3 && points.length >= 3) {
+            // 如果压缩太狠导致点太少，就取原始点的前中后
+            return [
+                [Math.round(points[0].x/w*1000)/1000, Math.round(points[0].y/h*1000)/1000],
+                [Math.round(points[Math.floor(points.length/2)].x/w*1000)/1000, Math.round(points[Math.floor(points.length/2)].y/h*1000)/1000],
+                [Math.round(points[points.length-1].x/w*1000)/1000, Math.round(points[points.length-1].y/h*1000)/1000]
+            ];
+        }
+        
+        return result;
+    }
+
+    function denormalizePoints(normArr, w, h) {
+        return normArr.map(pt => ({
+            x: pt[0] * w,
+            y: pt[1] * h
+        }));
+    }
+
+    function renderStateToFabric(attr, imgKey) {
+        var idx = (imgKey === '1.jpg' ? 1 : 2);
+        var canvas = fabricCanvases[`${attr}-${idx}`];
+        if (!canvas) return;
+
+        canvas.clear(); 
+        canvas.isDrawingMode = true;
+        canvas.backgroundColor = null;
+
+        var imgEl = document.getElementById(`img-${attr}-${idx}`);
+        if(imgEl && imgEl.clientWidth > 0) {
+            canvas.setDimensions({width: imgEl.clientWidth, height: imgEl.clientHeight});
+            canvas.calcOffset();
+        }
+
+        var regions = state.points[attr][imgKey];
+        var w = canvas.width;
+        var h = canvas.height;
+
+        regions.forEach(regionPoints => {
+            var absPoints = denormalizePoints(regionPoints, w, h);
+            var poly = new fabric.Polygon(absPoints, {
+                fill: 'rgba(239, 68, 68, 0.2)',
+                stroke: '#ef4444',
+                strokeWidth: 2,
+                selectable: false,
+                evented: false
+            });
+            canvas.add(poly);
+        });
+        
+        document.getElementById(`count-${attr}-${idx}`).textContent = regions.length;
+    }
+
     function pushHistory(attr) {
-        var snap = { '1.jpg': state.points[attr]['1.jpg'].map(p=>({...p})), '2.jpg': state.points[attr]['2.jpg'].map(p=>({...p})) };
+        var snap = { '1.jpg': JSON.parse(JSON.stringify(state.points[attr]['1.jpg'])), '2.jpg': JSON.parse(JSON.stringify(state.points[attr]['2.jpg'])) };
         state.historyByAttr[attr].push(snap);
         if(state.historyByAttr[attr].length > 20) state.historyByAttr[attr].shift();
+    }
+
+    // ================= FABRIC.JS LOGIC END =================
+
+    // --- NEW: Render Summary Function ---
+    function renderSummary() {
+        var container = document.getElementById('summary-container');
+        if (!container) return;
+        
+        var html = '';
+        
+        // 1. Demographics
+        html += '<div class="summary-section"><div class="summary-title">Participant Information</div><div class="summary-grid">';
+        var d = state.demographics;
+        html += '<div class="summary-item"><strong>ID</strong> ' + (d.id || '-') + '</div>';
+        html += '<div class="summary-item"><strong>Age</strong> ' + (d.age || '-') + '</div>';
+        html += '<div class="summary-item"><strong>Gender</strong> ' + (d.gender || '-') + '</div>';
+        html += '<div class="summary-item"><strong>Nationality</strong> ' + (d.nationality || '-') + '</div>';
+        html += '<div class="summary-item"><strong>Education</strong> ' + (d.education || '-') + '</div>';
+        html += '</div></div>';
+        
+        // 2. Ratings & Circles
+        html += '<div class="summary-section"><div class="summary-title">Responses</div>';
+        html += '<table class="summary-table"><thead><tr><th>Attribute</th><th>Rating</th><th>Regions (Img 1)</th><th>Regions (Img 2)</th></tr></thead><tbody>';
+        
+        ATTRIBUTES.forEach(attr => {
+            var val = state.pairwise[attr];
+            var ratingText = '-';
+            if (val === 1) ratingText = 'Img 1 much more';
+            else if (val === 0.5) ratingText = 'Img 1 slightly more';
+            else if (val === 0) ratingText = 'Equal';
+            else if (val === -0.5) ratingText = 'Img 2 slightly more';
+            else if (val === -1) ratingText = 'Img 2 much more';
+            
+            var c1 = state.points[attr]['1.jpg'] ? state.points[attr]['1.jpg'].length : 0;
+            var c2 = state.points[attr]['2.jpg'] ? state.points[attr]['2.jpg'].length : 0;
+            
+            html += `<tr><td>${attr}</td><td>${ratingText}</td><td>${c1}</td><td>${c2}</td></tr>`;
+        });
+        
+        html += '</tbody></table></div>';
+        
+        container.innerHTML = html;
     }
 
     document.addEventListener('click', function(e) {
@@ -525,9 +646,11 @@
             }
             if (curPage.dataset.attrIndex) {
                 var attr = ATTRIBUTES[parseInt(curPage.dataset.attrIndex)];
-                var sel = document.querySelector(`input[name="${attr}"]:checked`);
-                if (!sel) { alert('Please provide a rating for ' + attr + ' before continuing.'); return; }
-                state.pairwise[attr] = parseFloat(sel.value);
+                if(curPage.querySelector('input[type="radio"]')) {
+                    var sel = document.querySelector(`input[name="${attr}"]:checked`);
+                    if (!sel) { alert('Please provide a rating for ' + attr + ' before continuing.'); return; }
+                    state.pairwise[attr] = parseFloat(sel.value);
+                }
             }
             showPage(parseInt(btn.dataset.next));
         }
@@ -541,37 +664,24 @@
             }
         }
         
-        // [Fix] Undo Logic - Pop the top and replace current state
         if (btn.hasAttribute('data-undo')) {
             if(page && page.dataset.attrIndex) {
                 var attr = ATTRIBUTES[parseInt(page.dataset.attrIndex)];
                 var h = state.historyByAttr[attr];
                 if(h.length > 0) {
-                    var last = h.pop(); // [Fix] Directly pop and use
-                    state.points[attr] = { '1.jpg': last['1.jpg'].map(p=>({...p})), '2.jpg': last['2.jpg'].map(p=>({...p})) };
-                    active.selectedId = null;
-                    renderMarkers(attr,'1.jpg'); renderMarkers(attr,'2.jpg');
+                    var last = h.pop(); 
+                    state.points[attr] = last; 
+                    renderStateToFabric(attr,'1.jpg'); renderStateToFabric(attr,'2.jpg');
                 } else {
-                    alert('Nothing to undo.');
-                }
-            }
-        }
-        
-        if (btn.hasAttribute('data-delete-selected')) {
-            if(page && page.dataset.attrIndex) {
-                var attr = ATTRIBUTES[parseInt(page.dataset.attrIndex)];
-                if(active.selectedId && active.selectedAttr === attr) {
-                     // [Fix] Snapshot before
-                     pushHistory(attr);
-                     var arr = state.points[active.selectedAttr][active.selectedImage];
-                     var idx = arr.findIndex(p=>p.id===active.selectedId);
-                     if(idx!==-1) {
-                         arr.splice(idx, 1);
-                         active.selectedId = null;
-                         renderMarkers(attr, active.selectedImage);
+                     var p1 = state.points[attr]['1.jpg'];
+                     var p2 = state.points[attr]['2.jpg'];
+                     if(p1.length > 0 || p2.length > 0) {
+                         if(p1.length) p1.pop();
+                         if(p2.length) p2.pop();
+                         renderStateToFabric(attr,'1.jpg'); renderStateToFabric(attr,'2.jpg');
+                     } else {
+                        alert('Nothing to undo.');
                      }
-                } else {
-                    alert('No point selected. Click a point to select it first.');
                 }
             }
         }
@@ -579,19 +689,19 @@
         if (btn.hasAttribute('data-clear')) {
             if(page && page.dataset.attrIndex) {
                 var attr = ATTRIBUTES[parseInt(page.dataset.attrIndex)];
-                if(!confirm('Clear all points for ' + attr + '?')) return;
+                if(!confirm('Clear all circles for ' + attr + '?')) return;
                 pushHistory(attr);
                 state.points[attr]['1.jpg'] = []; state.points[attr]['2.jpg'] = [];
-                active.selectedId = null;
-                renderMarkers(attr,'1.jpg'); renderMarkers(attr,'2.jpg');
+                renderStateToFabric(attr,'1.jpg'); renderStateToFabric(attr,'2.jpg');
             }
         }
         
         if (btn.id === 'finish') {
             if(btn.disabled) return;
-            var ai = document.querySelector('input[name="ai_guess"]:checked');
-            if(!ai) { alert('Please choose which image is more likely AI-generated before submitting.'); return; }
-            state.ai_guess = ai.value;
+            // Disabled AI guess check
+            // var ai = document.querySelector('input[name="ai_guess"]:checked');
+            // if(!ai) { alert('Please choose which image is more likely generated by AI before submitting.'); return; }
+            // state.ai_guess = ai.value;
             
             btn.disabled = true;
             btn.textContent = 'Submitting...';
@@ -606,28 +716,39 @@
         if(next) {
             next.classList.add('active');
             window.scrollTo(0,0);
-            if(next.dataset.attrIndex) {
+            
+            // Render Summary when entering Page 14
+            if (n === 14) {
+                renderSummary();
+            }
+            
+            if(next.dataset.attrIndex && !next.querySelector('.pair-attr')) {
                 var a = ATTRIBUTES[parseInt(next.dataset.attrIndex)];
-                renderMarkers(a,'1.jpg'); renderMarkers(a,'2.jpg');
+                setTimeout(() => {
+                    initFabricCanvasForPage(a);
+                }, 50);
             }
         }
     }
 
     function submitData() {
+        // 1. 构建 Payload 时移除 ai_guess
         var payload = {
             demographics: state.demographics,
             pairwise: state.pairwise,
             points: state.points,
-            ai_guess: state.ai_guess,
+            // ai_guess: state.ai_guess, // <--- 已移除
             pair_ids: assignedPairInfo ? [assignedPairInfo.pair_id] : [],
             meta: { timestamp: new Date().toISOString() }
         };
+        
         var formData = new URLSearchParams();
         formData.append('payload', JSON.stringify(payload));
 
         fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData })
         .then(r => r.json())
         .then(data => {
+            // ... (原有的成功回调代码保持不变) ...
             document.getElementById('submit-overlay-progress').style.width = '100%';
             document.getElementById('submit-overlay-status').textContent = 'Success!';
             document.getElementById('submit-overlay-confirm').classList.remove('hidden');
@@ -641,6 +762,7 @@
             };
         })
         .catch(err => {
+            // ... (原有的错误处理代码保持不变) ...
             document.getElementById('submit-overlay-status').textContent = 'Error: ' + err.message;
             var a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([JSON.stringify(payload)], {type:'application/json'}));
@@ -658,6 +780,14 @@
             document.getElementById('user-id').style.background = '#f1f5f9';
         }
         requestAssignment();
+        
+        window.addEventListener('resize', () => {
+             var cur = document.querySelector('.page.active');
+             if(cur && cur.dataset.attrIndex && !cur.querySelector('.pair-attr')) {
+                 var attr = ATTRIBUTES[parseInt(cur.dataset.attrIndex)];
+                 initFabricCanvasForPage(attr); 
+             }
+        });
     });
 
 })();
