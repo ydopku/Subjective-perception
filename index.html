@@ -14,13 +14,12 @@
     .page{display:none}
     .page.active{display:block}
     label{display:block;margin-bottom:6px;font-weight:600}
-    input[type=text],select,input[type=number]{width:100%;padding:8px;border:1px solid #e6eef8;border-radius:8px}
+    input[type=text],select,input[type=number]{width:100%;padding:8px;border:1px solid #e6eef8;border-radius:8px;box-sizing:border-box}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .buttons{display:flex;justify-content:space-between;margin-top:18px}
     button{background:var(--accent);color:#fff;padding:10px 14px;border:none;border-radius:8px;cursor:pointer}
     button.secondary{background:#eef2ff;color:#0f172a}
     
-    /* --- 布局修正与防拖拽核心样式 --- */
     .images { display: flex; gap: 16px; justify-content: space-between; align-items: flex-start; }
     .img-wrapper, .regions-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; min-width: 0; }
     .images img, .regions-wrap img { width: auto; max-width: 100%; height: auto; max-height: 480px; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
@@ -36,7 +35,6 @@
     .small{padding:6px 8px;font-size:13px}
     pre#output{white-space:pre-wrap;background:#0b1220;color:#cfe9ff;padding:12px;border-radius:8px;max-height:300px;overflow:auto}
     
-    /* Summary Table Styles */
     .summary-section { margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; }
     .summary-title { font-weight: 700; color: #334155; margin-bottom: 8px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; }
     .summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; font-size: 14px; }
@@ -72,6 +70,11 @@
     #submit-overlay .card .confirm-btn { margin-top:12px; background: #10b981; border-radius:8px; padding:8px 14px; color:#fff; border:none; cursor:pointer; font-weight:600; }
     #submit-overlay .card .confirm-btn.hidden { display:none; }
     #post-submit-note { margin-top:8px; font-weight:700; color:#065f46; }
+    
+    /* Check Page Special Styles */
+    .check-option { transition: all 0.2s; border: 4px solid transparent; border-radius: 8px; cursor: pointer; }
+    .check-option:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .check-selected { border-color: var(--accent); }
   </style>
 </head>
 
@@ -136,18 +139,10 @@
 
     <div id="page-3" class="page" data-attr-index="0">
       <h2>3. Safe — Circle regions of interest</h2>
-      <p class="hint">Draw a circle around the areas that make you feel safe. (Draw freely; shape will close automatically)</p>
+      <p class="hint">Draw a circle around the areas that make you feel safe.</p>
       <div class="images">
-        <div class="regions-wrap">
-            <img id="img-Safe-1" class="survey-img-1" src="" />
-            <canvas id="cvs-Safe-1"></canvas>
-            <div style="margin-top:8px; text-align:center; width:100%;"><strong>Image 1</strong> — Regions: <span id="count-Safe-1">0</span></div>
-        </div>
-        <div class="regions-wrap">
-            <img id="img-Safe-2" class="survey-img-2" src="" />
-            <canvas id="cvs-Safe-2"></canvas>
-            <div style="margin-top:8px; text-align:center; width:100%;"><strong>Image 2</strong> — Regions: <span id="count-Safe-2">0</span></div>
-        </div>
+        <div class="regions-wrap"><img id="img-Safe-1" class="survey-img-1" src="" /><canvas id="cvs-Safe-1"></canvas><div style="margin-top:8px; text-align:center;">Regions: <span id="count-Safe-1">0</span></div></div>
+        <div class="regions-wrap"><img id="img-Safe-2" class="survey-img-2" src="" /><canvas id="cvs-Safe-2"></canvas><div style="margin-top:8px; text-align:center;">Regions: <span id="count-Safe-2">0</span></div></div>
       </div>
       <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-clear type="button">Clear all</button></div>
       <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="4" type="button">Next: Lively — Rating ▶</button></div>
@@ -166,8 +161,8 @@
     <div id="page-5" class="page" data-attr-index="1">
       <h2>5. Lively — Circle regions of interest</h2>
       <div class="images">
-        <div class="regions-wrap"><img id="img-Lively-1" class="survey-img-1" src="" /><canvas id="cvs-Lively-1"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Lively-1">0</span></div></div>
-        <div class="regions-wrap"><img id="img-Lively-2" class="survey-img-2" src="" /><canvas id="cvs-Lively-2"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Lively-2">0</span></div></div>
+        <div class="regions-wrap"><img id="img-Lively-1" class="survey-img-1" src="" /><canvas id="cvs-Lively-1"></canvas><div style="margin-top:8px;">Regions: <span id="count-Lively-1">0</span></div></div>
+        <div class="regions-wrap"><img id="img-Lively-2" class="survey-img-2" src="" /><canvas id="cvs-Lively-2"></canvas><div style="margin-top:8px;">Regions: <span id="count-Lively-2">0</span></div></div>
       </div>
       <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-clear type="button">Clear all</button></div>
       <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="6" type="button">Next: Beautiful — Rating ▶</button></div>
@@ -186,81 +181,118 @@
     <div id="page-7" class="page" data-attr-index="2">
       <h2>7. Beautiful — Circle regions of interest</h2>
       <div class="images">
-        <div class="regions-wrap"><img id="img-Beautiful-1" class="survey-img-1" src="" /><canvas id="cvs-Beautiful-1"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Beautiful-1">0</span></div></div>
-        <div class="regions-wrap"><img id="img-Beautiful-2" class="survey-img-2" src="" /><canvas id="cvs-Beautiful-2"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Beautiful-2">0</span></div></div>
+        <div class="regions-wrap"><img id="img-Beautiful-1" class="survey-img-1" src="" /><canvas id="cvs-Beautiful-1"></canvas><div style="margin-top:8px;">Regions: <span id="count-Beautiful-1">0</span></div></div>
+        <div class="regions-wrap"><img id="img-Beautiful-2" class="survey-img-2" src="" /><canvas id="cvs-Beautiful-2"></canvas><div style="margin-top:8px;">Regions: <span id="count-Beautiful-2">0</span></div></div>
       </div>
       <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-clear type="button">Clear all</button></div>
-      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="8" type="button">Next: Wealthy — Rating ▶</button></div>
+      <div class="buttons">
+        <button class="secondary" data-back-to-rating type="button">◀ Back to rating</button>
+        <button data-next="check" type="button">Next: Environmental Context ▶</button>
+      </div>
     </div>
 
-    <div id="page-8" class="page" data-attr-index="3">
-      <h2>8. Wealthy — Pairwise comparison</h2>
+    <div id="page-check" class="page">
+      <h2>8. Environmental Context</h2>
+      <p style="margin-bottom:20px; color:var(--muted)">To help us categorize the environments, please answer the following questions.</p>
+      
+      <div class="summary-section" style="border:1px solid #e2e8f0; padding:16px; border-radius:8px; background:#fff;">
+        <h3 style="margin-top:0; font-size:16px;">1. Which of the images below best represents a <strong>Rural</strong> (countryside) environment?</h3>
+        <p class="hint" style="text-align:center; margin-bottom:12px;">(Please click directly on the image to select it)</p>
+        <div class="images" style="margin-bottom:12px;">
+          <div class="img-wrapper" onclick="selectCheckOption('urban')">
+            <img id="check-img-urban" class="check-option" src="" alt="Image A">
+            <div style="text-align:center; font-weight:600; margin-top:4px;">Image A</div>
+          </div>
+          <div class="img-wrapper" onclick="selectCheckOption('rural')">
+            <img id="check-img-rural" class="check-option" src="" alt="Image B">
+            <div style="text-align:center; font-weight:600; margin-top:4px;">Image B</div>
+          </div>
+        </div>
+        <input type="hidden" id="check-answer-sentinel" value="">
+        <p id="sentinel-error" style="color:#ef4444; font-size:13px; display:none;">⚠ Please select the Rural image.</p>
+      </div>
+
+      <div class="summary-section" style="border:1px solid #e2e8f0; padding:16px; border-radius:8px; background:#fff; margin-top:20px;">
+        <h3 style="margin-top:0; font-size:16px;">2. General Preference</h3>
+        <p style="font-size:14px; margin-bottom:12px;">In general, which type of environment do you prefer living in?</p>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+           <label style="font-weight:400; cursor:pointer;"><input type="radio" name="preference" value="urban"> I prefer Urban (City)</label>
+           <label style="font-weight:400; cursor:pointer;"><input type="radio" name="preference" value="rural"> I prefer Rural (Countryside)</label>
+           <label style="font-weight:400; cursor:pointer;"><input type="radio" name="preference" value="neutral"> No preference / Neutral</label>
+        </div>
+      </div>
+
+      <div class="buttons">
+        <button class="secondary" data-go="7" type="button">◀ Back</button>
+        <button id="btn-check-next" type="button">Next: Wealthy — Rating ▶</button>
+      </div>
+    </div>
+
+    <div id="page-9" class="page" data-attr-index="3">
+      <h2>9. Wealthy — Pairwise comparison</h2>
       <div class="images">
         <div class="img-wrapper"><img class="survey-img-1" src=""></div>
         <div class="img-wrapper"><img class="survey-img-2" src=""></div>
       </div>
       <div class="pair-attr" id="rating-Wealthy"></div>
-      <div class="buttons"><button class="secondary" data-go="7" type="button">◀ Back</button><button data-next="9" type="button">Next: mark Wealthy points ▶</button></div>
+      <div class="buttons"><button class="secondary" data-go="check" type="button">◀ Back</button><button data-next="10" type="button">Next: mark Wealthy points ▶</button></div>
     </div>
 
-    <div id="page-9" class="page" data-attr-index="3">
-      <h2>9. Wealthy — Circle regions of interest</h2>
+    <div id="page-10" class="page" data-attr-index="3">
+      <h2>10. Wealthy — Circle regions of interest</h2>
       <div class="images">
-        <div class="regions-wrap"><img id="img-Wealthy-1" class="survey-img-1" src="" /><canvas id="cvs-Wealthy-1"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Wealthy-1">0</span></div></div>
-        <div class="regions-wrap"><img id="img-Wealthy-2" class="survey-img-2" src="" /><canvas id="cvs-Wealthy-2"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Wealthy-2">0</span></div></div>
+        <div class="regions-wrap"><img id="img-Wealthy-1" class="survey-img-1" src="" /><canvas id="cvs-Wealthy-1"></canvas><div style="margin-top:8px;">Regions: <span id="count-Wealthy-1">0</span></div></div>
+        <div class="regions-wrap"><img id="img-Wealthy-2" class="survey-img-2" src="" /><canvas id="cvs-Wealthy-2"></canvas><div style="margin-top:8px;">Regions: <span id="count-Wealthy-2">0</span></div></div>
       </div>
       <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-clear type="button">Clear all</button></div>
-      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="10" type="button">Next: Boring — Rating ▶</button></div>
+      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="11" type="button">Next: Boring — Rating ▶</button></div>
     </div>
 
-    <div id="page-10" class="page" data-attr-index="4">
-      <h2>10. Boring — Pairwise comparison</h2>
+    <div id="page-11" class="page" data-attr-index="4">
+      <h2>11. Boring — Pairwise comparison</h2>
       <div class="images">
         <div class="img-wrapper"><img class="survey-img-1" src=""></div>
         <div class="img-wrapper"><img class="survey-img-2" src=""></div>
       </div>
       <div class="pair-attr" id="rating-Boring"></div>
-      <div class="buttons"><button class="secondary" data-go="9" type="button">◀ Back</button><button data-next="11" type="button">Next: mark Boring points ▶</button></div>
+      <div class="buttons"><button class="secondary" data-go="10" type="button">◀ Back</button><button data-next="12" type="button">Next: mark Boring points ▶</button></div>
     </div>
 
-    <div id="page-11" class="page" data-attr-index="4">
-      <h2>11. Boring — Circle regions of interest</h2>
+    <div id="page-12" class="page" data-attr-index="4">
+      <h2>12. Boring — Circle regions of interest</h2>
       <div class="images">
-        <div class="regions-wrap"><img id="img-Boring-1" class="survey-img-1" src="" /><canvas id="cvs-Boring-1"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Boring-1">0</span></div></div>
-        <div class="regions-wrap"><img id="img-Boring-2" class="survey-img-2" src="" /><canvas id="cvs-Boring-2"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Boring-2">0</span></div></div>
+        <div class="regions-wrap"><img id="img-Boring-1" class="survey-img-1" src="" /><canvas id="cvs-Boring-1"></canvas><div style="margin-top:8px;">Regions: <span id="count-Boring-1">0</span></div></div>
+        <div class="regions-wrap"><img id="img-Boring-2" class="survey-img-2" src="" /><canvas id="cvs-Boring-2"></canvas><div style="margin-top:8px;">Regions: <span id="count-Boring-2">0</span></div></div>
       </div>
       <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-clear type="button">Clear all</button></div>
-      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="12" type="button">Next: Depressing — Rating ▶</button></div>
+      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="13" type="button">Next: Depressing — Rating ▶</button></div>
     </div>
 
-    <div id="page-12" class="page" data-attr-index="5">
-      <h2>12. Depressing — Pairwise comparison</h2>
+    <div id="page-13" class="page" data-attr-index="5">
+      <h2>13. Depressing — Pairwise comparison</h2>
       <div class="images">
         <div class="img-wrapper"><img class="survey-img-1" src=""></div>
         <div class="img-wrapper"><img class="survey-img-2" src=""></div>
       </div>
       <div class="pair-attr" id="rating-Depressing"></div>
-      <div class="buttons"><button class="secondary" data-go="11" type="button">◀ Back</button><button data-next="13" type="button">Next: mark Depressing points ▶</button></div>
+      <div class="buttons"><button class="secondary" data-go="12" type="button">◀ Back</button><button data-next="14" type="button">Next: mark Depressing points ▶</button></div>
     </div>
 
-    <div id="page-13" class="page" data-attr-index="5">
-      <h2>13. Depressing — Circle regions of interest</h2>
+    <div id="page-14" class="page" data-attr-index="5">
+      <h2>14. Depressing — Circle regions of interest</h2>
       <div class="images">
-        <div class="regions-wrap"><img id="img-Depressing-1" class="survey-img-1" src="" /><canvas id="cvs-Depressing-1"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Depressing-1">0</span></div></div>
-        <div class="regions-wrap"><img id="img-Depressing-2" class="survey-img-2" src="" /><canvas id="cvs-Depressing-2"></canvas><div style="margin-top:8px; width:100%;">Regions: <span id="count-Depressing-2">0</span></div></div>
+        <div class="regions-wrap"><img id="img-Depressing-1" class="survey-img-1" src="" /><canvas id="cvs-Depressing-1"></canvas><div style="margin-top:8px;">Regions: <span id="count-Depressing-1">0</span></div></div>
+        <div class="regions-wrap"><img id="img-Depressing-2" class="survey-img-2" src="" /><canvas id="cvs-Depressing-2"></canvas><div style="margin-top:8px;">Regions: <span id="count-Depressing-2">0</span></div></div>
       </div>
       <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-clear type="button">Clear all</button></div>
-      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="14" type="button">Next: Review & Submit ▶</button></div>
+      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="15" type="button">Next: Review & Submit ▶</button></div>
     </div>
 
-    <div id="page-14" class="page">
-      <h2>14. Review & Submit</h2>
-      
+    <div id="page-15" class="page">
+      <h2>15. Review & Submit</h2>
       <p style="margin-bottom:16px">Please review your responses before submitting.</p>
-      
       <div id="summary-container"></div>
-
-      <div class="buttons"><button class="secondary" data-go="13" type="button">◀ Back</button>
+      <div class="buttons"><button class="secondary" data-go="14" type="button">◀ Back</button>
         <div>
           <button id="finish" type="button">Finish and export ▶</button>
           <div id="post-submit-note" aria-live="polite"></div>
@@ -288,10 +320,11 @@
 (function() {
     'use strict';
 
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwocu1o4U_vIW-P8N7RSMrddClA5rV2Tm_rxmKILLbT17yNn-kXmyip0XaJv5MW20Iv/exec';
+    // *** IMPORTANT: Replace with your actual Web App URL ***
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzoAU0uqFKGZZfe1l1NLQ0rgjOH2A8ZawB1K-hoIxfOL_a9fVW8Vf2UBl1vWs2iCptQ/exec';
     
     const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
-    var state = { demographics: {}, pairwise: {}, points: {}, historyByAttr: {}, ai_guess: null };
+    var state = { demographics: {}, pairwise: {}, points: {}, historyByAttr: {}, quality_check: {} };
     var assignedPairInfo = null;
     var fabricCanvases = {};
 
@@ -302,7 +335,6 @@
 
     function q(s) { return document.querySelector(s); }
     function qa(s) { return Array.from(document.querySelectorAll(s)); }
-    function uuidv4() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { var r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8); return v.toString(16); }); }
     function getQueryParam(n) { try { return new URL(window.location.href).searchParams.get(n); } catch (e) { return null; } }
     
     function getProlificPid() {
@@ -339,6 +371,17 @@
             if (data && (data.pair_id || data.file_id1)) {
                 assignedPairInfo = data;
                 applyImages(data.file_id1, data.file_id2);
+                
+                // Load Quality Check Images
+                if (data.check_images && data.check_images.urban) {
+                    var u = document.getElementById('check-img-urban');
+                    var r = document.getElementById('check-img-rural');
+                    if(u) u.src = getFastDriveUrl(data.check_images.urban);
+                    if(r) r.src = getFastDriveUrl(data.check_images.rural);
+                } else {
+                    console.warn("Check images not returned by backend.");
+                }
+
             } else {
                 document.getElementById('loading-error').style.display = 'block';
                 document.getElementById('loading-error').textContent = "No tasks available or error: " + (data.error || 'Unknown');
@@ -413,14 +456,12 @@
     }
 
     // ================= FABRIC.JS LOGIC START =================
-    
     function initFabricCanvasForPage(attr) {
         ['1.jpg', '2.jpg'].forEach(k => {
             var idx = (k === '1.jpg' ? 1 : 2);
             var canvasId = `cvs-${attr}-${idx}`;
             var canvasEl = document.getElementById(canvasId);
             var imgEl = document.getElementById(`img-${attr}-${idx}`);
-            
             if (!canvasEl || !imgEl) return;
             
             if (fabricCanvases[`${attr}-${idx}`]) {
@@ -429,18 +470,11 @@
                 c.calcOffset();
                 return;
             }
-
             var w = imgEl.clientWidth;
             var h = imgEl.clientHeight;
-            
             if(w === 0 || h === 0) return; 
             
-            var canvas = new fabric.Canvas(canvasId, {
-                isDrawingMode: true,
-                width: w,
-                height: h
-            });
-            
+            var canvas = new fabric.Canvas(canvasId, { isDrawingMode: true, width: w, height: h });
             canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
             canvas.freeDrawingBrush.width = 3;
             canvas.freeDrawingBrush.color = "rgba(239, 68, 68, 0.8)";
@@ -449,28 +483,15 @@
 
             canvas.on('path:created', function(e) {
                 var originalPath = e.path;
-                
-                if (originalPath.width < 15 && originalPath.height < 15) {
-                    canvas.remove(originalPath);
-                    return;
-                }
-
+                if (originalPath.width < 15 && originalPath.height < 15) { canvas.remove(originalPath); return; }
                 pushHistory(attr);
-
                 var rawPoints = extractPointsFromPath(originalPath);
                 var compressedPoints = compressPoints(rawPoints, canvas.width, canvas.height);
-
                 var polyObj = new fabric.Polygon(denormalizePoints(compressedPoints, canvas.width, canvas.height), {
-                    fill: 'rgba(239, 68, 68, 0.2)',
-                    stroke: '#ef4444',
-                    strokeWidth: 2,
-                    selectable: false,
-                    evented: false
+                    fill: 'rgba(239, 68, 68, 0.2)', stroke: '#ef4444', strokeWidth: 2, selectable: false, evented: false
                 });
-
                 canvas.remove(originalPath);
                 canvas.add(polyObj);
-                
                 state.points[attr][k].push(compressedPoints);
                 document.getElementById(`count-${attr}-${idx}`).textContent = state.points[attr][k].length;
             });
@@ -482,88 +503,49 @@
         var cmds = pathObj.path;
         cmds.forEach(cmd => {
             var len = cmd.length;
-            if (len >= 3) {
-                points.push({ x: cmd[len-2], y: cmd[len-1] });
-            }
+            if (len >= 3) { points.push({ x: cmd[len-2], y: cmd[len-1] }); }
         });
         return points;
     }
 
-    // 优化后的压缩函数：基于距离过滤，大幅减少点数
     function compressPoints(points, w, h) {
         var result = [];
         var lastX = -999, lastY = -999;
-        
-        // 阈值：图片尺寸的 2% (0.02)。例如 500px 的图片，点间距小于 10px 的会被忽略
-        // 你可以调整这个值：0.01 (精细) ~ 0.05 (粗糙)
         var threshold = 0.02; 
-
         points.forEach(p => {
-            // 归一化并保留3位小数
             var nx = Math.round((p.x / w) * 1000) / 1000;
             var ny = Math.round((p.y / h) * 1000) / 1000;
-            
-            // 计算与上一个点的距离
             var dist = Math.sqrt(Math.pow(nx - lastX, 2) + Math.pow(ny - lastY, 2));
-
-            if (dist > threshold) {
-                result.push([nx, ny]);
-                lastX = nx; 
-                lastY = ny;
-            }
+            if (dist > threshold) { result.push([nx, ny]); lastX = nx; lastY = ny; }
         });
-        
-        // 确保多边形至少有3个点，否则 FabricJS 可能会报错或画不出
         if (result.length < 3 && points.length >= 3) {
-            // 如果压缩太狠导致点太少，就取原始点的前中后
             return [
                 [Math.round(points[0].x/w*1000)/1000, Math.round(points[0].y/h*1000)/1000],
                 [Math.round(points[Math.floor(points.length/2)].x/w*1000)/1000, Math.round(points[Math.floor(points.length/2)].y/h*1000)/1000],
                 [Math.round(points[points.length-1].x/w*1000)/1000, Math.round(points[points.length-1].y/h*1000)/1000]
             ];
         }
-        
         return result;
     }
 
     function denormalizePoints(normArr, w, h) {
-        return normArr.map(pt => ({
-            x: pt[0] * w,
-            y: pt[1] * h
-        }));
+        return normArr.map(pt => ({ x: pt[0] * w, y: pt[1] * h }));
     }
 
     function renderStateToFabric(attr, imgKey) {
         var idx = (imgKey === '1.jpg' ? 1 : 2);
         var canvas = fabricCanvases[`${attr}-${idx}`];
         if (!canvas) return;
-
-        canvas.clear(); 
-        canvas.isDrawingMode = true;
-        canvas.backgroundColor = null;
-
+        canvas.clear(); canvas.isDrawingMode = true; canvas.backgroundColor = null;
         var imgEl = document.getElementById(`img-${attr}-${idx}`);
-        if(imgEl && imgEl.clientWidth > 0) {
-            canvas.setDimensions({width: imgEl.clientWidth, height: imgEl.clientHeight});
-            canvas.calcOffset();
-        }
-
+        if(imgEl && imgEl.clientWidth > 0) { canvas.setDimensions({width: imgEl.clientWidth, height: imgEl.clientHeight}); canvas.calcOffset(); }
         var regions = state.points[attr][imgKey];
-        var w = canvas.width;
-        var h = canvas.height;
-
+        var w = canvas.width; var h = canvas.height;
         regions.forEach(regionPoints => {
             var absPoints = denormalizePoints(regionPoints, w, h);
-            var poly = new fabric.Polygon(absPoints, {
-                fill: 'rgba(239, 68, 68, 0.2)',
-                stroke: '#ef4444',
-                strokeWidth: 2,
-                selectable: false,
-                evented: false
-            });
+            var poly = new fabric.Polygon(absPoints, { fill: 'rgba(239, 68, 68, 0.2)', stroke: '#ef4444', strokeWidth: 2, selectable: false, evented: false });
             canvas.add(poly);
         });
-        
         document.getElementById(`count-${attr}-${idx}`).textContent = regions.length;
     }
 
@@ -572,30 +554,48 @@
         state.historyByAttr[attr].push(snap);
         if(state.historyByAttr[attr].length > 20) state.historyByAttr[attr].shift();
     }
-
     // ================= FABRIC.JS LOGIC END =================
 
-    // --- NEW: Render Summary Function ---
+    // --- Check Page Logic ---
+    window.selectCheckOption = function(type) {
+        var imgU = document.getElementById('check-img-urban');
+        var imgR = document.getElementById('check-img-rural');
+        if(imgU) imgU.classList.remove('check-selected');
+        if(imgR) imgR.classList.remove('check-selected');
+        
+        var target = document.getElementById('check-img-' + type);
+        if(target) target.classList.add('check-selected');
+        
+        document.getElementById('check-answer-sentinel').value = type;
+        document.getElementById('sentinel-error').style.display = 'none';
+    };
+
     function renderSummary() {
         var container = document.getElementById('summary-container');
         if (!container) return;
-        
-        var html = '';
-        
-        // 1. Demographics
-        html += '<div class="summary-section"><div class="summary-title">Participant Information</div><div class="summary-grid">';
+        var html = '<div class="summary-section"><div class="summary-title">Participant Information</div><div class="summary-grid">';
         var d = state.demographics;
         html += '<div class="summary-item"><strong>ID</strong> ' + (d.id || '-') + '</div>';
         html += '<div class="summary-item"><strong>Age</strong> ' + (d.age || '-') + '</div>';
         html += '<div class="summary-item"><strong>Gender</strong> ' + (d.gender || '-') + '</div>';
         html += '<div class="summary-item"><strong>Nationality</strong> ' + (d.nationality || '-') + '</div>';
-        html += '<div class="summary-item"><strong>Education</strong> ' + (d.education || '-') + '</div>';
         html += '</div></div>';
         
-        // 2. Ratings & Circles
+        // --- Updated: Hide specific answer, show mapped label ---
+        html += '<div class="summary-section"><div class="summary-title">Environmental Context</div><div class="summary-grid">';
+        var qc = state.quality_check || {};
+        
+        // Map answer to label
+        var sentinelLabel = '-';
+        if (qc.sentinel_answer === 'urban') sentinelLabel = 'Image A';
+        else if (qc.sentinel_answer === 'rural') sentinelLabel = 'Image B';
+        
+        html += '<div class="summary-item"><strong>Scene Identification</strong> ' + sentinelLabel + '</div>';
+        html += '<div class="summary-item"><strong>Preference</strong> ' + (qc.preference || '-') + '</div>';
+        html += '</div></div>';
+
         html += '<div class="summary-section"><div class="summary-title">Responses</div>';
         html += '<table class="summary-table"><thead><tr><th>Attribute</th><th>Rating</th><th>Regions (Img 1)</th><th>Regions (Img 2)</th></tr></thead><tbody>';
-        
         ATTRIBUTES.forEach(attr => {
             var val = state.pairwise[attr];
             var ratingText = '-';
@@ -604,15 +604,11 @@
             else if (val === 0) ratingText = 'Equal';
             else if (val === -0.5) ratingText = 'Img 2 slightly more';
             else if (val === -1) ratingText = 'Img 2 much more';
-            
             var c1 = state.points[attr]['1.jpg'] ? state.points[attr]['1.jpg'].length : 0;
             var c2 = state.points[attr]['2.jpg'] ? state.points[attr]['2.jpg'].length : 0;
-            
             html += `<tr><td>${attr}</td><td>${ratingText}</td><td>${c1}</td><td>${c2}</td></tr>`;
         });
-        
         html += '</tbody></table></div>';
-        
         container.innerHTML = html;
     }
 
@@ -622,7 +618,25 @@
         
         var page = btn.closest('.page');
 
+        // Check Page Next Button
+        if (btn.id === 'btn-check-next') {
+            var sentinel = document.getElementById('check-answer-sentinel').value;
+            if (!sentinel) {
+                document.getElementById('sentinel-error').style.display = 'block';
+                return;
+            }
+            var pref = document.querySelector('input[name="preference"]:checked');
+            if (!pref) {
+                alert("Please select your general preference.");
+                return;
+            }
+            state.quality_check = { sentinel_answer: sentinel, preference: pref.value };
+            showPage(9); // Go to Page 9 (Wealthy)
+            return;
+        }
+
         if (btn.dataset.next) {
+            // Validate Page 1
             var curPage = document.querySelector('.page.active');
             if (curPage.id === 'page-1') {
                 var required = [ {id:'user-id',label:'User ID'},{id:'age',label:'Age'},{id:'gender',label:'Gender'},{id:'nationality',label:'Nationality'} ];
@@ -632,10 +646,7 @@
                   var val = el ? el.value : '';
                   if(!(val && String(val).trim())) missing.push(required[i].label);
                 }
-                if(missing.length){
-                  alert('Please fill these required fields:\n' + missing.join('\n'));
-                  return;
-                }
+                if(missing.length){ alert('Please fill these required fields:\n' + missing.join('\n')); return; }
                 state.demographics = {
                     id: document.getElementById('user-id').value,
                     age: document.getElementById('age').value,
@@ -644,6 +655,7 @@
                     education: document.getElementById('education').value
                 };
             }
+            // Validate Ratings
             if (curPage.dataset.attrIndex) {
                 var attr = ATTRIBUTES[parseInt(curPage.dataset.attrIndex)];
                 if(curPage.querySelector('input[type="radio"]')) {
@@ -652,20 +664,43 @@
                     state.pairwise[attr] = parseFloat(sel.value);
                 }
             }
-            showPage(parseInt(btn.dataset.next));
+            
+            // Check special next logic
+            if (btn.dataset.next === 'check') {
+                qa('.page').forEach(p => p.classList.remove('active'));
+                document.getElementById('page-check').classList.add('active');
+                window.scrollTo(0,0);
+                return;
+            }
+            
+            showPage(btn.dataset.next);
         }
         
-        if (btn.dataset.go) showPage(parseInt(btn.dataset.go));
+        // Handle Back Buttons
+        if (btn.dataset.go) {
+             if (btn.dataset.go === 'check') {
+                qa('.page').forEach(p => p.classList.remove('active'));
+                document.getElementById('page-check').classList.add('active');
+                window.scrollTo(0,0);
+                return;
+             }
+             showPage(btn.dataset.go);
+        }
         
+        // --- FIXED: Updated Back Logic to account for Page 8 insertion ---
         if (btn.hasAttribute('data-back-to-rating')) {
             if(page && page.dataset.attrIndex) {
                 var idx = parseInt(page.dataset.attrIndex);
-                showPage(2 + idx * 2);
+                // Old formula: 2 + idx * 2
+                // New logic: If idx >= 3 (Wealthy, Boring, Depressing), we need to add 1 because of Page 8
+                var targetPage = 2 + idx * 2;
+                if (idx >= 3) targetPage += 1;
+                showPage(targetPage);
             }
         }
         
-        if (btn.hasAttribute('data-undo')) {
-            if(page && page.dataset.attrIndex) {
+        if (btn.hasAttribute('data-undo')) { /* ...same... */
+             if(page && page.dataset.attrIndex) {
                 var attr = ATTRIBUTES[parseInt(page.dataset.attrIndex)];
                 var h = state.historyByAttr[attr];
                 if(h.length > 0) {
@@ -673,15 +708,11 @@
                     state.points[attr] = last; 
                     renderStateToFabric(attr,'1.jpg'); renderStateToFabric(attr,'2.jpg');
                 } else {
-                     var p1 = state.points[attr]['1.jpg'];
-                     var p2 = state.points[attr]['2.jpg'];
+                     var p1 = state.points[attr]['1.jpg']; var p2 = state.points[attr]['2.jpg'];
                      if(p1.length > 0 || p2.length > 0) {
-                         if(p1.length) p1.pop();
-                         if(p2.length) p2.pop();
+                         if(p1.length) p1.pop(); if(p2.length) p2.pop();
                          renderStateToFabric(attr,'1.jpg'); renderStateToFabric(attr,'2.jpg');
-                     } else {
-                        alert('Nothing to undo.');
-                     }
+                     } else { alert('Nothing to undo.'); }
                 }
             }
         }
@@ -698,46 +729,32 @@
         
         if (btn.id === 'finish') {
             if(btn.disabled) return;
-            // Disabled AI guess check
-            // var ai = document.querySelector('input[name="ai_guess"]:checked');
-            // if(!ai) { alert('Please choose which image is more likely generated by AI before submitting.'); return; }
-            // state.ai_guess = ai.value;
-            
-            btn.disabled = true;
-            btn.textContent = 'Submitting...';
+            btn.disabled = true; btn.textContent = 'Submitting...';
             document.getElementById('submit-overlay').classList.add('show');
             submitData();
         }
     });
 
-    function showPage(n) {
+    function showPage(idSuffix) {
         qa('.page').forEach(p => p.classList.remove('active'));
-        var next = document.getElementById('page-' + n);
+        var next = document.getElementById('page-' + idSuffix);
         if(next) {
             next.classList.add('active');
             window.scrollTo(0,0);
-            
-            // Render Summary when entering Page 14
-            if (n === 14) {
-                renderSummary();
-            }
-            
+            if (idSuffix == 15) renderSummary(); 
             if(next.dataset.attrIndex && !next.querySelector('.pair-attr')) {
                 var a = ATTRIBUTES[parseInt(next.dataset.attrIndex)];
-                setTimeout(() => {
-                    initFabricCanvasForPage(a);
-                }, 50);
+                setTimeout(() => { initFabricCanvasForPage(a); }, 50);
             }
         }
     }
 
     function submitData() {
-        // 1. 构建 Payload 时移除 ai_guess
         var payload = {
             demographics: state.demographics,
             pairwise: state.pairwise,
             points: state.points,
-            // ai_guess: state.ai_guess, // <--- 已移除
+            quality_check: state.quality_check, 
             pair_ids: assignedPairInfo ? [assignedPairInfo.pair_id] : [],
             meta: { timestamp: new Date().toISOString() }
         };
@@ -748,13 +765,12 @@
         fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData })
         .then(r => r.json())
         .then(data => {
-            // ... (原有的成功回调代码保持不变) ...
             document.getElementById('submit-overlay-progress').style.width = '100%';
             document.getElementById('submit-overlay-status').textContent = 'Success!';
             document.getElementById('submit-overlay-confirm').classList.remove('hidden');
             
             document.getElementById('finish').textContent = 'Submitted';
-            document.getElementById('post-submit-note').textContent = 'Data saved. Submission ID: ' + (data.submissionId || 'ok');
+            document.getElementById('post-submit-note').textContent = 'Data saved. ID: ' + (data.submissionId || 'ok');
             document.getElementById('output').textContent = JSON.stringify(data, null, 2);
             
             document.getElementById('submit-overlay-confirm').onclick = function() {
@@ -762,7 +778,6 @@
             };
         })
         .catch(err => {
-            // ... (原有的错误处理代码保持不变) ...
             document.getElementById('submit-overlay-status').textContent = 'Error: ' + err.message;
             var a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([JSON.stringify(payload)], {type:'application/json'}));
@@ -780,7 +795,6 @@
             document.getElementById('user-id').style.background = '#f1f5f9';
         }
         requestAssignment();
-        
         window.addEventListener('resize', () => {
              var cur = document.querySelector('.page.active');
              if(cur && cur.dataset.attrIndex && !cur.querySelector('.pair-attr')) {
