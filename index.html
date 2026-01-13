@@ -6,88 +6,264 @@
   <title>Street Perception Survey</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
   <style>
-    :root{--accent:#2563eb;--muted:#6b7280}
-    body{font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;margin:0;background:#f8fafc;color:#0f172a}
-    .container{max-width:1100px;margin:20px auto;padding:20px;background:#fff;border-radius:12px;box-shadow:0 8px 24px rgba(15,23,42,0.06)}
-    h1{font-size:20px;margin:0 0 10px}
-    h2{font-size:16px;margin:0 0 12px}
-    .page{display:none}
-    .page.active{display:block}
-    label{display:block;margin-bottom:6px;font-weight:600}
-    input[type=text],select,input[type=number]{width:100%;padding:8px;border:1px solid #e6eef8;border-radius:8px;box-sizing:border-box}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .buttons{display:flex;justify-content:space-between;margin-top:18px}
-    button{background:var(--accent);color:#fff;padding:10px 14px;border:none;border-radius:8px;cursor:pointer}
-    button.secondary{background:#eef2ff;color:#0f172a}
+    :root {
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --muted: #64748b;
+      --pos: #22c55e;
+      --neg: #ef4444;
+      --bg-gray: #f8fafc;
+      --text-main: #0f172a;
+      --font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
     
-    .images { display: flex; gap: 16px; justify-content: space-between; align-items: flex-start; }
-    .img-wrapper, .regions-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; min-width: 0; }
-    .images img, .regions-wrap img { width: auto; max-width: 100%; height: auto; max-height: 480px; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    .regions-wrap { line-height: 0; display: inline-block; }
-    .regions-wrap img { pointer-events: none; user-select: none; -webkit-user-drag: none; }
-    .canvas-container { position: absolute !important; top: 0; left: 0; z-index: 10; border-radius: 8px; }
-    
-    .pair-attr{margin-top:14px;padding:12px;border:1px dashed #e6eef8;border-radius:8px}
-    .scale{display:flex;gap:8px;align-items:center;justify-content:center}
-    .scale label{display:flex;flex-direction:column;align-items:center;font-weight:500}
-    .hint{font-size:13px;color:var(--muted);margin-top:8px}
-    .controls{display:flex;gap:8px;justify-content:center;margin-top:8px}
-    .small{padding:6px 8px;font-size:13px}
-    pre#output{white-space:pre-wrap;background:#0b1220;color:#cfe9ff;padding:12px;border-radius:8px;max-height:300px;overflow:auto}
-    
-    .summary-section { margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; }
-    .summary-title { font-weight: 700; color: #334155; margin-bottom: 8px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; }
-    .summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; font-size: 14px; }
-    .summary-item { background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0; }
-    .summary-item strong { display: block; font-size: 12px; color: #64748b; margin-bottom: 2px; }
-    
-    .summary-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 8px; }
-    .summary-table th, .summary-table td { padding: 10px; border: 1px solid #e2e8f0; text-align: center; }
-    .summary-table th { background: #f1f5f9; color: #475569; font-weight: 600; }
-    .summary-table td:first-child { text-align: left; font-weight: 600; color: #1e293b; }
-    .summary-table tr:nth-child(even) { background-color: #fcfcfc; }
-
-    @media (max-width:720px){ 
-        .row{grid-template-columns:1fr} 
-        .images{flex-direction:column} 
-        .img-wrapper, .regions-wrap { width: 100%; }
-        button{width:48%} 
-        .buttons{flex-wrap:wrap;gap:8px} 
-        .summary-grid { grid-template-columns: 1fr; }
+    body {
+      font-family: var(--font-family);
+      margin: 0;
+      background: var(--bg-gray);
+      color: var(--text-main);
+      font-size: 16px;
+      line-height: 1.6;
     }
 
-    .container.locked * { pointer-events: none !important; user-select: none !important; opacity: 0.6; }
-    #submit-overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(11,17,32,0.58); z-index: 9999; }
-    #submit-overlay.show { display: flex; }
-    #submit-overlay .card { width: 360px; max-width: 92%; background: #fff; padding: 18px 18px; border-radius: 12px; box-shadow: 0 12px 40px rgba(2,6,23,0.3); text-align: center; font-family: inherit; }
-    #submit-overlay .title { font-weight:700; font-size:16px; margin-bottom:6px; color:#0f172a; }
-    #submit-overlay .message { color:#374151; font-size:14px; margin-bottom:12px; }
-    .progressbar { width:100%; height:12px; background:#eef2ff; border-radius:8px; overflow:hidden; margin-top:8px; }
-    .progressbar > div { height:100%; width:0%; background: linear-gradient(90deg,#2563eb,#06b6d4); transition: width 320ms linear; border-radius:8px; }
-    .spinner { display:inline-block; width:28px; height:28px; margin-left:10px; vertical-align:middle; border:3px solid rgba(37,99,235,0.18); border-top-color: #2563eb; border-radius:50%; animation: spin 1s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    #submit-overlay .status-small { margin-top:10px; font-size:13px; color:#374151; }
-    #submit-overlay .card .confirm-btn { margin-top:12px; background: #10b981; border-radius:8px; padding:8px 14px; color:#fff; border:none; cursor:pointer; font-weight:600; }
-    #submit-overlay .card .confirm-btn.hidden { display:none; }
-    #post-submit-note { margin-top:8px; font-weight:700; color:#065f46; }
+    .container {
+      max-width: 1200px;
+      margin: 30px auto;
+      padding: 40px;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(15,23,42,0.08);
+    }
+
+    h1 { font-size: 32px; margin: 0 0 24px; font-weight: 800; color: #1e293b; letter-spacing: -0.02em; }
+    h2 { font-size: 24px; margin: 0 0 24px; color: #334155; border-bottom: 2px solid #f1f5f9; padding-bottom: 12px; font-weight: 700; }
+    h3 { font-size: 18px; font-weight: 700; color: #475569; margin-top: 0; }
+    p { margin-bottom: 16px; color: #475569; }
+
+    .page { display: none; animation: fadeIn 0.4s ease-out; }
+    .page.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* 表单控件 */
+    label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 16px; color: #334155; }
+    input[type=text], select, input[type=number] {
+      width: 100%; padding: 14px 16px; border: 1px solid #cbd5e1;
+      border-radius: 10px; box-sizing: border-box; font-size: 16px;
+      transition: all 0.2s; background: #fff;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+
+    /* 按钮样式 */
+    .buttons { display: flex; justify-content: space-between; margin-top: 50px; padding-top: 30px; border-top: 1px solid #f1f5f9; }
+    button {
+      background: var(--accent); color: #fff; padding: 16px 28px;
+      border: none; border-radius: 10px; cursor: pointer;
+      font-weight: 600; font-size: 16px; letter-spacing: 0.01em;
+      transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(37,99,235,0.2);
+    }
+    button:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 6px 12px -2px rgba(37,99,235,0.3); }
+    button:active { transform: translateY(0); }
     
-    /* Check Page Special Styles */
-    .check-option { transition: all 0.2s; border: 4px solid transparent; border-radius: 8px; cursor: pointer; }
-    .check-option:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    .check-selected { border-color: var(--accent); }
+    button.secondary { background: #f1f5f9; color: #475569; box-shadow: none; border: 1px solid #e2e8f0; }
+    button.secondary:hover { background: #e2e8f0; color: #1e293b; border-color: #cbd5e1; }
+    button:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .definition-box {
+      background: #eff6ff; border-left: 6px solid var(--accent);
+      padding: 20px; margin-bottom: 30px; border-radius: 8px;
+      color: #1e40af; font-size: 16px; line-height: 1.6;
+    }
+
+    /* --- 核心图片容器修复 --- */
+    /* 目标：确保两张图高度一致，且尽可能利用空间 */
+    .images { 
+      display: flex; 
+      gap: 15px; /* 减小间距，给图片更多宽度 */
+      justify-content: space-between; 
+      height: 550px; /* 固定高度 */
+      margin-bottom: 30px; 
+      align-items: stretch; 
+    }
+    .img-wrapper, .regions-wrap { 
+      flex: 1; 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center;
+      position: relative; 
+      width: 100%;
+      background: #f1f5f9; /* 使用淡灰色背景，避免深色过于压抑 */
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      overflow: hidden; 
+      padding: 0; /* 移除内边距，让图片顶满 */
+      box-sizing: border-box;
+    }
+    .images img, .regions-wrap img { 
+      height: 100%; /* 强制占满高度 */
+      width: auto; 
+      max-width: 100%; 
+      object-fit: contain; /* 保持比例，不会被裁剪 */
+      display: block;
+    }
+    
+    .regions-wrap { line-height: 0; display: inline-flex; }
+    .canvas-container { position: absolute !important; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; }
+
+    /* 评分列表 */
+    .rating-list { display: flex; flex-direction: column; gap: 14px; max-width: 750px; margin: 0 auto; }
+    .rating-option {
+      display: flex; align-items: center; padding: 18px 24px;
+      border: 2px solid #e2e8f0; border-radius: 12px;
+      cursor: pointer; transition: all 0.2s; background: #fff;
+    }
+    .rating-option:hover { border-color: #93c5fd; background: #f8fafc; }
+    .rating-option.selected { border-color: var(--accent); background: #eff6ff; box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
+    .rating-option input { width: 22px; height: 22px; margin-right: 18px; accent-color: var(--accent); }
+    .rating-option span { font-size: 17px; color: #334155; font-weight: 500; }
+
+    /* 圈选工具栏 */
+    .circling-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px; font-size: 15px; color: var(--muted);
+      background: #f8fafc; padding: 14px 24px; border-radius: 10px; border: 1px solid #e2e8f0;
+    }
+    .legend span { display: inline-flex; align-items: center; margin-left: 24px; font-weight: 600; }
+    .legend .dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+
+    .controls-toolbar {
+      display: flex; gap: 14px; justify-content: center; margin-top: 24px;
+      padding: 16px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; flex-wrap: wrap;
+    }
+    .controls-toolbar button.small { padding: 10px 20px; font-size: 15px; display: flex; align-items: center; gap: 8px; height: 44px; }
+    .btn-toggle { background: #fff; border: 1px solid #cbd5e1; color: #334155; }
+    .btn-toggle:not(:disabled):hover { border-color: var(--accent); color: var(--accent); background: #eff6ff; }
+    .btn-delete { background: #fff; border: 1px solid #cbd5e1; color: var(--neg); }
+    .btn-delete:not(:disabled):hover { background: #fef2f2; border-color: var(--neg); }
+
+    /* 圈选同步列表 */
+    .region-list-container { margin-top: 24px; display: flex; gap: 30px; border-top: 1px dashed #e2e8f0; padding-top: 24px; }
+    .region-col { flex: 1; }
+    .region-col h4 { font-size: 14px; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; margin-bottom: 12px; }
+    .region-items { display: flex; flex-direction: column; gap: 10px; max-height: 200px; overflow-y: auto; }
+    .region-item {
+      padding: 12px 16px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+      cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+      font-size: 15px; transition: all 0.15s;
+    }
+    .region-item:hover { background: #f1f5f9; border-color: #cbd5e1; }
+    .region-item.active { border-color: var(--accent); background: #eff6ff; font-weight: 600; box-shadow: 0 2px 5px rgba(37,99,235,0.1); }
+    .region-item.pos { border-left: 6px solid var(--pos); }
+    .region-item.neg { border-left: 6px solid var(--neg); }
+
+    /* Global Factor Section */
+    .global-factor-section { 
+        margin-top: 30px; 
+        padding: 24px; 
+        background: #fff7ed; /* 橙色背景 */
+        border: 1px solid #fed7aa; /* 橙色边框 */
+        border-radius: 12px; 
+    }
+    .global-factor-section h3 { color: #9a3412; } 
+    
+    .checkbox-group { display: flex; flex-wrap: wrap; gap: 16px; }
+    .checkbox-item {
+      display: flex; align-items: center; background: #fff; padding: 10px 16px;
+      border-radius: 8px; border: 1px solid #fdba74; cursor: pointer;
+      font-size: 15px; color: #7c2d12; transition: all 0.2s;
+    }
+    .checkbox-item:hover { background: #ffedd5; }
+    .checkbox-item input { width: 18px; height: 18px; margin-right: 10px; accent-color: #ea580c; }
+
+    /* 检查页 */
+    .check-section { border: 1px solid #e2e8f0; padding: 30px; border-radius: 12px; background: #fff; margin-bottom: 30px; }
+    .check-row { display: flex; gap: 20px; margin-bottom: 30px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 30px; }
+    .check-pair { flex: 1; display: flex; gap: 30px; }
+    .check-img-wrap {
+      flex: 1; text-align: center; cursor: pointer;
+      border: 3px solid transparent; border-radius: 12px;
+      padding: 12px; transition: all 0.2s; background: #f8fafc;
+    }
+    .check-img-wrap:hover { background: #f1f5f9; transform: translateY(-3px); }
+    .check-img-wrap.selected { border-color: var(--accent); background: #eff6ff; box-shadow: 0 8px 16px rgba(37,99,235,0.15); }
+    .check-img-wrap img { width: 100%; height: 300px; object-fit: contain; border-radius: 8px; background: #e2e8f0; }
+    .check-label { margin-top: 12px; font-weight: 700; color: #64748b; font-size: 16px; }
+
+    /* 弹窗 */
+    #msg-modal {
+      position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 10001;
+      display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px);
+    }
+    #msg-modal.show { display: flex; }
+    .msg-box {
+      background: #fff; width: 480px; max-width: 90%; padding: 36px;
+      border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+      text-align: center; position: relative;
+    }
+    .msg-icon { font-size: 48px; margin-bottom: 16px; display: block; }
+    .msg-text { font-size: 17px; color: #334155; margin-bottom: 28px; line-height: 1.6; user-select: text; white-space: pre-wrap; }
+    .msg-btn {
+      background: var(--accent); color: #fff; border: none; padding: 14px 32px;
+      border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 16px;
+    }
+
+    @media (max-width:768px){
+      .row { grid-template-columns: 1fr; }
+      .images { flex-direction: column; height: auto; }
+      .images img, .regions-wrap img { width: 100%; height: auto; max-height: 400px; }
+      .check-pair { flex-direction: column; }
+      .check-img-wrap img { height: 220px; }
+      .buttons { flex-direction: column-reverse; gap: 16px; }
+      button { width: 100%; }
+      .region-list-container { flex-direction: column; gap: 16px; }
+    }
+
+    /* Summary Table Style */
+    .summary-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 15px; }
+    .summary-table th, .summary-table td { padding: 14px; border: 1px solid #cbd5e1; text-align: center; }
+    .summary-table th { background: #f1f5f9; color: #334155; font-weight: 700; }
+    
+    /* Submit Overlay */
+    #submit-overlay { 
+        position: fixed; inset: 0; background: rgba(11,17,32,0.8); z-index: 9999; 
+        display: none; 
+        align-items: center; justify-content: center; 
+    }
+    #submit-overlay.show { display: flex; }
+    .card { background: #fff; padding: 36px; border-radius: 16px; width: 400px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+
+    /* Submission Receipt */
+    #submission-receipt {
+        background: #f0fdf4; 
+        border: 2px solid #bbf7d0; 
+        border-radius: 12px; 
+        padding: 24px; 
+        text-align: center; 
+        color: #14532d;
+    }
+    #submission-receipt h3 { color: #15803d; margin-bottom: 12px; }
+
   </style>
 </head>
 
 <body data-pair-ids="">
 
-<div id="loading-overlay" style="position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(255,255,255,0.98); z-index:10000; text-align:center; transition: opacity 0.3s;">
-  <div style="font-size: 1.2rem; font-weight: 600; color: #111827;">Loading Survey...</div>
-  <div style="font-size: 0.9rem; color: #6b7280; margin-top: 8px;">Initializing survey images...</div>
-  <div class="spinner" style="margin-top: 16px;"></div>
-  <div id="loading-error" style="display:none; margin-top: 16px; color: #b91c1c; font-weight: 600; padding:0 20px;">
-    Error loading images. Please ensure images are public or refresh the page.
+<div id="msg-modal">
+  <div class="msg-box">
+    <div class="msg-icon">👋</div>
+    <div class="msg-text" id="msg-content">Notification</div>
+    <button class="msg-btn" onclick="document.getElementById('msg-modal').classList.remove('show')">OK, I understand</button>
   </div>
 </div>
+
+<div id="loading-overlay" style="position:fixed;inset:0;background:#fff;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+  <div style="font-size:1.5rem;font-weight:700;color:#1e293b;margin-bottom:10px;">Loading Survey</div>
+  <div style="width:40px;height:40px;border:5px solid rgba(37,99,235,0.2);border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite;"></div>
+  <div id="loading-error" style="display:none;margin-top:20px;color:#ef4444;font-weight:600;"></div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
 <div class="container">
     <h1>Street Perception Survey</h1>
@@ -105,17 +281,17 @@
         </div>
         <div>
           <label for="gender">Gender (required)</label>
-          <select id="gender"><option value="">Please choose</option><option value="female">Female</option><option value="male">Male</option><option value="other">Other / Prefer not to say</option></select>
+          <select id="gender"><option value="">Please choose...</option><option value="female">Female</option><option value="male">Male</option><option value="other">Other / Prefer not to say</option></select>
         </div>
         <div>
           <label for="nationality">Nationality (required)</label>
           <select id="nationality" required>
             <option value="">Please choose...</option>
-            <option value="Afghanistan">Afghanistan</option><option value="Åland Islands">Åland Islands</option><option value="Albania">Albania</option><option value="Algeria">Algeria</option><option value="American Samoa">American Samoa</option><option value="Andorra">Andorra</option><option value="Angola">Angola</option><option value="Anguilla">Anguilla</option><option value="Antarctica">Antarctica</option><option value="Antigua and Barbuda">Antigua and Barbuda</option><option value="Argentina">Argentina</option><option value="Armenia">Armenia</option><option value="Aruba">Aruba</option><option value="Australia">Australia</option><option value="Austria">Austria</option><option value="Azerbaijan">Azerbaijan</option><option value="Bahamas">Bahamas</option><option value="Bahrain">Bahrain</option><option value="Bangladesh">Bangladesh</option><option value="Barbados">Barbados</option><option value="Belarus">Belarus</option><option value="Belgium">Belgium</option><option value="Belize">Belize</option><option value="Benin">Benin</option><option value="Bermuda">Bermuda</option><option value="Bhutan">Bhutan</option><option value="Bolivia">Bolivia</option><option value="Bosnia and Herzegovina">Bosnia and Herzegovina</option><option value="Botswana">Botswana</option><option value="Bouvet Island">Bouvet Island</option><option value="Brazil">Brazil</option><option value="British Indian Ocean Territory">British Indian Ocean Territory</option><option value="Brunei Darussalam">Brunei Darussalam</option><option value="Bulgaria">Bulgaria</option><option value="Burkina Faso">Burkina Faso</option><option value="Burundi">Burundi</option><option value="Cambodia">Cambodia</option><option value="Cameroon">Cameroon</option><option value="Canada">Canada</option><option value="Cape Verde">Cape Verde</option><option value="Cayman Islands">Cayman Islands</option><option value="Central African Republic">Central African Republic</option><option value="Chad">Chad</option><option value="Chile">Chile</option><option value="China">China</option><option value="Christmas Island">Christmas Island</option><option value="Cocos (Keeling) Islands">Cocos (Keeling) Islands</option><option value="Colombia">Colombia</option><option value="Comoros">Comoros</option><option value="Congo">Congo</option><option value="Congo, The Democratic Republic of The">Congo, The Democratic Republic of The</option><option value="Cook Islands">Cook Islands</option><option value="Costa Rica">Costa Rica</option><option value="Cote D'ivoire">Cote D'ivoire</option><option value="Croatia">Croatia</option><option value="Cuba">Cuba</option><option value="Cyprus">Cyprus</option><option value="Czech Republic">Czech Republic</option><option value="Denmark">Denmark</option><option value="Djibouti">Djibouti</option><option value="Dominica">Dominica</option><option value="Dominican Republic">Dominican Republic</option><option value="Ecuador">Ecuador</option><option value="Egypt">Egypt</option><option value="El Salvador">El Salvador</option><option value="Equatorial Guinea">Equatorial Guinea</option><option value="Eritrea">Eritrea</option><option value="Estonia">Estonia</option><option value="Ethiopia">Ethiopia</option><option value="Falkland Islands (Malvinas)">Falkland Islands (Malvinas)</option><option value="Faroe Islands">Faroe Islands</option><option value="Fiji">Fiji</option><option value="Finland">Finland</option><option value="France">France</option><option value="French Guiana">French Guiana</option><option value="French Polynesia">French Polynesia</option><option value="French Southern Territories">French Southern Territories</option><option value="Gabon">Gabon</option><option value="Gambia">Gambia</option><option value="Georgia">Georgia</option><option value="Germany">Germany</option><option value="Ghana">Ghana</option><option value="Gibraltar">Gibraltar</option><option value="Greece">Greece</option><option value="Greenland">Greenland</option><option value="Grenada">Grenada</option><option value="Guadeloupe">Guadeloupe</option><option value="Guam">Guam</option><option value="Guatemala">Guatemala</option><option value="Guernsey">Guernsey</option><option value="Guinea">Guinea</option><option value="Guinea-bissau">Guinea-bissau</option><option value="Guyana">Guyana</option><option value="Haiti">Haiti</option><option value="Heard Island and Mcdonald Islands">Heard Island and Mcdonald Islands</option><option value="Holy See (Vatican City State)">Holy See (Vatican City State)</option><option value="Honduras">Honduras</option><option value="Hong Kong">Hong Kong</option><option value="Hungary">Hungary</option><option value="Iceland">Iceland</option><option value="India">India</option><option value="Indonesia">Indonesia</option><option value="Iran, Islamic Republic of">Iran, Islamic Republic of</option><option value="Iraq">Iraq</option><option value="Ireland">Ireland</option><option value="Isle of Man">Isle of Man</option><option value="Israel">Israel</option><option value="Italy">Italy</option><option value="Jamaica">Jamaica</option><option value="Japan">Japan</option><option value="Jersey">Jersey</option><option value="Jordan">Jordan</option><option value="Kazakhstan">Kazakhstan</option><option value="Kenya">Kenya</option><option value="Kiribati">Kiribati</option><option value="Korea, Democratic People's Republic of">Korea, Democratic People's Republic of</option><option value="Korea, Republic of">Korea, Republic of</option><option value="Kuwait">Kuwait</option><option value="Kyrgyzstan">Kyrgyzstan</option><option value="Lao People's Democratic Republic">Lao People's Democratic Republic</option><option value="Latvia">Latvia</option><option value="Lebanon">Lebanon</option><option value="Lesotho">Lesotho</option><option value="Liberia">Liberia</option><option value="Libyan Arab Jamahiriya">Libyan Arab Jamahiriya</option><option value="Liechtenstein">Liechtenstein</option><option value="Lithuania">Lithuania</option><option value="Luxembourg">Luxembourg</option><option value="Macao">Macao</option><option value="Macedonia, The Former Yugoslav Republic of">Macedonia, The Former Yugoslav Republic of</option><option value="Madagascar">Madagascar</option><option value="Malawi">Malawi</option><option value="Malaysia">Malaysia</option><option value="Maldives">Maldives</option><option value="Mali">Mali</option><option value="Malta">Malta</option><option value="Marshall Islands">Marshall Islands</option><option value="Martinique">Martinique</option><option value="Mauritania">Mauritania</option><option value="Mauritius">Mauritius</option><option value="Mayotte">Mayotte</option><option value="Mexico">Mexico</option><option value="Micronesia, Federated States of">Micronesia, Federated States of</option><option value="Moldova, Republic of">Moldova, Republic of</option><option value="Monaco">Monaco</option><option value="Mongolia">Mongolia</option><option value="Montenegro">Montenegro</option><option value="Montserrat">Montserrat</option><option value="Morocco">Morocco</option><option value="Mozambique">Mozambique</option><option value="Myanmar">Myanmar</option><option value="Namibia">Namibia</option><option value="Nauru">Nauru</option><option value="Nepal">Nepal</option><option value="Netherlands">Netherlands</option><option value="Netherlands Antilles">Netherlands Antilles</option><option value="New Caledonia">New Caledonia</option><option value="New Zealand">New Zealand</option><option value="Nicaragua">Nicaragua</option><option value="Niger">Niger</option><option value="Nigeria">Nigeria</option><option value="Niue">Niue</option><option value="Norfolk Island">Norfolk Island</option><option value="Northern Mariana Islands">Northern Mariana Islands</option><option value="Norway">Norway</option><option value="Oman">Oman</option><option value="Pakistan">Pakistan</option><option value="Palau">Palau</option><option value="Palestinian Territory, Occupied">Palestinian Territory, Occupied</option><option value="Panama">Panama</option><option value="Papua New Guinea">Papua New Guinea</option><option value="Paraguay">Paraguay</option><option value="Peru">Peru</option><option value="Philippines">Philippines</option><option value="Pitcairn">Pitcairn</option><option value="Poland">Poland</option><option value="Portugal">Portugal</option><option value="Puerto Rico">Puerto Rico</option><option value="Qatar">Qatar</option><option value="Reunion">Reunion</option><option value="Romania">Romania</option><option value="Russian Federation">Russian Federation</option><option value="Rwanda">Rwanda</option><option value="Saint Helena">Saint Helena</option><option value="Saint Kitts and Nevis">Saint Kitts and Nevis</option><option value="Saint Lucia">Saint Lucia</option><option value="Saint Pierre and Miquelon">Saint Pierre and Miquelon</option><option value="Saint Vincent and The Grenadines">Saint Vincent and The Grenadines</option><option value="Samoa">Samoa</option><option value="San Marino">San Marino</option><option value="Sao Tome and Principe">Sao Tome and Principe</option><option value="Saudi Arabia">Saudi Arabia</option><option value="Senegal">Senegal</option><option value="Serbia">Serbia</option><option value="Seychelles">Seychelles</option><option value="Sierra Leone">Sierra Leone</option><option value="Singapore">Singapore</option><option value="Slovakia">Slovakia</option><option value="Slovenia">Slovenia</option><option value="Solomon Islands">Solomon Islands</option><option value="Somalia">Somalia</option><option value="South Africa">South Africa</option><option value="South Georgia and The South Sandwich Islands">South Georgia and The South Sandwich Islands</option><option value="Spain">Spain</option><option value="Sri Lanka">Sri Lanka</option><option value="Sudan">Sudan</option><option value="Suriname">Suriname</option><option value="Svalbard and Jan Mayen">Svalbard and Jan Mayen</option><option value="Swaziland">Swaziland</option><option value="Sweden">Sweden</option><option value="Switzerland">Switzerland</option><option value="Syrian Arab Republic">Syrian Arab Republic</option><option value="Taiwan, Province of China">Taiwan, Province of China</option><option value="Tajikistan">Tajikistan</option><option value="Tanzania, United Republic of">Tanzania, United Republic of</option><option value="Thailand">Thailand</option><option value="Timor-leste">Timor-leste</option><option value="Togo">Togo</option><option value="Tokelau">Tokelau</option><option value="Tonga">Tonga</option><option value="Trinidad and Tobago">Trinidad and Tobago</option><option value="Tunisia">Tunisia</option><option value="Turkey">Turkey</option><option value="Turkmenistan">Turkmenistan</option><option value="Turks and Caicos Islands">Turks and Caicos Islands</option><option value="Tuvalu">Tuvalu</option><option value="Uganda">Uganda</option><option value="Ukraine">Ukraine</option><option value="United Arab Emirates">United Arab Emirates</option><option value="United Kingdom">United Kingdom</option><option value="United States">United States</option><option value="United States Minor Outlying Islands">United States Minor Outlying Islands</option><option value="Uruguay">Uruguay</option><option value="Uzbekistan">Uzbekistan</option><option value="Vanuatu">Vanuatu</option><option value="Venezuela">Venezuela</option><option value="Viet Nam">Viet Nam</option><option value="Virgin Islands, British">Virgin Islands, British</option><option value="Virgin Islands, U.S.">Virgin Islands, U.S.</option><option value="Wallis and Futuna">Wallis and Futuna</option><option value="Western Sahara">Western Sahara</option><option value="Yemen">Yemen</option><option value="Zambia">Zambia</option><option value="Zimbabwe">Zimbabwe</option><option value="Other">Other</option>
+            <option value="Afghanistan">Afghanistan</option><option value="Albania">Albania</option><option value="Algeria">Algeria</option><option value="Andorra">Andorra</option><option value="Angola">Angola</option><option value="Argentina">Argentina</option><option value="Armenia">Armenia</option><option value="Australia">Australia</option><option value="Austria">Austria</option><option value="Azerbaijan">Azerbaijan</option><option value="Bahamas">Bahamas</option><option value="Bahrain">Bahrain</option><option value="Bangladesh">Bangladesh</option><option value="Barbados">Barbados</option><option value="Belarus">Belarus</option><option value="Belgium">Belgium</option><option value="Belize">Belize</option><option value="Benin">Benin</option><option value="Bhutan">Bhutan</option><option value="Bolivia">Bolivia</option><option value="Bosnia and Herzegovina">Bosnia and Herzegovina</option><option value="Botswana">Botswana</option><option value="Brazil">Brazil</option><option value="Brunei Darussalam">Brunei Darussalam</option><option value="Bulgaria">Bulgaria</option><option value="Burkina Faso">Burkina Faso</option><option value="Burundi">Burundi</option><option value="Cambodia">Cambodia</option><option value="Cameroon">Cameroon</option><option value="Canada">Canada</option><option value="Cape Verde">Cape Verde</option><option value="Central African Republic">Central African Republic</option><option value="Chad">Chad</option><option value="Chile">Chile</option><option value="China">China</option><option value="Colombia">Colombia</option><option value="Comoros">Comoros</option><option value="Congo">Congo</option><option value="Costa Rica">Costa Rica</option><option value="Croatia">Croatia</option><option value="Cuba">Cuba</option><option value="Cyprus">Cyprus</option><option value="Czech Republic">Czech Republic</option><option value="Denmark">Denmark</option><option value="Djibouti">Djibouti</option><option value="Dominica">Dominica</option><option value="Dominican Republic">Dominican Republic</option><option value="Ecuador">Ecuador</option><option value="Egypt">Egypt</option><option value="El Salvador">El Salvador</option><option value="Equatorial Guinea">Equatorial Guinea</option><option value="Eritrea">Eritrea</option><option value="Estonia">Estonia</option><option value="Ethiopia">Ethiopia</option><option value="Fiji">Fiji</option><option value="Finland">Finland</option><option value="France">France</option><option value="Gabon">Gabon</option><option value="Gambia">Gambia</option><option value="Georgia">Georgia</option><option value="Germany">Germany</option><option value="Ghana">Ghana</option><option value="Greece">Greece</option><option value="Grenada">Grenada</option><option value="Guatemala">Guatemala</option><option value="Guinea">Guinea</option><option value="Guyana">Guyana</option><option value="Haiti">Haiti</option><option value="Honduras">Honduras</option><option value="Hong Kong">Hong Kong</option><option value="Hungary">Hungary</option><option value="Iceland">Iceland</option><option value="India">India</option><option value="Indonesia">Indonesia</option><option value="Iran, Islamic Republic of">Iran, Islamic Republic of</option><option value="Iraq">Iraq</option><option value="Ireland">Ireland</option><option value="Israel">Israel</option><option value="Italy">Italy</option><option value="Jamaica">Jamaica</option><option value="Japan">Japan</option><option value="Jordan">Jordan</option><option value="Kazakhstan">Kazakhstan</option><option value="Kenya">Kenya</option><option value="Kiribati">Kiribati</option><option value="Korea, Republic of">Korea, Republic of</option><option value="Kuwait">Kuwait</option><option value="Kyrgyzstan">Kyrgyzstan</option><option value="Lao People's Democratic Republic">Lao People's Democratic Republic</option><option value="Latvia">Latvia</option><option value="Lebanon">Lebanon</option><option value="Lesotho">Lesotho</option><option value="Liberia">Liberia</option><option value="Libya">Libya</option><option value="Liechtenstein">Liechtenstein</option><option value="Lithuania">Lithuania</option><option value="Luxembourg">Luxembourg</option><option value="Macao">Macao</option><option value="Macedonia">Macedonia</option><option value="Madagascar">Madagascar</option><option value="Malawi">Malawi</option><option value="Malaysia">Malaysia</option><option value="Maldives">Maldives</option><option value="Mali">Mali</option><option value="Malta">Malta</option><option value="Mauritania">Mauritania</option><option value="Mauritius">Mauritius</option><option value="Mexico">Mexico</option><option value="Moldova">Moldova</option><option value="Monaco">Monaco</option><option value="Mongolia">Mongolia</option><option value="Montenegro">Montenegro</option><option value="Morocco">Morocco</option><option value="Mozambique">Mozambique</option><option value="Myanmar">Myanmar</option><option value="Namibia">Namibia</option><option value="Nepal">Nepal</option><option value="Netherlands">Netherlands</option><option value="New Zealand">New Zealand</option><option value="Nicaragua">Nicaragua</option><option value="Niger">Niger</option><option value="Nigeria">Nigeria</option><option value="Norway">Norway</option><option value="Oman">Oman</option><option value="Pakistan">Pakistan</option><option value="Palau">Palau</option><option value="Panama">Panama</option><option value="Papua New Guinea">Papua New Guinea</option><option value="Paraguay">Paraguay</option><option value="Peru">Peru</option><option value="Philippines">Philippines</option><option value="Poland">Poland</option><option value="Portugal">Portugal</option><option value="Qatar">Qatar</option><option value="Romania">Romania</option><option value="Russian Federation">Russian Federation</option><option value="Rwanda">Rwanda</option><option value="Samoa">Samoa</option><option value="Saudi Arabia">Saudi Arabia</option><option value="Senegal">Senegal</option><option value="Serbia">Serbia</option><option value="Seychelles">Seychelles</option><option value="Sierra Leone">Sierra Leone</option><option value="Singapore">Singapore</option><option value="Slovakia">Slovakia</option><option value="Slovenia">Slovenia</option><option value="Somalia">Somalia</option><option value="South Africa">South Africa</option><option value="Spain">Spain</option><option value="Sri Lanka">Sri Lanka</option><option value="Sudan">Sudan</option><option value="Suriname">Suriname</option><option value="Swaziland">Swaziland</option><option value="Sweden">Sweden</option><option value="Switzerland">Switzerland</option><option value="Syria">Syria</option><option value="Taiwan">Taiwan</option><option value="Tajikistan">Tajikistan</option><option value="Tanzania">Tanzania</option><option value="Thailand">Thailand</option><option value="Timor-Leste">Timor-Leste</option><option value="Togo">Togo</option><option value="Tonga">Tonga</option><option value="Trinidad and Tobago">Trinidad and Tobago</option><option value="Tunisia">Tunisia</option><option value="Turkey">Turkey</option><option value="Turkmenistan">Turkmenistan</option><option value="Uganda">Uganda</option><option value="Ukraine">Ukraine</option><option value="United Arab Emirates">United Arab Emirates</option><option value="United Kingdom">United Kingdom</option><option value="United States">United States</option><option value="Uruguay">Uruguay</option><option value="Uzbekistan">Uzbekistan</option><option value="Venezuela">Venezuela</option><option value="Vietnam">Vietnam</option><option value="Yemen">Yemen</option><option value="Zambia">Zambia</option><option value="Zimbabwe">Zimbabwe</option><option value="Other">Other</option>
           </select>
         </div>
         <div>
-          <label for="education">Education (optional)</label>
+          <label for="education">Education level (highest completed degree)</label>
           <select id="education"><option value="">(optional)</option><option value="highschool">High school or lower</option><option value="bachelor">Bachelor</option><option value="master">Master</option><option value="phd">PhD</option></select>
         </div>
       </div>
@@ -124,215 +300,394 @@
 
     <div id="page-2" class="page" data-attr-index="0">
       <h2>2. Safe — Pairwise comparison</h2>
+      <div class="definition-box"><strong>Safe:</strong> Looks safe, secure, and not threatening.</div>
       <div class="images">
         <div class="img-wrapper"><img class="survey-img-1" src=""></div>
         <div class="img-wrapper"><img class="survey-img-2" src=""></div>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
-        <div style="font-weight:600">Image 1</div>
-        <div style="text-align:center;font-weight:700">Which image looks safer?</div>
-        <div style="font-weight:600">Image 2</div>
-      </div>
-      <div class="pair-attr" id="rating-Safe"></div>
+      <div class="rating-list" id="rating-Safe"></div>
       <div class="buttons"><button class="secondary" data-go="1" type="button">◀ Back</button><button data-next="3" type="button">Next: mark Safe points ▶</button></div>
     </div>
 
     <div id="page-3" class="page" data-attr-index="0">
-      <h2>3. Safe — Circle regions of interest</h2>
-      <p class="hint">Draw a circle around the areas that make you feel safe.</p>
-      <div class="images">
-        <div class="regions-wrap"><img id="img-Safe-1" class="survey-img-1" src="" /><canvas id="cvs-Safe-1"></canvas><div style="margin-top:8px; text-align:center;">Regions: <span id="count-Safe-1">0</span></div></div>
-        <div class="regions-wrap"><img id="img-Safe-2" class="survey-img-2" src="" /><canvas id="cvs-Safe-2"></canvas><div style="margin-top:8px; text-align:center;">Regions: <span id="count-Safe-2">0</span></div></div>
+      <h2>3. Safe — Circle regions</h2>
+      <div class="definition-box"><strong>Safe:</strong> Looks safe, secure, and not threatening.</div>
+      <div class="circling-header">
+        <div>Draw circles around distinct objects (e.g., a specific tree).</div>
+        <div class="legend"><span style="color:var(--pos)"><span class="dot" style="background:var(--pos)"></span>Positive</span> <span style="color:var(--neg)"><span class="dot" style="background:var(--neg)"></span>Negative</span></div>
       </div>
-      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-clear type="button">Clear all</button></div>
+      <div class="images">
+        <div class="regions-wrap"><img id="img-Safe-1" class="survey-img-1" src="" /><canvas id="cvs-Safe-1"></canvas></div>
+        <div class="regions-wrap"><img id="img-Safe-2" class="survey-img-2" src="" /><canvas id="cvs-Safe-2"></canvas></div>
+      </div>
+      
+      <div class="controls-toolbar">
+        <button class="small secondary" data-undo type="button">⟲ Undo last action</button>
+        <button class="small secondary" data-clear type="button">Clear All</button>
+        <div style="width:1px; background:#cbd5e1; margin:0 12px;"></div>
+        <button class="small btn-toggle" data-toggle-sentiment type="button" disabled>Toggle (+/-)</button>
+        <button class="small btn-delete" data-delete-selected type="button" disabled>Delete Selected</button>
+      </div>
+
+      <div class="region-list-container">
+        <div class="region-col">
+          <h4>Image 1 Regions</h4>
+          <div class="region-items" id="list-Safe-1"></div>
+        </div>
+        <div class="region-col">
+          <h4>Image 2 Regions</h4>
+          <div class="region-items" id="list-Safe-2"></div>
+        </div>
+      </div>
+
+      <div class="global-factor-section">
+        <h3>Is there a global atmospheric factor influencing your choice?</h3>
+        <p>(If you have circled specific elements above, you may skip this. Otherwise, please select at least one.)</p>
+        <div class="checkbox-group" id="global-Safe">
+            <label class="checkbox-item"><input type="checkbox" value="Lighting"> Lighting / Brightness</label>
+            <label class="checkbox-item"><input type="checkbox" value="Weather"> Weather / Sky</label>
+            <label class="checkbox-item"><input type="checkbox" value="Layout"> Overall Layout / Openness</label>
+            <label class="checkbox-item"><input type="checkbox" value="None"> No specific reason</label>
+        </div>
+      </div>
+
       <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="4" type="button">Next: Lively — Rating ▶</button></div>
     </div>
 
     <div id="page-4" class="page" data-attr-index="1">
       <h2>4. Lively — Pairwise comparison</h2>
-      <div class="images">
-        <div class="img-wrapper"><img class="survey-img-1" src=""></div>
-        <div class="img-wrapper"><img class="survey-img-2" src=""></div>
-      </div>
-      <div class="pair-attr" id="rating-Lively"></div>
+      <div class="definition-box"><strong>Lively:</strong> Bustling with activities, energetic, and vibrant.</div>
+      <div class="images"><div class="img-wrapper"><img class="survey-img-1" src=""></div><div class="img-wrapper"><img class="survey-img-2" src=""></div></div>
+      <div class="rating-list" id="rating-Lively"></div>
       <div class="buttons"><button class="secondary" data-go="3" type="button">◀ Back</button><button data-next="5" type="button">Next: mark Lively points ▶</button></div>
     </div>
 
     <div id="page-5" class="page" data-attr-index="1">
-      <h2>5. Lively — Circle regions of interest</h2>
-      <div class="images">
-        <div class="regions-wrap"><img id="img-Lively-1" class="survey-img-1" src="" /><canvas id="cvs-Lively-1"></canvas><div style="margin-top:8px;">Regions: <span id="count-Lively-1">0</span></div></div>
-        <div class="regions-wrap"><img id="img-Lively-2" class="survey-img-2" src="" /><canvas id="cvs-Lively-2"></canvas><div style="margin-top:8px;">Regions: <span id="count-Lively-2">0</span></div></div>
+      <h2>5. Lively — Circle regions</h2>
+      <div class="definition-box"><strong>Lively:</strong> Bustling with activities, energetic, and vibrant.</div>
+      <div class="circling-header">
+        <div>Draw circles around distinct objects (e.g., people, shops).</div>
+        <div class="legend"><span style="color:var(--pos)"><span class="dot" style="background:var(--pos)"></span>Positive</span> <span style="color:var(--neg)"><span class="dot" style="background:var(--neg)"></span>Negative</span></div>
       </div>
-      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-clear type="button">Clear all</button></div>
+      <div class="images">
+        <div class="regions-wrap"><img id="img-Lively-1" class="survey-img-1" src="" /><canvas id="cvs-Lively-1"></canvas></div>
+        <div class="regions-wrap"><img id="img-Lively-2" class="survey-img-2" src="" /><canvas id="cvs-Lively-2"></canvas></div>
+      </div>
+      <div class="controls-toolbar">
+        <button class="small secondary" data-undo type="button">⟲ Undo last action</button><button class="small secondary" data-clear type="button">Clear All</button>
+        <div style="width:1px; background:#cbd5e1; margin:0 12px;"></div>
+        <button class="small btn-toggle" data-toggle-sentiment type="button" disabled>Toggle (+/-)</button><button class="small btn-delete" data-delete-selected type="button" disabled>Delete Selected</button>
+      </div>
+      <div class="region-list-container">
+        <div class="region-col"><h4>Image 1 Regions</h4><div class="region-items" id="list-Lively-1"></div></div>
+        <div class="region-col"><h4>Image 2 Regions</h4><div class="region-items" id="list-Lively-2"></div></div>
+      </div>
+      <div class="global-factor-section">
+        <h3>Is there a global atmospheric factor influencing your choice?</h3>
+        <p>(If you have circled specific elements above, you may skip this. Otherwise, please select at least one.)</p>
+        <div class="checkbox-group" id="global-Lively">
+            <label class="checkbox-item"><input type="checkbox" value="Lighting"> Lighting / Brightness</label><label class="checkbox-item"><input type="checkbox" value="Weather"> Weather / Sky</label><label class="checkbox-item"><input type="checkbox" value="Layout"> Overall Layout / Openness</label><label class="checkbox-item"><input type="checkbox" value="None"> No specific reason</label>
+        </div>
+      </div>
       <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="6" type="button">Next: Beautiful — Rating ▶</button></div>
     </div>
 
     <div id="page-6" class="page" data-attr-index="2">
       <h2>6. Beautiful — Pairwise comparison</h2>
-      <div class="images">
-        <div class="img-wrapper"><img class="survey-img-1" src=""></div>
-        <div class="img-wrapper"><img class="survey-img-2" src=""></div>
-      </div>
-      <div class="pair-attr" id="rating-Beautiful"></div>
+      <div class="definition-box"><strong>Beautiful:</strong> Aesthetically pleasing and nice to look at.</div>
+      <div class="images"><div class="img-wrapper"><img class="survey-img-1" src=""></div><div class="img-wrapper"><img class="survey-img-2" src=""></div></div>
+      <div class="rating-list" id="rating-Beautiful"></div>
       <div class="buttons"><button class="secondary" data-go="5" type="button">◀ Back</button><button data-next="7" type="button">Next: mark Beautiful points ▶</button></div>
     </div>
 
     <div id="page-7" class="page" data-attr-index="2">
-      <h2>7. Beautiful — Circle regions of interest</h2>
+      <h2>7. Beautiful — Circle regions</h2>
+      <div class="definition-box"><strong>Beautiful:</strong> Aesthetically pleasing and nice to look at.</div>
+      <div class="circling-header">
+        <div>Draw circles around distinct objects (e.g., flowers, architecture).</div>
+        <div class="legend"><span style="color:var(--pos)"><span class="dot" style="background:var(--pos)"></span>Positive</span> <span style="color:var(--neg)"><span class="dot" style="background:var(--neg)"></span>Negative</span></div>
+      </div>
       <div class="images">
-        <div class="regions-wrap"><img id="img-Beautiful-1" class="survey-img-1" src="" /><canvas id="cvs-Beautiful-1"></canvas><div style="margin-top:8px;">Regions: <span id="count-Beautiful-1">0</span></div></div>
-        <div class="regions-wrap"><img id="img-Beautiful-2" class="survey-img-2" src="" /><canvas id="cvs-Beautiful-2"></canvas><div style="margin-top:8px;">Regions: <span id="count-Beautiful-2">0</span></div></div>
+        <div class="regions-wrap"><img id="img-Beautiful-1" class="survey-img-1" src="" /><canvas id="cvs-Beautiful-1"></canvas></div>
+        <div class="regions-wrap"><img id="img-Beautiful-2" class="survey-img-2" src="" /><canvas id="cvs-Beautiful-2"></canvas></div>
       </div>
-      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-clear type="button">Clear all</button></div>
-      <div class="buttons">
-        <button class="secondary" data-back-to-rating type="button">◀ Back to rating</button>
-        <button data-next="check" type="button">Next: Environmental Context ▶</button>
+      <div class="controls-toolbar">
+        <button class="small secondary" data-undo type="button">⟲ Undo last action</button><button class="small secondary" data-clear type="button">Clear All</button>
+        <div style="width:1px; background:#cbd5e1; margin:0 12px;"></div>
+        <button class="small btn-toggle" data-toggle-sentiment type="button" disabled>Toggle (+/-)</button><button class="small btn-delete" data-delete-selected type="button" disabled>Delete Selected</button>
       </div>
+      <div class="region-list-container">
+        <div class="region-col"><h4>Image 1 Regions</h4><div class="region-items" id="list-Beautiful-1"></div></div>
+        <div class="region-col"><h4>Image 2 Regions</h4><div class="region-items" id="list-Beautiful-2"></div></div>
+      </div>
+      <div class="global-factor-section">
+        <h3>Is there a global atmospheric factor influencing your choice?</h3>
+        <p>(If you have circled specific elements above, you may skip this. Otherwise, please select at least one.)</p>
+        <div class="checkbox-group" id="global-Beautiful">
+            <label class="checkbox-item"><input type="checkbox" value="Lighting"> Lighting / Brightness</label><label class="checkbox-item"><input type="checkbox" value="Weather"> Weather / Sky</label><label class="checkbox-item"><input type="checkbox" value="Layout"> Overall Layout / Openness</label><label class="checkbox-item"><input type="checkbox" value="None"> No specific reason</label>
+        </div>
+      </div>
+      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="check" type="button">Next: Environment Classification ▶</button></div>
     </div>
 
     <div id="page-check" class="page">
-      <h2>8. Environmental Context</h2>
-      <p style="margin-bottom:20px; color:var(--muted)">To help us categorize the environments, please answer the following questions.</p>
+      <h2>8. Environment Classification</h2>
+      <p style="margin-bottom:20px; color:var(--muted)">To help us better understand your preferences, please answer the following questions.</p>
       
-      <div class="summary-section" style="border:1px solid #e2e8f0; padding:16px; border-radius:8px; background:#fff;">
-        <h3 style="margin-top:0; font-size:16px;">1. Which of the images below best represents a <strong>Rural</strong> (countryside) environment?</h3>
-        <p class="hint" style="text-align:center; margin-bottom:12px;">(Please click directly on the image to select it)</p>
-        <div class="images" style="margin-bottom:12px;">
-          <div class="img-wrapper" onclick="selectCheckOption('urban')">
-            <img id="check-img-urban" class="check-option" src="" alt="Image A">
-            <div style="text-align:center; font-weight:600; margin-top:4px;">Image A</div>
+      <div class="check-section">
+        <h3 style="margin-top:0;">1. In each row below, please click on the image that best represents a <strong>Rural</strong> (countryside) environment.</h3>
+        
+        <div class="check-row" id="qc-row-1">
+          <div style="width:30px;font-weight:700;padding-top:12px;">1.</div>
+          <div class="check-pair">
+            <div class="check-img-wrap" onclick="selectQC('1','A')"><img id="qc-img-1-A" src=""><div class="check-label">Image A</div></div>
+            <div class="check-img-wrap" onclick="selectQC('1','B')"><img id="qc-img-1-B" src=""><div class="check-label">Image B</div></div>
           </div>
-          <div class="img-wrapper" onclick="selectCheckOption('rural')">
-            <img id="check-img-rural" class="check-option" src="" alt="Image B">
-            <div style="text-align:center; font-weight:600; margin-top:4px;">Image B</div>
-          </div>
+          <input type="hidden" id="qc-ans-1" value="">
         </div>
-        <input type="hidden" id="check-answer-sentinel" value="">
-        <p id="sentinel-error" style="color:#ef4444; font-size:13px; display:none;">⚠ Please select the Rural image.</p>
+
+        <div class="check-row" id="qc-row-2">
+            <div style="width:30px;font-weight:700;padding-top:12px;">2.</div>
+            <div class="check-pair">
+              <div class="check-img-wrap" onclick="selectQC('2','A')"><img id="qc-img-2-A" src=""><div class="check-label">Image A</div></div>
+              <div class="check-img-wrap" onclick="selectQC('2','B')"><img id="qc-img-2-B" src=""><div class="check-label">Image B</div></div>
+            </div>
+            <input type="hidden" id="qc-ans-2" value="">
+        </div>
+
+        <div class="check-row" id="qc-row-3">
+            <div style="width:30px;font-weight:700;padding-top:12px;">3.</div>
+            <div class="check-pair">
+              <div class="check-img-wrap" onclick="selectQC('3','A')"><img id="qc-img-3-A" src=""><div class="check-label">Image A</div></div>
+              <div class="check-img-wrap" onclick="selectQC('3','B')"><img id="qc-img-3-B" src=""><div class="check-label">Image B</div></div>
+            </div>
+            <input type="hidden" id="qc-ans-3" value="">
+        </div>
       </div>
 
-      <div class="summary-section" style="border:1px solid #e2e8f0; padding:16px; border-radius:8px; background:#fff; margin-top:20px;">
-        <h3 style="margin-top:0; font-size:16px;">2. General Preference</h3>
-        <p style="font-size:14px; margin-bottom:12px;">In general, which type of environment do you prefer living in?</p>
-        <div style="display:flex; flex-direction:column; gap:8px;">
-           <label style="font-weight:400; cursor:pointer;"><input type="radio" name="preference" value="urban"> I prefer Urban (City)</label>
-           <label style="font-weight:400; cursor:pointer;"><input type="radio" name="preference" value="rural"> I prefer Rural (Countryside)</label>
-           <label style="font-weight:400; cursor:pointer;"><input type="radio" name="preference" value="neutral"> No preference / Neutral</label>
+      <div class="check-section">
+        <h3 style="margin-top:0;">2. General Preference</h3>
+        <p style="font-size:16px; margin-bottom:16px;">In general, which type of environment do you prefer living in?</p>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+           <label class="rating-option">
+               <input type="radio" name="preference" value="urban"> <span style="font-weight:400">I prefer Urban (City)</span>
+           </label>
+           <label class="rating-option">
+               <input type="radio" name="preference" value="rural"> <span style="font-weight:400">I prefer Rural (Countryside)</span>
+           </label>
+           <label class="rating-option">
+               <input type="radio" name="preference" value="neutral"> <span style="font-weight:400">No preference / Neutral</span>
+           </label>
         </div>
       </div>
 
       <div class="buttons">
         <button class="secondary" data-go="7" type="button">◀ Back</button>
-        <button id="btn-check-next" type="button">Next: Wealthy — Rating ▶</button>
+        <button id="btn-check-next" data-next="9" type="button">Next: Wealthy — Rating ▶</button>
       </div>
     </div>
 
     <div id="page-9" class="page" data-attr-index="3">
       <h2>9. Wealthy — Pairwise comparison</h2>
-      <div class="images">
-        <div class="img-wrapper"><img class="survey-img-1" src=""></div>
-        <div class="img-wrapper"><img class="survey-img-2" src=""></div>
-      </div>
-      <div class="pair-attr" id="rating-Wealthy"></div>
+      <div class="definition-box"><strong>Wealthy:</strong> Affluent, high-status, and expensive neighborhood.</div>
+      <div class="images"><div class="img-wrapper"><img class="survey-img-1" src=""></div><div class="img-wrapper"><img class="survey-img-2" src=""></div></div>
+      <div class="rating-list" id="rating-Wealthy"></div>
       <div class="buttons"><button class="secondary" data-go="check" type="button">◀ Back</button><button data-next="10" type="button">Next: mark Wealthy points ▶</button></div>
     </div>
 
     <div id="page-10" class="page" data-attr-index="3">
-      <h2>10. Wealthy — Circle regions of interest</h2>
-      <div class="images">
-        <div class="regions-wrap"><img id="img-Wealthy-1" class="survey-img-1" src="" /><canvas id="cvs-Wealthy-1"></canvas><div style="margin-top:8px;">Regions: <span id="count-Wealthy-1">0</span></div></div>
-        <div class="regions-wrap"><img id="img-Wealthy-2" class="survey-img-2" src="" /><canvas id="cvs-Wealthy-2"></canvas><div style="margin-top:8px;">Regions: <span id="count-Wealthy-2">0</span></div></div>
+      <h2>10. Wealthy — Circle regions</h2>
+      <div class="definition-box"><strong>Wealthy:</strong> Affluent, high-status, and expensive neighborhood.</div>
+      <div class="circling-header">
+        <div>Draw circles around distinct objects (e.g., luxury cars, nice facades).</div>
+        <div class="legend"><span style="color:var(--pos)"><span class="dot" style="background:var(--pos)"></span>Positive</span> <span style="color:var(--neg)"><span class="dot" style="background:var(--neg)"></span>Negative</span></div>
       </div>
-      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-clear type="button">Clear all</button></div>
+      <div class="images">
+        <div class="regions-wrap"><img id="img-Wealthy-1" class="survey-img-1" src="" /><canvas id="cvs-Wealthy-1"></canvas></div>
+        <div class="regions-wrap"><img id="img-Wealthy-2" class="survey-img-2" src="" /><canvas id="cvs-Wealthy-2"></canvas></div>
+      </div>
+      <div class="controls-toolbar">
+        <button class="small secondary" data-undo type="button">⟲ Undo last action</button><button class="small secondary" data-clear type="button">Clear All</button>
+        <div style="width:1px; background:#cbd5e1; margin:0 12px;"></div>
+        <button class="small btn-toggle" data-toggle-sentiment type="button" disabled>Toggle (+/-)</button><button class="small btn-delete" data-delete-selected type="button" disabled>Delete Selected</button>
+      </div>
+      <div class="region-list-container">
+        <div class="region-col"><h4>Image 1 Regions</h4><div class="region-items" id="list-Wealthy-1"></div></div>
+        <div class="region-col"><h4>Image 2 Regions</h4><div class="region-items" id="list-Wealthy-2"></div></div>
+      </div>
+      <div class="global-factor-section">
+        <h3>Is there a global atmospheric factor influencing your choice?</h3>
+        <p>(If you have circled specific elements above, you may skip this. Otherwise, please select at least one.)</p>
+        <div class="checkbox-group" id="global-Wealthy">
+            <label class="checkbox-item"><input type="checkbox" value="Lighting"> Lighting / Brightness</label><label class="checkbox-item"><input type="checkbox" value="Weather"> Weather / Sky</label><label class="checkbox-item"><input type="checkbox" value="Layout"> Overall Layout / Openness</label><label class="checkbox-item"><input type="checkbox" value="None"> No specific reason</label>
+        </div>
+      </div>
       <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="11" type="button">Next: Boring — Rating ▶</button></div>
     </div>
 
     <div id="page-11" class="page" data-attr-index="4">
       <h2>11. Boring — Pairwise comparison</h2>
-      <div class="images">
-        <div class="img-wrapper"><img class="survey-img-1" src=""></div>
-        <div class="img-wrapper"><img class="survey-img-2" src=""></div>
-      </div>
-      <div class="pair-attr" id="rating-Boring"></div>
+      <div class="definition-box"><strong>Boring:</strong> Dull, uninteresting, and monotonous.</div>
+      <div class="images"><div class="img-wrapper"><img class="survey-img-1" src=""></div><div class="img-wrapper"><img class="survey-img-2" src=""></div></div>
+      <div class="rating-list" id="rating-Boring"></div>
       <div class="buttons"><button class="secondary" data-go="10" type="button">◀ Back</button><button data-next="12" type="button">Next: mark Boring points ▶</button></div>
     </div>
 
     <div id="page-12" class="page" data-attr-index="4">
-      <h2>12. Boring — Circle regions of interest</h2>
-      <div class="images">
-        <div class="regions-wrap"><img id="img-Boring-1" class="survey-img-1" src="" /><canvas id="cvs-Boring-1"></canvas><div style="margin-top:8px;">Regions: <span id="count-Boring-1">0</span></div></div>
-        <div class="regions-wrap"><img id="img-Boring-2" class="survey-img-2" src="" /><canvas id="cvs-Boring-2"></canvas><div style="margin-top:8px;">Regions: <span id="count-Boring-2">0</span></div></div>
+      <h2>12. Boring — Circle regions</h2>
+      <div class="definition-box"><strong>Boring:</strong> Dull, uninteresting, and monotonous.</div>
+      <div class="circling-header">
+        <div>Draw circles around distinct objects (e.g., grey walls, empty streets).</div>
+        <div class="legend"><span style="color:var(--pos)"><span class="dot" style="background:var(--pos)"></span>Positive</span> <span style="color:var(--neg)"><span class="dot" style="background:var(--neg)"></span>Negative</span></div>
       </div>
-      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-clear type="button">Clear all</button></div>
+      <div class="images">
+        <div class="regions-wrap"><img id="img-Boring-1" class="survey-img-1" src="" /><canvas id="cvs-Boring-1"></canvas></div>
+        <div class="regions-wrap"><img id="img-Boring-2" class="survey-img-2" src="" /><canvas id="cvs-Boring-2"></canvas></div>
+      </div>
+      <div class="controls-toolbar">
+        <button class="small secondary" data-undo type="button">⟲ Undo last action</button><button class="small secondary" data-clear type="button">Clear All</button>
+        <div style="width:1px; background:#cbd5e1; margin:0 12px;"></div>
+        <button class="small btn-toggle" data-toggle-sentiment type="button" disabled>Toggle (+/-)</button><button class="small btn-delete" data-delete-selected type="button" disabled>Delete Selected</button>
+      </div>
+      <div class="region-list-container">
+        <div class="region-col"><h4>Image 1 Regions</h4><div class="region-items" id="list-Boring-1"></div></div>
+        <div class="region-col"><h4>Image 2 Regions</h4><div class="region-items" id="list-Boring-2"></div></div>
+      </div>
+      <div class="global-factor-section">
+        <h3>Is there a global atmospheric factor influencing your choice?</h3>
+        <p>(If you have circled specific elements above, you may skip this. Otherwise, please select at least one.)</p>
+        <div class="checkbox-group" id="global-Boring">
+            <label class="checkbox-item"><input type="checkbox" value="Lighting"> Lighting / Brightness</label><label class="checkbox-item"><input type="checkbox" value="Weather"> Weather / Sky</label><label class="checkbox-item"><input type="checkbox" value="Layout"> Overall Layout / Openness</label><label class="checkbox-item"><input type="checkbox" value="None"> No specific reason</label>
+        </div>
+      </div>
       <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="13" type="button">Next: Depressing — Rating ▶</button></div>
     </div>
 
     <div id="page-13" class="page" data-attr-index="5">
       <h2>13. Depressing — Pairwise comparison</h2>
-      <div class="images">
-        <div class="img-wrapper"><img class="survey-img-1" src=""></div>
-        <div class="img-wrapper"><img class="survey-img-2" src=""></div>
-      </div>
-      <div class="pair-attr" id="rating-Depressing"></div>
+      <div class="definition-box"><strong>Depressing:</strong> Grim, bleak, and evoking sadness.</div>
+      <div class="images"><div class="img-wrapper"><img class="survey-img-1" src=""></div><div class="img-wrapper"><img class="survey-img-2" src=""></div></div>
+      <div class="rating-list" id="rating-Depressing"></div>
       <div class="buttons"><button class="secondary" data-go="12" type="button">◀ Back</button><button data-next="14" type="button">Next: mark Depressing points ▶</button></div>
     </div>
 
     <div id="page-14" class="page" data-attr-index="5">
-      <h2>14. Depressing — Circle regions of interest</h2>
-      <div class="images">
-        <div class="regions-wrap"><img id="img-Depressing-1" class="survey-img-1" src="" /><canvas id="cvs-Depressing-1"></canvas><div style="margin-top:8px;">Regions: <span id="count-Depressing-1">0</span></div></div>
-        <div class="regions-wrap"><img id="img-Depressing-2" class="survey-img-2" src="" /><canvas id="cvs-Depressing-2"></canvas><div style="margin-top:8px;">Regions: <span id="count-Depressing-2">0</span></div></div>
+      <h2>14. Depressing — Circle regions</h2>
+      <div class="definition-box"><strong>Depressing:</strong> Grim, bleak, and evoking sadness.</div>
+      <div class="circling-header">
+        <div>Draw circles around distinct objects (e.g., trash, ruined buildings).</div>
+        <div class="legend"><span style="color:var(--pos)"><span class="dot" style="background:var(--pos)"></span>Positive</span> <span style="color:var(--neg)"><span class="dot" style="background:var(--neg)"></span>Negative</span></div>
       </div>
-      <div class="controls"><button class="small secondary" data-undo type="button">Undo</button><button class="small secondary" data-clear type="button">Clear all</button></div>
+      <div class="images">
+        <div class="regions-wrap"><img id="img-Depressing-1" class="survey-img-1" src="" /><canvas id="cvs-Depressing-1"></canvas></div>
+        <div class="regions-wrap"><img id="img-Depressing-2" class="survey-img-2" src="" /><canvas id="cvs-Depressing-2"></canvas></div>
+      </div>
+      <div class="controls-toolbar">
+        <button class="small secondary" data-undo type="button">⟲ Undo last action</button><button class="small secondary" data-clear type="button">Clear All</button>
+        <div style="width:1px; background:#cbd5e1; margin:0 12px;"></div>
+        <button class="small btn-toggle" data-toggle-sentiment type="button" disabled>Toggle (+/-)</button><button class="small btn-delete" data-delete-selected type="button" disabled>Delete Selected</button>
+      </div>
+      <div class="region-list-container">
+        <div class="region-col"><h4>Image 1 Regions</h4><div class="region-items" id="list-Depressing-1"></div></div>
+        <div class="region-col"><h4>Image 2 Regions</h4><div class="region-items" id="list-Depressing-2"></div></div>
+      </div>
+      <div class="global-factor-section">
+        <h3>Is there a global atmospheric factor influencing your choice?</h3>
+        <p>(If you have circled specific elements above, you may skip this. Otherwise, please select at least one.)</p>
+        <div class="checkbox-group" id="global-Depressing">
+            <label class="checkbox-item"><input type="checkbox" value="Lighting"> Lighting / Brightness</label><label class="checkbox-item"><input type="checkbox" value="Weather"> Weather / Sky</label><label class="checkbox-item"><input type="checkbox" value="Layout"> Overall Layout / Openness</label><label class="checkbox-item"><input type="checkbox" value="None"> No specific reason</label>
+        </div>
+      </div>
       <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="15" type="button">Next: Review & Submit ▶</button></div>
     </div>
 
     <div id="page-15" class="page">
       <h2>15. Review & Submit</h2>
-      <p style="margin-bottom:16px">Please review your responses before submitting.</p>
+      <p style="margin-bottom:20px; font-size:16px;">Please review your responses before submitting.</p>
+      
       <div id="summary-container"></div>
-      <div class="buttons"><button class="secondary" data-go="14" type="button">◀ Back</button>
+      
+      <div class="buttons">
+        <button class="secondary" data-go="14" type="button">◀ Back</button>
         <div>
           <button id="finish" type="button">Finish and export ▶</button>
-          <div id="post-submit-note" aria-live="polite"></div>
         </div>
       </div>
-      <div style="margin-top:12px"><h3>Output</h3><pre id="output">No submission yet.</pre></div>
-    </div>
-
-</div>
-
-<div id="submit-overlay" role="status" aria-live="polite" aria-hidden="true">
-    <div class="card" role="dialog" aria-modal="true" aria-label="Submitting">
-      <div style="display:flex;align-items:center;justify-content:center;">
-        <div class="title" id="submit-overlay-title">Submitting…</div>
-        <div class="spinner" aria-hidden="true"></div>
+      
+      <div id="submission-receipt" style="display:none; margin-top:30px;">
+         <h3>Submission Successful</h3>
+         <div style="font-size:14px; margin-bottom:8px;">Thank you for your participation!</div>
+         <div id="receipt-content" style="font-family:monospace; color:#334155;"></div>
       </div>
-      <div class="message" id="submit-overlay-message">Please wait while your response is submitted.</div>
-      <div class="progressbar" aria-hidden="true"><div id="submit-overlay-progress"></div></div>
-      <div class="status-small" id="submit-overlay-status" aria-hidden="true"></div>
-      <button id="submit-overlay-confirm" class="confirm-btn hidden" aria-hidden="true">OK</button>
     </div>
+
 </div>
 
+<div id="submit-overlay">
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:center;">
+        <div class="title" style="font-weight:700;font-size:18px;margin-bottom:8px;">Submitting…</div>
+        <div class="spinner" style="margin-left:12px;"></div>
+      </div>
+      <div class="message" id="submit-overlay-message" style="margin-bottom:16px;">Please wait...</div>
+      <div class="status-small" id="submit-overlay-status" style="font-size:13px; color:#64748b;"></div>
+      <button id="submit-overlay-confirm" style="margin-top:16px;display:none;background:#22c55e;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600;">OK</button>
+    </div>
+</div>
 <script>
 (function() {
     'use strict';
 
-    // *** IMPORTANT: Replace with your actual Web App URL ***
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzoAU0uqFKGZZfe1l1NLQ0rgjOH2A8ZawB1K-hoIxfOL_a9fVW8Vf2UBl1vWs2iCptQ/exec';
-    
+    // *** 配置常量 ***
+    // 请确保此 URL 是您最新部署的 Web App URL
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw7McAU8hFgo3MYWxcUL8AmKsK0CV1oGaHfa_zyh-q9_axwbZxUDIqc31-jirULc-4R/exec';
     const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
-    var state = { demographics: {}, pairwise: {}, points: {}, historyByAttr: {}, quality_check: {} };
-    var assignedPairInfo = null;
-    var fabricCanvases = {};
+    
+    // 颜色配置
+    const COLORS = {
+        pos: { stroke: '#22c55e', fill: 'rgba(34, 197, 94, 0.2)' }, 
+        neg: { stroke: '#ef4444', fill: 'rgba(239, 68, 68, 0.2)' }
+    };
 
+    // *** 全局状态 ***
+    var state = { 
+        demographics: {}, 
+        pairwise: {}, 
+        points: {}, 
+        global_factors: {}, 
+        quality_check: {} 
+    };
+
+    // 初始化数据结构
     ATTRIBUTES.forEach(a => {
         state.points[a] = { '1.jpg': [], '2.jpg': [] };
-        state.historyByAttr[a] = [];
+        state.global_factors[a] = [];
     });
 
+    var assignedPairInfo = null;
+    var fabricCanvases = {};  // 存储 Canvas 实例
+    
+    // --- 撤销系统 (Undo System) ---
+    var canvasHistory = {};   // { 'Safe-1': [json1, json2...] }
+    var pageActionStack = []; // ['Safe-1', 'Safe-2'...] 记录操作顺序
+    var isRestoring = false; 
+
+    // --- 统一消息提示框 ---
+    function showDialog(title, text) {
+        var modal = document.getElementById('msg-modal');
+        var content = document.getElementById('msg-content');
+        var icon = '👋';
+        if(title.includes('Missing') || title.includes('Required')) icon = '📝';
+        if(title.includes('Logic')) icon = '💡';
+        if(title.includes('Error')) icon = '⚠️';
+
+        modal.querySelector('.msg-icon').textContent = icon;
+        var html = `<strong>${title}</strong>\n\n${text}`;
+        content.innerHTML = html.replace(/\n/g, '<br/>');
+        modal.classList.add('show');
+    }
+
+    // --- 基础工具 ---
     function q(s) { return document.querySelector(s); }
     function qa(s) { return Array.from(document.querySelectorAll(s)); }
     function getQueryParam(n) { try { return new URL(window.location.href).searchParams.get(n); } catch (e) { return null; } }
@@ -346,9 +701,11 @@
     }
 
     function getFastDriveUrl(fileId) {
+        // 使用 Google 官方的高速缩略图/内容接口，比 drive.google.com/uc?id=... 快很多
         return 'https://lh3.googleusercontent.com/d/' + fileId;
     }
 
+    // JSONP (解决跨域 GET 请求)
     function jsonp(url, callback) {
         var cbName = 'cb_' + Math.random().toString(36).slice(2);
         window[cbName] = function(data) {
@@ -360,31 +717,36 @@
         var s = document.createElement('script');
         s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
         s.id = 'sc-' + cbName;
-        s.onerror = function() { callback({ error: 'Network error' }); };
+        s.onerror = function() { callback({ error: 'Network error. Please check your connection.' }); };
         document.body.appendChild(s);
     }
 
+    // --- 初始化流程 ---
     function requestAssignment() {
         var workerId = getProlificPid();
         var url = APPS_SCRIPT_URL + '?action=assign&worker_id=' + encodeURIComponent(workerId);
+        
         jsonp(url, function(data) {
             if (data && (data.pair_id || data.file_id1)) {
                 assignedPairInfo = data;
                 applyImages(data.file_id1, data.file_id2);
                 
-                // Load Quality Check Images
-                if (data.check_images && data.check_images.urban) {
-                    var u = document.getElementById('check-img-urban');
-                    var r = document.getElementById('check-img-rural');
-                    if(u) u.src = getFastDriveUrl(data.check_images.urban);
-                    if(r) r.src = getFastDriveUrl(data.check_images.rural);
-                } else {
-                    console.warn("Check images not returned by backend.");
-                }
+                // 预加载 Page 8 的 QC 图片 (如果后端返回了 ID)
+                // 这消除了翻页时的加载延迟
+                if (data.check_images) {
+                    var ci = data.check_images;
+                    if(ci.rural1) q('#qc-img-1-A').src = getFastDriveUrl(ci.rural1);
+                    if(ci.urban1) q('#qc-img-1-B').src = getFastDriveUrl(ci.urban1);
 
+                    if(ci.urban2) q('#qc-img-2-A').src = getFastDriveUrl(ci.urban2);
+                    if(ci.rural2) q('#qc-img-2-B').src = getFastDriveUrl(ci.rural2);
+
+                    if(ci.urban3) q('#qc-img-3-A').src = getFastDriveUrl(ci.urban3);
+                    if(ci.rural3) q('#qc-img-3-B').src = getFastDriveUrl(ci.rural3);
+                }
             } else {
-                document.getElementById('loading-error').style.display = 'block';
-                document.getElementById('loading-error').textContent = "No tasks available or error: " + (data.error || 'Unknown');
+                q('#loading-error').style.display = 'block';
+                q('#loading-error').textContent = "Server Error: " + (data.error || 'No tasks available.');
             }
         });
     }
@@ -394,106 +756,315 @@
         var url1 = getFastDriveUrl(fid1);
         var url2 = getFastDriveUrl(fid2);
         
-        console.log("--- Images Loaded ---");
-        console.log("Image 1 URL:", url1);
-        console.log("Image 2 URL:", url2);
-        
         qa('.survey-img-1').forEach(img => img.src = url1);
         qa('.survey-img-2').forEach(img => img.src = url2);
 
         var count = 0;
         function checkDone() {
             count++;
-            if (count >= 2) {
-                document.getElementById('loading-overlay').style.display = 'none';
-            }
+            if (count >= 2) q('#loading-overlay').style.display = 'none';
         }
-        var i1 = new Image(); i1.onload = checkDone; i1.onerror = function(){ qa('.survey-img-1').forEach(img => img.src = 'https://drive.google.com/uc?export=view&id=' + fid1); checkDone(); }; i1.src = url1;
-        var i2 = new Image(); i2.onload = checkDone; i2.onerror = function(){ qa('.survey-img-2').forEach(img => img.src = 'https://drive.google.com/uc?export=view&id=' + fid2); checkDone(); }; i2.src = url2;
+        // 预加载两张主图，确保显示时已就绪
+        var i1 = new Image(); i1.onload = checkDone; i1.onerror = checkDone; i1.src = url1;
+        var i2 = new Image(); i2.onload = checkDone; i2.onerror = checkDone; i2.src = url2;
         
         document.body.dataset.pairIds = assignedPairInfo.pair_id || ('pair_' + fid1.slice(-5));
     }
 
+    // --- 评分 UI ---
     function buildRatingControls() {
+        const options = [
+            { val: 1, label: "Left is much better" },
+            { val: 0.5, label: "Left is slightly better" },
+            { val: 0, label: "Equal / Hard to tell" },
+            { val: -0.5, label: "Right is slightly better" },
+            { val: -1, label: "Right is much better" }
+        ];
+
         ATTRIBUTES.forEach(attr => {
             var container = document.getElementById('rating-' + attr);
             if (!container) return;
             container.innerHTML = '';
             
-            var row = document.createElement('div'); row.className='attr-row';
-            var left = document.createElement('div'); left.style.minWidth='140px';
-            var strong = document.createElement('strong'); strong.textContent = attr;
-            left.appendChild(strong);
-            row.appendChild(left);
-
-            var scale = document.createElement('div'); scale.className='scale';
-            var vals = [1,0.5,0,-0.5,-1];
-            vals.forEach(function(v){
-              var lab = document.createElement('label');
-              lab.style.display='inline-flex'; lab.style.flexDirection='column'; lab.style.alignItems='center'; lab.style.marginRight='12px';
-              var inp = document.createElement('input'); inp.type='radio'; inp.name = attr; inp.value = String(v);
-              var txt = document.createTextNode(String(v));
-              var small = document.createElement('small');
-              if(v===1) small.textContent='1: Image1 much more';
-              else if(v===0.5) small.textContent='0.5: slightly more';
-              else if(v===0) small.textContent='0: equal';
-              else if(v===-0.5) small.textContent='-0.5: slightly less';
-              else small.textContent='-1: much less';
-              lab.appendChild(inp); lab.appendChild(txt); lab.appendChild(document.createElement('br')); lab.appendChild(small);
-              scale.appendChild(lab);
+            options.forEach(opt => {
+                var label = document.createElement('label');
+                label.className = 'rating-option';
+                var txt = opt.label;
+                if(opt.val !== 0) txt += ` (${attr})`;
+                label.innerHTML = `<input type="radio" name="${attr}" value="${opt.val}"><span>${txt}</span>`;
+                
+                label.addEventListener('change', function() {
+                    container.querySelectorAll('.rating-option').forEach(o => o.classList.remove('selected'));
+                    if(this.querySelector('input').checked) {
+                        this.classList.add('selected');
+                        state.pairwise[attr] = opt.val;
+                    }
+                });
+                container.appendChild(label);
             });
-            row.appendChild(scale);
-            container.appendChild(row);
-
-            var arrowDiv = document.createElement('div');
-            arrowDiv.style.textAlign = 'center';
-            arrowDiv.style.marginTop = '8px';
-            arrowDiv.style.fontSize = '18px';
-            arrowDiv.style.fontWeight = '700';
-            arrowDiv.innerHTML = '<span style="font-size:28px; margin-right:10px">◀</span> Image 1 more    <span style="font-size:20px; padding:0 8px; background:#f1f5f9; border-radius:6px;">0</span>    Image 2 more <span style="font-size:28px; margin-left:10px">▶</span>';
-            container.appendChild(arrowDiv);
         });
     }
 
-    // ================= FABRIC.JS LOGIC START =================
+    // --- Fabric.js 核心逻辑 ---
+
     function initFabricCanvasForPage(attr) {
-        ['1.jpg', '2.jpg'].forEach(k => {
-            var idx = (k === '1.jpg' ? 1 : 2);
+        pageActionStack = []; 
+
+        ['1', '2'].forEach(idx => {
+            var key = `${attr}-${idx}`;
             var canvasId = `cvs-${attr}-${idx}`;
             var canvasEl = document.getElementById(canvasId);
-            var imgEl = document.getElementById(`img-${attr}-${idx}`);
+            var imgEl = document.getElementById(`img-${attr}-${idx}`); // Wrapper
+            
             if (!canvasEl || !imgEl) return;
             
-            if (fabricCanvases[`${attr}-${idx}`]) {
-                var c = fabricCanvases[`${attr}-${idx}`];
-                c.setDimensions({ width: imgEl.clientWidth, height: imgEl.clientHeight });
-                c.calcOffset();
-                return;
-            }
+            // 确保尺寸匹配 (Wrapper 高度由 CSS 控制，Canvas 需跟随)
             var w = imgEl.clientWidth;
             var h = imgEl.clientHeight;
-            if(w === 0 || h === 0) return; 
             
-            var canvas = new fabric.Canvas(canvasId, { isDrawingMode: true, width: w, height: h });
+            if (fabricCanvases[key]) {
+                fabricCanvases[key].setDimensions({ width: w, height: h });
+                fabricCanvases[key].calcOffset();
+                return;
+            }
+            
+            canvasHistory[key] = [];
+
+            var canvas = new fabric.Canvas(canvasId, { 
+                isDrawingMode: true, 
+                width: w, 
+                height: h 
+            });
+            
             canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
             canvas.freeDrawingBrush.width = 3;
-            canvas.freeDrawingBrush.color = "rgba(239, 68, 68, 0.8)";
+            canvas.freeDrawingBrush.color = COLORS.pos.stroke;
 
-            fabricCanvases[`${attr}-${idx}`] = canvas;
+            fabricCanvases[key] = canvas;
+            saveHistory(key);
 
+            // *** 智能模式切换 (Smart Mode Switching) ***
+            // 解决 "画笔模式下无法点击/选中已画圈" 的问题
+            canvas.on('mouse:move', function(opt) {
+                var pointer = canvas.getPointer(opt.e);
+                var isHoveringObject = false;
+                
+                var objects = canvas.getObjects();
+                for (var i = objects.length - 1; i >= 0; i--) {
+                    if (objects[i].containsPoint(pointer)) {
+                        isHoveringObject = true;
+                        break;
+                    }
+                }
+
+                if (!canvas.getActiveObject()) {
+                    if (isHoveringObject) {
+                        if (canvas.isDrawingMode) canvas.isDrawingMode = false; // 允许点击
+                    } else {
+                        if (!canvas.isDrawingMode) canvas.isDrawingMode = true; // 允许画画
+                    }
+                }
+            });
+
+            // 绘制完成事件
             canvas.on('path:created', function(e) {
-                var originalPath = e.path;
-                if (originalPath.width < 15 && originalPath.height < 15) { canvas.remove(originalPath); return; }
-                pushHistory(attr);
-                var rawPoints = extractPointsFromPath(originalPath);
-                var compressedPoints = compressPoints(rawPoints, canvas.width, canvas.height);
-                var polyObj = new fabric.Polygon(denormalizePoints(compressedPoints, canvas.width, canvas.height), {
-                    fill: 'rgba(239, 68, 68, 0.2)', stroke: '#ef4444', strokeWidth: 2, selectable: false, evented: false
+                var path = e.path;
+                if (path.width < 5 && path.height < 5) { canvas.remove(path); return; }
+
+                var rawPoints = extractPointsFromPath(path);
+                var polyObj = new fabric.Polygon(rawPoints, {
+                    fill: COLORS.pos.fill,
+                    stroke: COLORS.pos.stroke,
+                    strokeWidth: 3,
+                    selectable: true,
+                    perPixelTargetFind: true, // 确保点击内部也能选中
+                    objectCaching: false,
+                    hasControls: false,
+                    hasBorders: true
                 });
-                canvas.remove(originalPath);
+                
+                polyObj.sentiment = 'positive'; 
+
+                canvas.remove(path);
                 canvas.add(polyObj);
-                state.points[attr][k].push(compressedPoints);
-                document.getElementById(`count-${attr}-${idx}`).textContent = state.points[attr][k].length;
+                canvas.setActiveObject(polyObj);
+                
+                deselectOtherCanvases(key); // 互斥
+                pushPageAction(key); 
+                saveHistory(key);
+                updateUIState();
+            });
+
+            // 事件绑定
+            canvas.on('selection:created', () => { deselectOtherCanvases(key); updateUIState(); });
+            canvas.on('selection:updated', updateUIState);
+            canvas.on('selection:cleared', updateUIState);
+            canvas.on('object:modified', () => { pushPageAction(key); saveHistory(key); });
+            canvas.on('mouse:down', (opt) => {
+                if(!opt.target) {
+                    canvas.discardActiveObject();
+                    canvas.requestRenderAll();
+                    updateUIState();
+                }
+            });
+        });
+    }
+
+    function deselectOtherCanvases(activeKey) {
+        Object.keys(fabricCanvases).forEach(k => {
+            if (k !== activeKey && fabricCanvases[k]) {
+                fabricCanvases[k].discardActiveObject();
+                fabricCanvases[k].requestRenderAll();
+            }
+        });
+    }
+
+    function pushPageAction(canvasKey) {
+        pageActionStack.push(canvasKey);
+    }
+
+    function saveHistory(key) {
+        if(isRestoring) return;
+        var canvas = fabricCanvases[key];
+        if(!canvas) return;
+        var json = JSON.stringify(canvas.toDatalessJSON(['sentiment']));
+        canvasHistory[key].push(json);
+        if(canvasHistory[key].length > 30) canvasHistory[key].shift();
+        renderRegionList(key);
+    }
+
+    function performGlobalUndo() {
+        if (pageActionStack.length === 0) return; 
+        var lastModifiedKey = pageActionStack.pop(); 
+        var stack = canvasHistory[lastModifiedKey];
+        var canvas = fabricCanvases[lastModifiedKey];
+
+        if (stack && stack.length > 1 && canvas) {
+            stack.pop(); 
+            var prevState = stack[stack.length - 1]; 
+            isRestoring = true;
+            canvas.loadFromJSON(prevState, function() {
+                canvas.renderAll();
+                isRestoring = false;
+                renderRegionList(lastModifiedKey);
+                updateUIState();
+            });
+        }
+    }
+
+    function renderRegionList(key) {
+        var parts = key.split('-');
+        var listContainer = document.getElementById(`list-${parts[0]}-${parts[1]}`);
+        if(!listContainer) return;
+        
+        var canvas = fabricCanvases[key];
+        var objects = canvas.getObjects();
+        
+        listContainer.innerHTML = '';
+        if (objects.length === 0) {
+            listContainer.innerHTML = '<div style="color:#94a3b8;font-style:italic;padding:4px;font-size:13px;">No regions drawn yet</div>';
+            return;
+        }
+
+        objects.forEach((obj, i) => {
+            var item = document.createElement('div');
+            var isPos = (obj.sentiment !== 'negative');
+            item.className = `region-item ${isPos ? 'pos' : 'neg'}`;
+            
+            if (canvas.getActiveObjects().indexOf(obj) > -1) item.classList.add('active');
+            
+            item.innerHTML = `<span>Region ${i + 1}</span> <span style="font-size:12px;color:#64748b">${isPos?'Positive':'Negative'}</span>`;
+            
+            item.addEventListener('click', (e) => {
+                e.stopPropagation(); 
+                deselectOtherCanvases(key);
+                canvas.discardActiveObject();
+                canvas.setActiveObject(obj);
+                canvas.requestRenderAll();
+                updateUIState();
+            });
+            listContainer.appendChild(item);
+        });
+    }
+
+    function getGlobalActiveObject() {
+        var keys = Object.keys(fabricCanvases);
+        for(var i=0; i<keys.length; i++) {
+            var c = fabricCanvases[keys[i]];
+            var act = c.getActiveObject();
+            if(act) return { canvas: c, object: act, key: keys[i] };
+        }
+        return null;
+    }
+
+    function updateUIState() {
+        var curPage = document.querySelector('.page.active');
+        if (!curPage || !curPage.dataset.attrIndex || !curPage.querySelector('canvas')) return;
+
+        var attr = ATTRIBUTES[parseInt(curPage.dataset.attrIndex)];
+        var activeInfo = getGlobalActiveObject();
+        var hasActive = !!activeInfo;
+
+        var btnToggle = curPage.querySelector('[data-toggle-sentiment]');
+        var btnDelete = curPage.querySelector('[data-delete-selected]');
+        if(btnToggle) btnToggle.disabled = !hasActive;
+        if(btnDelete) btnDelete.disabled = !hasActive;
+
+        renderRegionList(`${attr}-1`);
+        renderRegionList(`${attr}-2`);
+    }
+
+    // *** 激活工具栏按钮 ***
+    function setupFabricControls() {
+        qa('[data-toggle-sentiment]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                var info = getGlobalActiveObject();
+                if(info) {
+                    var act = info.object;
+                    act.sentiment = (act.sentiment === 'positive' ? 'negative' : 'positive');
+                    act.set(act.sentiment === 'positive' ? COLORS.pos : COLORS.neg);
+                    info.canvas.requestRenderAll();
+                    pushPageAction(info.key);
+                    saveHistory(info.key);
+                    updateUIState();
+                }
+            });
+        });
+
+        qa('[data-delete-selected]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                var info = getGlobalActiveObject();
+                if(info) {
+                    info.canvas.remove(info.object);
+                    info.canvas.discardActiveObject();
+                    info.canvas.requestRenderAll();
+                    pushPageAction(info.key);
+                    saveHistory(info.key);
+                    updateUIState();
+                }
+            });
+        });
+
+        qa('[data-undo]').forEach(btn => {
+            btn.addEventListener('click', performGlobalUndo);
+        });
+
+        qa('[data-clear]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                if(!confirm("Are you sure you want to clear all regions on this page?")) return;
+                var curPage = document.querySelector('.page.active');
+                var attr = ATTRIBUTES[parseInt(curPage.dataset.attrIndex)];
+                
+                [`${attr}-1`, `${attr}-2`].forEach(key => {
+                    var c = fabricCanvases[key];
+                    if(c) {
+                        c.clear();
+                        c.isDrawingMode = true;
+                        pushPageAction(key);
+                        saveHistory(key);
+                    }
+                });
+                updateUIState();
             });
         });
     }
@@ -503,237 +1074,154 @@
         var cmds = pathObj.path;
         cmds.forEach(cmd => {
             var len = cmd.length;
-            if (len >= 3) { points.push({ x: cmd[len-2], y: cmd[len-1] }); }
+            if (len >= 3) points.push({ x: cmd[len-2], y: cmd[len-1] });
         });
         return points;
     }
 
-    function compressPoints(points, w, h) {
+    function downsamplePoints(points, w, h) {
+        if (points.length < 5) return points; 
         var result = [];
         var lastX = -999, lastY = -999;
-        var threshold = 0.02; 
+        var threshold = 0.02; // 2% 距离阈值
+
         points.forEach(p => {
             var nx = Math.round((p.x / w) * 1000) / 1000;
             var ny = Math.round((p.y / h) * 1000) / 1000;
             var dist = Math.sqrt(Math.pow(nx - lastX, 2) + Math.pow(ny - lastY, 2));
-            if (dist > threshold) { result.push([nx, ny]); lastX = nx; lastY = ny; }
+            if (dist > threshold) {
+                result.push([nx, ny]);
+                lastX = nx; lastY = ny;
+            }
         });
+        
         if (result.length < 3 && points.length >= 3) {
-            return [
-                [Math.round(points[0].x/w*1000)/1000, Math.round(points[0].y/h*1000)/1000],
-                [Math.round(points[Math.floor(points.length/2)].x/w*1000)/1000, Math.round(points[Math.floor(points.length/2)].y/h*1000)/1000],
-                [Math.round(points[points.length-1].x/w*1000)/1000, Math.round(points[points.length-1].y/h*1000)/1000]
-            ];
+             return [
+                 [Math.round(points[0].x/w*1000)/1000, Math.round(points[0].y/h*1000)/1000],
+                 [Math.round(points[Math.floor(points.length/2)].x/w*1000)/1000, Math.round(points[Math.floor(points.length/2)].y/h*1000)/1000],
+                 [Math.round(points[points.length-1].x/w*1000)/1000, Math.round(points[points.length-1].y/h*1000)/1000]
+             ];
         }
         return result;
     }
 
-    function denormalizePoints(normArr, w, h) {
-        return normArr.map(pt => ({ x: pt[0] * w, y: pt[1] * h }));
-    }
-
-    function renderStateToFabric(attr, imgKey) {
-        var idx = (imgKey === '1.jpg' ? 1 : 2);
-        var canvas = fabricCanvases[`${attr}-${idx}`];
-        if (!canvas) return;
-        canvas.clear(); canvas.isDrawingMode = true; canvas.backgroundColor = null;
-        var imgEl = document.getElementById(`img-${attr}-${idx}`);
-        if(imgEl && imgEl.clientWidth > 0) { canvas.setDimensions({width: imgEl.clientWidth, height: imgEl.clientHeight}); canvas.calcOffset(); }
-        var regions = state.points[attr][imgKey];
-        var w = canvas.width; var h = canvas.height;
-        regions.forEach(regionPoints => {
-            var absPoints = denormalizePoints(regionPoints, w, h);
-            var poly = new fabric.Polygon(absPoints, { fill: 'rgba(239, 68, 68, 0.2)', stroke: '#ef4444', strokeWidth: 2, selectable: false, evented: false });
-            canvas.add(poly);
+    function collectCanvasData(attr) {
+        ['1', '2'].forEach(idx => {
+            var k = idx + '.jpg';
+            var c = fabricCanvases[`${attr}-${idx}`];
+            if (!c) return;
+            var w = c.width;
+            var h = c.height;
+            var savedRegions = [];
+            c.getObjects().forEach(obj => {
+                if (obj.points) {
+                    var compactPoints = downsamplePoints(obj.points, w, h);
+                    savedRegions.push({
+                        points: compactPoints,
+                        sentiment: obj.sentiment || 'positive'
+                    });
+                }
+            });
+            state.points[attr][k] = savedRegions;
         });
-        document.getElementById(`count-${attr}-${idx}`).textContent = regions.length;
     }
 
-    function pushHistory(attr) {
-        var snap = { '1.jpg': JSON.parse(JSON.stringify(state.points[attr]['1.jpg'])), '2.jpg': JSON.parse(JSON.stringify(state.points[attr]['2.jpg'])) };
-        state.historyByAttr[attr].push(snap);
-        if(state.historyByAttr[attr].length > 20) state.historyByAttr[attr].shift();
-    }
-    // ================= FABRIC.JS LOGIC END =================
-
-    // --- Check Page Logic ---
-    window.selectCheckOption = function(type) {
-        var imgU = document.getElementById('check-img-urban');
-        var imgR = document.getElementById('check-img-rural');
-        if(imgU) imgU.classList.remove('check-selected');
-        if(imgR) imgR.classList.remove('check-selected');
-        
-        var target = document.getElementById('check-img-' + type);
-        if(target) target.classList.add('check-selected');
-        
-        document.getElementById('check-answer-sentinel').value = type;
-        document.getElementById('sentinel-error').style.display = 'none';
-    };
-
-    function renderSummary() {
-        var container = document.getElementById('summary-container');
-        if (!container) return;
-        var html = '<div class="summary-section"><div class="summary-title">Participant Information</div><div class="summary-grid">';
-        var d = state.demographics;
-        html += '<div class="summary-item"><strong>ID</strong> ' + (d.id || '-') + '</div>';
-        html += '<div class="summary-item"><strong>Age</strong> ' + (d.age || '-') + '</div>';
-        html += '<div class="summary-item"><strong>Gender</strong> ' + (d.gender || '-') + '</div>';
-        html += '<div class="summary-item"><strong>Nationality</strong> ' + (d.nationality || '-') + '</div>';
-        html += '</div></div>';
-        
-        // --- Updated: Hide specific answer, show mapped label ---
-        html += '<div class="summary-section"><div class="summary-title">Environmental Context</div><div class="summary-grid">';
-        var qc = state.quality_check || {};
-        
-        // Map answer to label
-        var sentinelLabel = '-';
-        if (qc.sentinel_answer === 'urban') sentinelLabel = 'Image A';
-        else if (qc.sentinel_answer === 'rural') sentinelLabel = 'Image B';
-        
-        html += '<div class="summary-item"><strong>Scene Identification</strong> ' + sentinelLabel + '</div>';
-        html += '<div class="summary-item"><strong>Preference</strong> ' + (qc.preference || '-') + '</div>';
-        html += '</div></div>';
-
-        html += '<div class="summary-section"><div class="summary-title">Responses</div>';
-        html += '<table class="summary-table"><thead><tr><th>Attribute</th><th>Rating</th><th>Regions (Img 1)</th><th>Regions (Img 2)</th></tr></thead><tbody>';
-        ATTRIBUTES.forEach(attr => {
-            var val = state.pairwise[attr];
-            var ratingText = '-';
-            if (val === 1) ratingText = 'Img 1 much more';
-            else if (val === 0.5) ratingText = 'Img 1 slightly more';
-            else if (val === 0) ratingText = 'Equal';
-            else if (val === -0.5) ratingText = 'Img 2 slightly more';
-            else if (val === -1) ratingText = 'Img 2 much more';
-            var c1 = state.points[attr]['1.jpg'] ? state.points[attr]['1.jpg'].length : 0;
-            var c2 = state.points[attr]['2.jpg'] ? state.points[attr]['2.jpg'].length : 0;
-            html += `<tr><td>${attr}</td><td>${ratingText}</td><td>${c1}</td><td>${c2}</td></tr>`;
-        });
-        html += '</tbody></table></div>';
-        container.innerHTML = html;
-    }
-
+    // --- 页面导航 ---
     document.addEventListener('click', function(e) {
         var btn = e.target.closest('button');
         if (!btn) return;
-        
-        var page = btn.closest('.page');
-
-        // Check Page Next Button
-        if (btn.id === 'btn-check-next') {
-            var sentinel = document.getElementById('check-answer-sentinel').value;
-            if (!sentinel) {
-                document.getElementById('sentinel-error').style.display = 'block';
-                return;
-            }
-            var pref = document.querySelector('input[name="preference"]:checked');
-            if (!pref) {
-                alert("Please select your general preference.");
-                return;
-            }
-            state.quality_check = { sentinel_answer: sentinel, preference: pref.value };
-            showPage(9); // Go to Page 9 (Wealthy)
-            return;
-        }
 
         if (btn.dataset.next) {
-            // Validate Page 1
             var curPage = document.querySelector('.page.active');
+            var nextId = btn.dataset.next;
+
             if (curPage.id === 'page-1') {
-                var required = [ {id:'user-id',label:'User ID'},{id:'age',label:'Age'},{id:'gender',label:'Gender'},{id:'nationality',label:'Nationality'} ];
                 var missing = [];
-                for(var i=0;i<required.length;i++){
-                  var el = document.getElementById(required[i].id);
-                  var val = el ? el.value : '';
-                  if(!(val && String(val).trim())) missing.push(required[i].label);
+                if(!q('#user-id').value) missing.push('User ID');
+                if(!q('#age').value) missing.push('Age');
+                if(!q('#gender').value) missing.push('Gender');
+                if(!q('#nationality').value) missing.push('Nationality');
+                
+                if(missing.length) { 
+                    showDialog("Action Required: Missing Information", "Please fill in the following fields:\n\n• " + missing.join('\n• ')); 
+                    return; 
                 }
-                if(missing.length){ alert('Please fill these required fields:\n' + missing.join('\n')); return; }
                 state.demographics = {
-                    id: document.getElementById('user-id').value,
-                    age: document.getElementById('age').value,
-                    gender: document.getElementById('gender').value,
-                    nationality: document.getElementById('nationality').value,
-                    education: document.getElementById('education').value
+                    id: q('#user-id').value,
+                    age: q('#age').value,
+                    gender: q('#gender').value,
+                    nationality: q('#nationality').value,
+                    education: q('#education').value || "Not specified"
                 };
             }
-            // Validate Ratings
-            if (curPage.dataset.attrIndex) {
+
+            if (curPage.querySelector('.rating-list')) {
                 var attr = ATTRIBUTES[parseInt(curPage.dataset.attrIndex)];
-                if(curPage.querySelector('input[type="radio"]')) {
-                    var sel = document.querySelector(`input[name="${attr}"]:checked`);
-                    if (!sel) { alert('Please provide a rating for ' + attr + ' before continuing.'); return; }
-                    state.pairwise[attr] = parseFloat(sel.value);
+                if (state.pairwise[attr] === undefined) {
+                    showDialog("Action Required: Rating", "Please select one of the options to compare the images.");
+                    return;
                 }
             }
-            
-            // Check special next logic
-            if (btn.dataset.next === 'check') {
-                qa('.page').forEach(p => p.classList.remove('active'));
-                document.getElementById('page-check').classList.add('active');
-                window.scrollTo(0,0);
-                return;
+
+            if (curPage.querySelector('canvas')) {
+                var attr = ATTRIBUTES[parseInt(curPage.dataset.attrIndex)];
+                collectCanvasData(attr);
+                var totalRegions = state.points[attr]['1.jpg'].length + state.points[attr]['2.jpg'].length;
+                var checkboxes = Array.from(document.querySelectorAll(`#global-${attr} input:checked`));
+                var globalVals = checkboxes.map(cb => cb.value === "None" ? "No specific reason" : cb.value);
+                state.global_factors[attr] = globalVals;
+
+                if (totalRegions === 0 && globalVals.length === 0) {
+                    showDialog("Logic Requirement", 
+                        "Please provide your reasoning by either:\n\n" +
+                        "1. Drawing circles around specific objects in the images.\n" +
+                        "   — OR —\n" +
+                        "2. Selecting a 'Global atmospheric factor' at the bottom (e.g., Lighting, Layout, or No specific reason).");
+                    return; 
+                }
             }
-            
-            showPage(btn.dataset.next);
+
+            if (curPage.id === 'page-check') {
+                var a1 = q('#qc-ans-1').value;
+                var a2 = q('#qc-ans-2').value;
+                var a3 = q('#qc-ans-3').value;
+                var pref = q('input[name="preference"]:checked');
+                var missingQC = [];
+                if(!a1) missingQC.push("Image Pair 1");
+                if(!a2) missingQC.push("Image Pair 2");
+                if(!a3) missingQC.push("Image Pair 3");
+                if(!pref) missingQC.push("General Preference");
+                if (missingQC.length > 0) {
+                    showDialog("Action Required: Incomplete Selection", 
+                        "Please complete all the choices to proceed:\n\n• " + missingQC.join("\n• "));
+                    return;
+                }
+                state.quality_check = { q1: a1, q2: a2, q3: a3, preference: pref.value };
+            }
+
+            showPage(nextId);
         }
-        
-        // Handle Back Buttons
-        if (btn.dataset.go) {
-             if (btn.dataset.go === 'check') {
-                qa('.page').forEach(p => p.classList.remove('active'));
-                document.getElementById('page-check').classList.add('active');
-                window.scrollTo(0,0);
-                return;
-             }
-             showPage(btn.dataset.go);
-        }
-        
-        // --- FIXED: Updated Back Logic to account for Page 8 insertion ---
+
+        if (btn.dataset.go) showPage(btn.dataset.go);
+
         if (btn.hasAttribute('data-back-to-rating')) {
-            if(page && page.dataset.attrIndex) {
-                var idx = parseInt(page.dataset.attrIndex);
-                // Old formula: 2 + idx * 2
-                // New logic: If idx >= 3 (Wealthy, Boring, Depressing), we need to add 1 because of Page 8
-                var targetPage = 2 + idx * 2;
-                if (idx >= 3) targetPage += 1;
-                showPage(targetPage);
-            }
+            var curPage = document.querySelector('.page.active');
+            var idx = parseInt(curPage.dataset.attrIndex);
+            var target = 2 + idx * 2;
+            if (idx >= 3) target += 1;
+            showPage(target);
         }
-        
-        if (btn.hasAttribute('data-undo')) { /* ...same... */
-             if(page && page.dataset.attrIndex) {
-                var attr = ATTRIBUTES[parseInt(page.dataset.attrIndex)];
-                var h = state.historyByAttr[attr];
-                if(h.length > 0) {
-                    var last = h.pop(); 
-                    state.points[attr] = last; 
-                    renderStateToFabric(attr,'1.jpg'); renderStateToFabric(attr,'2.jpg');
-                } else {
-                     var p1 = state.points[attr]['1.jpg']; var p2 = state.points[attr]['2.jpg'];
-                     if(p1.length > 0 || p2.length > 0) {
-                         if(p1.length) p1.pop(); if(p2.length) p2.pop();
-                         renderStateToFabric(attr,'1.jpg'); renderStateToFabric(attr,'2.jpg');
-                     } else { alert('Nothing to undo.'); }
-                }
-            }
-        }
-        
-        if (btn.hasAttribute('data-clear')) {
-            if(page && page.dataset.attrIndex) {
-                var attr = ATTRIBUTES[parseInt(page.dataset.attrIndex)];
-                if(!confirm('Clear all circles for ' + attr + '?')) return;
-                pushHistory(attr);
-                state.points[attr]['1.jpg'] = []; state.points[attr]['2.jpg'] = [];
-                renderStateToFabric(attr,'1.jpg'); renderStateToFabric(attr,'2.jpg');
-            }
-        }
-        
-        if (btn.id === 'finish') {
-            if(btn.disabled) return;
-            btn.disabled = true; btn.textContent = 'Submitting...';
-            document.getElementById('submit-overlay').classList.add('show');
-            submitData();
-        }
+
+        if (btn.id === 'finish') submitData();
     });
+
+    window.selectQC = function(qIndex, answer) {
+        var row = document.getElementById('qc-row-' + qIndex);
+        row.querySelectorAll('.check-img-wrap').forEach(w => w.classList.remove('selected'));
+        var clickedImg = document.getElementById('qc-img-' + qIndex + '-' + answer);
+        if (clickedImg) clickedImg.parentElement.classList.add('selected');
+        document.getElementById('qc-ans-' + qIndex).value = answer;
+    };
 
     function showPage(idSuffix) {
         qa('.page').forEach(p => p.classList.remove('active'));
@@ -742,19 +1230,68 @@
             next.classList.add('active');
             window.scrollTo(0,0);
             if (idSuffix == 15) renderSummary(); 
-            if(next.dataset.attrIndex && !next.querySelector('.pair-attr')) {
+            if(next.dataset.attrIndex && next.querySelector('canvas')) {
                 var a = ATTRIBUTES[parseInt(next.dataset.attrIndex)];
-                setTimeout(() => { initFabricCanvasForPage(a); }, 50);
+                setTimeout(() => { initFabricCanvasForPage(a); }, 150);
             }
         }
     }
 
+    // *** 渲染 Review (文字优化版) ***
+    function renderSummary() {
+        var c = q('#summary-container');
+        var d = state.demographics;
+        var qc = state.quality_check;
+        
+        var html = `
+        <div style="padding:24px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:24px; font-size:15px;">
+            <h3 style="margin-top:0">Participant Profile</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr; gap:12px;">
+                <div><strong>ID:</strong> ${d.id}</div>
+                <div><strong>Age/Gender:</strong> ${d.age} / ${d.gender}</div>
+                <div><strong>Nationality:</strong> ${d.nationality}</div>
+                <div><strong>Education:</strong> ${d.education}</div>
+            </div>
+        </div>
+        
+        <div style="padding:24px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:24px; font-size:15px;">
+            <h3 style="margin-top:0">Environment Classification</h3>
+            <div><strong>Image Sorting Choices:</strong> ${qc.q1}, ${qc.q2}, ${qc.q3}</div>
+            <div><strong>General Preference:</strong> ${qc.preference || '-'}</div>
+        </div>`;
+
+        html += '<h3 style="margin-bottom:12px;">Perception Ratings</h3><table class="summary-table"><thead><tr><th>Attribute</th><th>Rating</th><th>Regions (Pos/Neg)</th><th>Global Factors</th></tr></thead><tbody>';
+        
+        ATTRIBUTES.forEach(attr => {
+            var val = state.pairwise[attr];
+            var rText = (val===1)?'Left++':(val===0.5)?'Left+':(val===0)?'Equal':(val===-0.5)?'Right+':'Right++';
+            
+            var pos = 0, neg = 0;
+            ['1.jpg','2.jpg'].forEach(k => {
+                (state.points[attr][k]||[]).forEach(r => r.sentiment==='negative'?neg++:pos++);
+            });
+            var gf = (state.global_factors[attr]||[]).join(', ') || '-';
+            
+            html += `<tr><td>${attr}</td><td>${rText}</td><td><span style="color:#22c55e">${pos}</span> / <span style="color:#ef4444">${neg}</span></td><td>${gf}</td></tr>`;
+        });
+        html += '</tbody></table>';
+        c.innerHTML = html;
+    }
+
     function submitData() {
+        var btn = q('#finish');
+        btn.disabled = true; 
+        
+        var overlay = q('#submit-overlay');
+        overlay.classList.add('show');
+        q('#submit-overlay-message').textContent = 'Uploading data...';
+        
         var payload = {
             demographics: state.demographics,
             pairwise: state.pairwise,
             points: state.points,
-            quality_check: state.quality_check, 
+            global_factors: state.global_factors,
+            quality_check: state.quality_check,
             pair_ids: assignedPairInfo ? [assignedPairInfo.pair_id] : [],
             meta: { timestamp: new Date().toISOString() }
         };
@@ -765,39 +1302,60 @@
         fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData })
         .then(r => r.json())
         .then(data => {
-            document.getElementById('submit-overlay-progress').style.width = '100%';
-            document.getElementById('submit-overlay-status').textContent = 'Success!';
-            document.getElementById('submit-overlay-confirm').classList.remove('hidden');
+            // *** UI更新：展示提交回执 ***
+            q('#submit-overlay-message').textContent = 'Submission Complete!';
+            q('#submit-overlay-status').textContent = 'Reference ID: ' + (data.submissionId || 'OK');
             
-            document.getElementById('finish').textContent = 'Submitted';
-            document.getElementById('post-submit-note').textContent = 'Data saved. ID: ' + (data.submissionId || 'ok');
-            document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+            q('#submit-overlay-confirm').style.display = 'inline-block';
+            q('.spinner').style.display = 'none';
             
-            document.getElementById('submit-overlay-confirm').onclick = function() {
-                document.getElementById('submit-overlay').classList.remove('show');
+            q('#submit-overlay-confirm').onclick = () => {
+                overlay.classList.remove('show');
+                // 填充回执区域
+                q('#submission-receipt').style.display = 'block';
+                q('#receipt-content').innerHTML = `
+                    <strong>Reference ID:</strong> ${data.submissionId}<br>
+                    <strong>User ID:</strong> ${state.demographics.id}<br>
+                    <strong>Time:</strong> ${new Date().toLocaleString()}
+                `;
+                // 修改按钮状态
+                btn.textContent = "Data Submitted";
+                btn.disabled = true;
+                window.scrollTo(0, document.body.scrollHeight);
             };
         })
         .catch(err => {
-            document.getElementById('submit-overlay-status').textContent = 'Error: ' + err.message;
+            q('#submit-overlay-message').textContent = 'Error during upload.';
+            q('#submit-overlay-status').textContent = err.message;
+            q('.spinner').style.borderTopColor = '#ef4444';
+            
             var a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([JSON.stringify(payload)], {type:'application/json'}));
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'}));
             a.download = state.demographics.id + '_backup.json';
             a.click();
+            
+            alert("Upload failed. A backup file has been downloaded automatically.");
+            btn.disabled = false;
         });
     }
 
+    // --- 启动监听 ---
     window.addEventListener('DOMContentLoaded', () => {
         buildRatingControls();
+        setupFabricControls(); 
+        
         var pid = getProlificPid();
         if(pid) {
-            document.getElementById('user-id').value = pid;
-            document.getElementById('user-id').readOnly = true;
-            document.getElementById('user-id').style.background = '#f1f5f9';
+            q('#user-id').value = pid;
+            q('#user-id').readOnly = true;
+            q('#user-id').style.background = '#e2e8f0';
         }
+        
         requestAssignment();
+
         window.addEventListener('resize', () => {
              var cur = document.querySelector('.page.active');
-             if(cur && cur.dataset.attrIndex && !cur.querySelector('.pair-attr')) {
+             if(cur && cur.dataset.attrIndex && cur.querySelector('canvas')) {
                  var attr = ATTRIBUTES[parseInt(cur.dataset.attrIndex)];
                  initFabricCanvasForPage(attr); 
              }
