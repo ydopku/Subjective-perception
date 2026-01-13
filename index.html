@@ -640,8 +640,18 @@
 
     // *** 配置常量 ***
     // 请确保此 URL 是您最新部署的 Web App URL
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw7McAU8hFgo3MYWxcUL8AmKsK0CV1oGaHfa_zyh-q9_axwbZxUDIqc31-jirULc-4R/exec';
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw74VMP7VZ4ik5bNBmEoiJ6V24Zk7_bsZ16tjlM_xGs9cd4MMphP8vP9p8MoeIU_hX1/exec';
     const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
+
+    // [新增] 第8页固定图片的 ID (请将第一步获取到的真实ID填入此处)
+    const CHECK_IMAGE_IDS = {
+        "urban1": "1bFvVbyeq7hpJkwxENMVLIBGv-7ZImGCY",
+        "rural1": "1Sf1rEYMSqPyZIieJN0ePfymK2coRa-5j",
+        "urban2": "1FmTndr4hA19AMzwAjBtD8as2TLPsmYH7",
+        "rural2": "1p419SR7A2WyBogLYjyW7_9115bvZtXeN",
+        "urban3": "17YQrGfNb354lxHfFJg6vUJzWkamFgxCb",
+        "rural3": "1Qen32uNnoHxjYXPkJJOkjehEFdoyPcpI"
+    };
     
     // 颜色配置
     const COLORS = {
@@ -1343,6 +1353,21 @@
     window.addEventListener('DOMContentLoaded', () => {
         buildRatingControls();
         setupFabricControls(); 
+
+        // [新增] 立即加载 Page 8 的固定图片 (无需等待后端)
+        // 注意：根据问卷逻辑：
+        // 第1组：A=Rural (rural1), B=Urban (urban1)
+        // 第2组：A=Urban (urban2), B=Rural (rural2)
+        // 第3组：A=Urban (urban3), B=Rural (rural3)
+        
+        q('#qc-img-1-A').src = getFastDriveUrl(CHECK_IMAGE_IDS.rural1);
+        q('#qc-img-1-B').src = getFastDriveUrl(CHECK_IMAGE_IDS.urban1);
+
+        q('#qc-img-2-A').src = getFastDriveUrl(CHECK_IMAGE_IDS.urban2);
+        q('#qc-img-2-B').src = getFastDriveUrl(CHECK_IMAGE_IDS.rural2);
+
+        q('#qc-img-3-A').src = getFastDriveUrl(CHECK_IMAGE_IDS.urban3);
+        q('#qc-img-3-B').src = getFastDriveUrl(CHECK_IMAGE_IDS.rural3);
         
         var pid = getProlificPid();
         if(pid) {
