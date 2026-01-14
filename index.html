@@ -219,6 +219,15 @@
       button { width: 100%; }
       .region-list-container { flex-direction: column; gap: 16px; }
     }
+    
+    /* --- [新增补丁] 响应式文字切换 --- */
+    .mobile-text { display: none; }
+    .desktop-text { display: inline; }
+
+    @media (max-width: 768px) {
+      .mobile-text { display: inline; }
+      .desktop-text { display: none; }
+    }
 
     /* Summary Table Style */
     .summary-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 15px; }
@@ -781,14 +790,41 @@
         document.body.dataset.pairIds = assignedPairInfo.pair_id || ('pair_' + fid1.slice(-5));
     }
 
-    // --- 评分 UI ---
+    // --- 评分 UI (最终优化版: Fits + 属性加粗) ---
     function buildRatingControls() {
-        const options = [
-            { val: 1, label: "Left is much better" },
-            { val: 0.5, label: "Left is slightly better" },
-            { val: 0, label: "Equal / Hard to tell" },
-            { val: -0.5, label: "Right is slightly better" },
-            { val: -1, label: "Right is much better" }
+        
+        // 定义层级配置
+        const levels = [
+            { 
+                val: 1, 
+                desk: "Left fits", 
+                mob: "Top fits", 
+                end: "much better" 
+            },
+            { 
+                val: 0.5, 
+                desk: "Left fits", 
+                mob: "Top fits", 
+                end: "slightly better" 
+            },
+            { 
+                val: 0, 
+                desk: "Equal / Hard to tell", 
+                mob: "Equal / Hard to tell",
+                isNeutral: true 
+            },
+            { 
+                val: -0.5, 
+                desk: "Right fits", 
+                mob: "Bottom fits", 
+                end: "slightly better" 
+            },
+            { 
+                val: -1, 
+                desk: "Right fits", 
+                mob: "Bottom fits", 
+                end: "much better" 
+            }
         ];
 
         ATTRIBUTES.forEach(attr => {
@@ -796,18 +832,29 @@
             if (!container) return;
             container.innerHTML = '';
             
-            options.forEach(opt => {
+            levels.forEach(lvl => {
                 var label = document.createElement('label');
                 label.className = 'rating-option';
-                var txt = opt.label;
-                if(opt.val !== 0) txt += ` (${attr})`;
-                label.innerHTML = `<input type="radio" name="${attr}" value="${opt.val}"><span>${txt}</span>`;
+                
+                // 动态构建文案
+                // 修改点：在 ${attr} 前后加上 <strong> 标签使其加粗
+                // 效果: "Left fits <strong>Safe</strong> much better"
+                var txtDesktop = lvl.isNeutral ? lvl.desk : `${lvl.desk} <strong>${attr}</strong> ${lvl.end}`;
+                var txtMobile  = lvl.isNeutral ? lvl.mob  : `${lvl.mob} <strong>${attr}</strong> ${lvl.end}`;
+                
+                label.innerHTML = `
+                    <input type="radio" name="${attr}" value="${lvl.val}">
+                    <span>
+                        <span class="desktop-text">${txtDesktop}</span>
+                        <span class="mobile-text">${txtMobile}</span>
+                    </span>
+                `;
                 
                 label.addEventListener('change', function() {
                     container.querySelectorAll('.rating-option').forEach(o => o.classList.remove('selected'));
                     if(this.querySelector('input').checked) {
                         this.classList.add('selected');
-                        state.pairwise[attr] = opt.val;
+                        state.pairwise[attr] = lvl.val;
                     }
                 });
                 container.appendChild(label);
@@ -1391,4 +1438,3 @@
 </script>
 </body>
 </html>
-
