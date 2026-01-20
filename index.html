@@ -253,7 +253,41 @@
         color: #14532d;
     }
     #submission-receipt h3 { color: #15803d; margin-bottom: 12px; }
-
+    /* --- [修正版] 友好的警告弹窗样式 --- */
+    .msg-box.warning-theme {
+      border-top: 8px solid #f59e0b;
+      background: #fff;
+    }
+    .msg-box.warning-theme .msg-icon {
+      font-size: 56px;
+      margin-bottom: 12px;
+      animation: pulse-icon 2s infinite;
+    }
+    /* 关键修正：强制左对齐，并忽略代码中的换行符/空格 */
+    .msg-box.warning-theme .msg-text {
+      color: #4b5563;
+      font-size: 16px;
+      text-align: left !important;   /* 强制左对齐 */
+      white-space: normal !important; /* 关键：忽略代码缩进，确保文字顶格 */
+      line-height: 1.5;
+    }
+    .msg-box.warning-theme .msg-btn {
+      background: #f59e0b;
+      color: #fff;
+      box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.4);
+      width: 100%;
+      margin-top: 16px; /* 增加一点间距 */
+    }
+    .msg-box.warning-theme .msg-btn:hover {
+      background: #d97706;
+      transform: translateY(-1px);
+    }
+    
+    @keyframes pulse-icon {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
   </style>
 </head>
 
@@ -781,7 +815,7 @@
 
     // *** 配置常量 ***
     // 请确保此 URL 是您最新部署的 Web App URL
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzjV870_BX9lYuFn5e_l8Nv3fkJuleww8iGUMmV3BQ4nfU461HrFCM4epgzb3Wngw_z/exec';
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwnvAzDpXSnSLXjo8xM4pM838-riYAFXZGqq9VJemuySPYQf0l6v7oc1iin9azEwaM2/exec';
     const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
 
     // [新增] 第8页固定图片的 ID (请将第一步获取到的真实ID填入此处)
@@ -835,6 +869,43 @@
         modal.querySelector('.msg-icon').textContent = icon;
         var html = `<strong>${title}</strong>\n\n${text}`;
         content.innerHTML = html.replace(/\n/g, '<br/>');
+        modal.classList.add('show');
+    }
+    // [修正版] 专门用于 QC 失败的友好提示函数
+    function showFriendlyQCWarning() {
+        var modal = document.getElementById('msg-modal');
+        var box = modal.querySelector('.msg-box');
+        var content = document.getElementById('msg-content');
+        var btn = modal.querySelector('.msg-btn');
+
+        // 1. 应用暖色调主题
+        box.classList.add('warning-theme');
+
+        // 2. 设置友好的文案
+        // 注意：<p>标签内不要有换行，以确保在所有浏览器中都完美顶格
+        modal.querySelector('.msg-icon').textContent = '🧐';
+        content.innerHTML = `
+            <strong style="font-size:20px; color:#1e293b; display:block; margin-bottom:12px; text-align:center;">Just a quick check!</strong>
+            <p style="margin:0 0 12px 0;">We noticed a small inconsistency in the <strong>Environment Classification</strong> section (Page 8).</p>
+            <p style="margin:0; background:#fffbeb; padding:12px; border-radius:8px; border-left:4px solid #f59e0b; color:#92400e;">To ensure high-quality results, please review the images and select the one that best represents a <strong>Rural (Countryside)</strong> environment.</p>
+        `;
+
+        // 3. 修改按钮行为
+        btn.textContent = "Okay, take me to Page 8";
+        
+        // 临时覆盖 onclick 事件
+        btn.onclick = function() {
+            modal.classList.remove('show');
+            box.classList.remove('warning-theme'); 
+            
+            // [关键修正] 跳转 ID 必须是 'check' (对应 page-check)，而不是数字 8
+            showPage('check'); 
+            
+            // 恢复按钮默认行为
+            btn.onclick = function() { document.getElementById('msg-modal').classList.remove('show'); };
+        };
+
+        // 4. 显示弹窗
         modal.classList.add('show');
     }
 
@@ -1491,23 +1562,66 @@
         fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData })
         .then(r => r.json())
         .then(data => {
-            // *** UI更新：展示提交回执 ***
+            
+            // [逻辑分支 1] 如果后端返回 QC 失败
+            if (data.status === 'qc_fail') {
+                // 1. 移除加载动画
+                q('#submit-overlay').classList.remove('show');
+                q('.spinner').style.display = 'none';
+
+                // 2. 调用新的友好弹窗函数 (替换原来的 showDialog)
+                showFriendlyQCWarning();
+                
+                // 3. 恢复提交按钮
+                btn.disabled = false;
+                btn.textContent = "Finish and export ▶";
+                
+                return; // 结束执行
+            }
+
+            // [逻辑分支 2] 提交成功 (status === 'ok')
             q('#submit-overlay-message').textContent = 'Submission Complete!';
             q('#submit-overlay-status').textContent = 'Reference ID: ' + (data.submissionId || 'OK');
             
             q('#submit-overlay-confirm').style.display = 'inline-block';
             q('.spinner').style.display = 'none';
             
+            // 点击 OK 后显示完成码
             q('#submit-overlay-confirm').onclick = () => {
                 overlay.classList.remove('show');
-                // 填充回执区域
                 q('#submission-receipt').style.display = 'block';
+                
+                // *** 您的 Prolific 完成链接 ***
+                var completionUrl = "https://app.prolific.com/submissions/complete?cc=CLUCC7RR";
+                
                 q('#receipt-content').innerHTML = `
-                    <strong>Reference ID:</strong> ${data.submissionId}<br>
-                    <strong>User ID:</strong> ${state.demographics.id}<br>
-                    <strong>Time:</strong> ${new Date().toLocaleString()}
+                    <div style="color:#166534; font-weight:bold; font-size:18px; margin-bottom:16px;">
+                        Submission Successful!
+                    </div>
+                    <div style="margin-bottom:20px; color:#475569;">
+                        Thank you for your time. Your response has been recorded.
+                    </div>
+                    
+                    <a href="${completionUrl}" target="_blank" style="
+                        display:inline-block;
+                        background:#2563eb; 
+                        color:#fff; 
+                        padding:16px 32px; 
+                        text-decoration:none; 
+                        border-radius:8px; 
+                        font-weight:bold;
+                        font-size:16px;
+                        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+                        transition: all 0.2s;
+                    ">
+                       Click here to complete on Prolific
+                    </a>
+                    
+                    <div style="margin-top:12px; font-size:13px; color:#94a3b8;">
+                        (Or use completion code: <strong>CLUCC7RR</strong>)
+                    </div>
                 `;
-                // 修改按钮状态
+                
                 btn.textContent = "Data Submitted";
                 btn.disabled = true;
                 window.scrollTo(0, document.body.scrollHeight);
@@ -1518,12 +1632,13 @@
             q('#submit-overlay-status').textContent = err.message;
             q('.spinner').style.borderTopColor = '#ef4444';
             
+            // 自动下载备份
             var a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'}));
             a.download = state.demographics.id + '_backup.json';
             a.click();
             
-            alert("Upload failed. A backup file has been downloaded automatically.");
+            alert("Network Error. A backup file has been saved. Please contact the researcher.");
             btn.disabled = false;
         });
     }
@@ -1570,4 +1685,3 @@
 </script>
 </body>
 </html>
-
