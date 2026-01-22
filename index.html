@@ -355,7 +355,7 @@
     <div id="page-3" class="page" data-attr-index="0">
       <h2>3. Safe — Circle regions</h2>
       <div class="definition-box"><strong>Safe:</strong> Looks safe, secure, and not threatening.</div>
-      <p style="font-weight:700; color:#1e293b; margin-bottom:20px; font-size:17px;">Please draw and circle the streetscape elements that influence your perception of this dimension (positive or negative).</p>
+      <p style="font-weight:700; color:#1e293b; margin-bottom:20px; font-size:17px;">Please circle the streetscape elements that influence your perception of this dimension (positive or negative).</p>
       <div class="circling-header" style="display: block; padding: 16px 24px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
             <strong style="color:#334155; font-size:15px;">How to Annotate:</strong>
@@ -431,7 +431,7 @@
     <div id="page-5" class="page" data-attr-index="1">
       <h2>5. Lively — Circle regions</h2>
       <div class="definition-box"><strong>Lively:</strong> Bustling with activities, energetic, and vibrant.</div>
-      <p style="font-weight:700; color:#1e293b; margin-bottom:20px; font-size:17px;">Please draw and circle the streetscape elements that influence your perception of this dimension (positive or negative).</p>
+      <p style="font-weight:700; color:#1e293b; margin-bottom:20px; font-size:17px;">Please circle the streetscape elements that influence your perception of this dimension (positive or negative).</p>
       <div class="circling-header" style="display: block; padding: 16px 24px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
             <strong style="color:#334155; font-size:15px;">How to Annotate:</strong>
@@ -492,7 +492,7 @@
     <div id="page-7" class="page" data-attr-index="2">
       <h2>7. Beautiful — Circle regions</h2>
       <div class="definition-box"><strong>Beautiful:</strong> Aesthetically pleasing and nice to look at.</div>
-      <p style="font-weight:700; color:#1e293b; margin-bottom:20px; font-size:17px;">Please draw and circle the streetscape elements that influence your perception of this dimension (positive or negative).</p>
+      <p style="font-weight:700; color:#1e293b; margin-bottom:20px; font-size:17px;">Please circle the streetscape elements that influence your perception of this dimension (positive or negative).</p>
       <div class="circling-header" style="display: block; padding: 16px 24px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
             <strong style="color:#334155; font-size:15px;">How to Annotate:</strong>
@@ -610,7 +610,7 @@
     <div id="page-10" class="page" data-attr-index="3">
       <h2>10. Wealthy — Circle regions</h2>
       <div class="definition-box"><strong>Wealthy:</strong> Affluent, high-status, and expensive neighborhood.</div>
-      <p style="font-weight:700; color:#1e293b; margin-bottom:20px; font-size:17px;">Please draw and circle the streetscape elements that influence your perception of this dimension (positive or negative).</p>
+      <p style="font-weight:700; color:#1e293b; margin-bottom:20px; font-size:17px;">Please circle the streetscape elements that influence your perception of this dimension (positive or negative).</p>
       <div class="circling-header" style="display: block; padding: 16px 24px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
             <strong style="color:#334155; font-size:15px;">How to Annotate:</strong>
@@ -671,7 +671,7 @@
     <div id="page-12" class="page" data-attr-index="4">
       <h2>12. Boring — Circle regions</h2>
       <div class="definition-box"><strong>Boring:</strong> Dull, uninteresting, and monotonous.</div>
-      <p style="font-weight:700; color:#1e293b; margin-bottom:20px; font-size:17px;">Please draw and circle the streetscape elements that influence your perception of this dimension (positive or negative).</p>
+      <p style="font-weight:700; color:#1e293b; margin-bottom:20px; font-size:17px;">Please circle the streetscape elements that influence your perception of this dimension (positive or negative).</p>
       <div class="circling-header" style="display: block; padding: 16px 24px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
             <strong style="color:#334155; font-size:15px;">How to Annotate:</strong>
@@ -732,7 +732,7 @@
     <div id="page-14" class="page" data-attr-index="5">
       <h2>14. Depressing — Circle regions</h2>
       <div class="definition-box"><strong>Depressing:</strong> Grim, bleak, and evoking sadness.</div>
-      <p style="font-weight:700; color:#1e293b; margin-bottom:20px; font-size:17px;">Please draw and circle the streetscape elements that influence your perception of this dimension (positive or negative).</p>
+      <p style="font-weight:700; color:#1e293b; margin-bottom:20px; font-size:17px;">Please circle the streetscape elements that influence your perception of this dimension (positive or negative).</p>
       <div class="circling-header" style="display: block; padding: 16px 24px;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
             <strong style="color:#334155; font-size:15px;">How to Annotate:</strong>
@@ -877,7 +877,7 @@
         content.innerHTML = html.replace(/\n/g, '<br/>');
         modal.classList.add('show');
     }
-    // [修正版] 专门用于 QC 失败的友好提示函数
+    // [升级版] 带有“质量警告”的 QC 提示函数
     function showFriendlyQCWarning() {
         var modal = document.getElementById('msg-modal');
         var box = modal.querySelector('.msg-box');
@@ -887,24 +887,32 @@
         // 1. 应用暖色调主题
         box.classList.add('warning-theme');
 
-        // 2. 设置友好的文案
-        // 注意：<p>标签内不要有换行，以确保在所有浏览器中都完美顶格
-        modal.querySelector('.msg-icon').textContent = '🧐';
+        // 2. 设置文案：从“提示”升级为“警告”
+        modal.querySelector('.msg-icon').textContent = '🛑'; // 换成“停止/警告”手势，比“观察”更严肃
+        
         content.innerHTML = `
-            <strong style="font-size:20px; color:#1e293b; display:block; margin-bottom:12px; text-align:center;">Just a quick check!</strong>
-            <p style="margin:0 0 12px 0;">We noticed a small inconsistency in the <strong>Environment Classification</strong> section (Page 8).</p>
-            <p style="margin:0; background:#fffbeb; padding:12px; border-radius:8px; border-left:4px solid #f59e0b; color:#92400e;">To ensure high-quality results, please review the images and select the one that best represents a <strong>Rural (Countryside)</strong> environment.</p>
+            <strong style="font-size:20px; color:#b91c1c; display:block; margin-bottom:12px; text-align:center;">Data Quality Check Failed</strong>
+            
+            <p style="margin:0 0 12px 0;">We detected inconsistent answers in the <strong>Environment Classification</strong> section (Page 8).</p>
+            
+            <div style="margin:0 0 16px 0; background:#fff1f2; padding:14px; border-radius:8px; border:1px solid #fecdd3; border-left:5px solid #e11d48; color:#881337;">
+                <strong style="display:block; margin-bottom:6px;">⚠️ Warning:</strong>
+                <p style="margin:0 0 8px 0; font-size:15px;">This suggests that your previous responses might also be rushed or careless.</p>
+                <p style="margin:0; font-weight:700; font-size:15px;">Please review your answers carefully. Submissions with random or careless responses will be REJECTED.</p>
+            </div>
+
+            <p style="margin:0; font-size:15px; color:#4b5563;">To proceed, please correct the classification errors on Page 8.</p>
         `;
 
         // 3. 修改按钮行为
-        btn.textContent = "Okay, take me to Page 8";
+        // 按钮文字改为“我明白了”这种承诺式的语气
+        btn.textContent = "I understand. Let me fix it.";
         
-        // 临时覆盖 onclick 事件
         btn.onclick = function() {
             modal.classList.remove('show');
             box.classList.remove('warning-theme'); 
             
-            // [关键修正] 跳转 ID 必须是 'check' (对应 page-check)，而不是数字 8
+            // 跳转到第8页
             showPage('check'); 
             
             // 恢复按钮默认行为
