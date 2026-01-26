@@ -76,41 +76,54 @@
       color: #1e40af; font-size: 16px; line-height: 1.6;
     }
 
-    /* --- 核心图片容器修复 --- */
-    /* 目标：确保两张图高度一致，且尽可能利用空间 */
+    /* --- 核心图片容器修复 (Patch V2) --- */
     .images { 
       display: flex; 
-      gap: 15px; /* 减小间距，给图片更多宽度 */
+      gap: 15px; 
       justify-content: space-between; 
-      height: 550px; /* 固定高度 */
+      height: 550px; /* 固定高度，保证视觉一致性 */
       margin-bottom: 30px; 
       align-items: stretch; 
     }
+    
+    /* 外层容器 */
     .img-wrapper, .regions-wrap { 
       flex: 1; 
-      display: flex; 
-      flex-direction: column; 
-      align-items: center; 
-      justify-content: center;
       position: relative; 
       width: 100%;
-      background: #f1f5f9; /* 使用淡灰色背景，避免深色过于压抑 */
+      background: #f1f5f9; 
       border: 1px solid #cbd5e1;
       border-radius: 8px;
       overflow: hidden; 
-      padding: 0; /* 移除内边距，让图片顶满 */
+      padding: 10px; /* 增加一点内边距，更美观 */
       box-sizing: border-box;
+      
+      /* 关键：使用 Flexbox 强制居中内容 */
+      display: flex !important; 
+      justify-content: center !important;
+      align-items: center !important;
     }
+
+    /* 图片本身：移除 object-fit，改用 max 约束 */
+    /* 这样 img 标签的物理尺寸 = 视觉可见尺寸 */
     .images img, .regions-wrap img { 
-      height: 100%; /* 强制占满高度 */
-      width: auto; 
-      max-width: 100%; 
-      object-fit: contain; /* 保持比例，不会被裁剪 */
       display: block;
+      width: auto;
+      height: auto;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: fill; /* 恢复默认，防止干扰 */
     }
-    
-    .regions-wrap { line-height: 0; display: inline-flex; }
-    .canvas-container { position: absolute !important; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; }
+
+    /* Canvas 容器：强制绝对居中，覆盖在 img 之上 */
+    /* Fabric.js 会自动包裹 canvas 在 .canvas-container 中 */
+    .canvas-container { 
+      position: absolute !important; 
+      top: 50% !important; 
+      left: 50% !important; 
+      transform: translate(-50%, -50%) !important; 
+      z-index: 10; 
+    }
 
     /* 评分列表 */
     .rating-list { display: flex; flex-direction: column; gap: 14px; max-width: 750px; margin: 0 auto; }
@@ -1088,17 +1101,34 @@
             var key = `${attr}-${idx}`;
             var canvasId = `cvs-${attr}-${idx}`;
             var canvasEl = document.getElementById(canvasId);
-            var imgEl = document.getElementById(`img-${attr}-${idx}`); // Wrapper
+            // 注意：这里我们获取的是 img 标签，不是 wrapper
+            var imgEl = document.getElementById(`img-${attr}-${idx}`); 
             
             if (!canvasEl || !imgEl) return;
             
-            // 确保尺寸匹配 (Wrapper 高度由 CSS 控制，Canvas 需跟随)
-            var w = imgEl.clientWidth;
-            var h = imgEl.clientHeight;
+            // [补丁] 获取精确的图像渲染尺寸
+            // 由于 CSS 改为了 max-height/width，imgEl 的 rect 就是真实可视区域
+            // 使用 getBoundingClientRect 以处理亚像素（Sub-pixel）渲染，更精确
+            var rect = imgEl.getBoundingClientRect();
+            var w = rect.width;
+            var h = rect.height;
+
+            // 只有当图片已加载且有尺寸时才初始化
+            if (w === 0 || h === 0) {
+                // 如果图片还没加载完，等待一下（简单的重试机制）
+                imgEl.onload = function() { initFabricCanvasForPage(attr); };
+                return;
+            }
             
             if (fabricCanvases[key]) {
                 fabricCanvases[key].setDimensions({ width: w, height: h });
                 fabricCanvases[key].calcOffset();
+                // 重新定位 Canvas 容器确保居中（Fabric有时会重置 top/left）
+                var canvasContainer = fabricCanvases[key].wrapperEl;
+                canvasContainer.style.position = 'absolute';
+                canvasContainer.style.top = '50%';
+                canvasContainer.style.left = '50%';
+                canvasContainer.style.transform = 'translate(-50%, -50%)';
                 return;
             }
             
@@ -1109,6 +1139,29 @@
                 width: w, 
                 height: h 
             });
+
+            // ================================================
+            // [新增补丁] 坐标钳制：强制画笔不超出画布边缘
+            // ================================================
+            // 保存原始的坐标获取方法
+            canvas.originalGetPointer = canvas.getPointer;
+            
+            // 重写该实例的 getPointer 方法
+            canvas.getPointer = function(e, ignoreZoom) {
+                // 1. 获取原始坐标（包含负数或超出宽高的值）
+                var ptr = canvas.originalGetPointer.call(canvas, e, ignoreZoom);
+                
+                // 2. 强制限制 X 轴在 [0, width] 之间
+                if (ptr.x < 0) ptr.x = 0;
+                if (ptr.x > canvas.width) ptr.x = canvas.width;
+                
+                // 3. 强制限制 Y 轴在 [0, height] 之间
+                if (ptr.y < 0) ptr.y = 0;
+                if (ptr.y > canvas.height) ptr.y = canvas.height;
+                
+                return ptr;
+            };
+            // ================================================
             
             canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
             canvas.freeDrawingBrush.width = 3;
