@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Street Perception Survey</title>
+  <meta name="referrer" content="no-referrer" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
   <style>
     :root {
@@ -950,8 +951,10 @@
     }
 
     function getFastDriveUrl(fileId) {
-        // 使用 Google 官方的高速缩略图/内容接口，比 drive.google.com/uc?id=... 快很多
-        return 'https://lh3.googleusercontent.com/d/' + fileId;
+        // 优先使用 Google User Content CDN (速度最快，不消耗 Drive 配额)
+        // 格式: https://lh3.googleusercontent.com/d/{FILE_ID}=w{WIDTH}
+        // w3000 表示请求宽度 3000px 的图 (Google 会自动缩放)
+        return 'https://lh3.googleusercontent.com/d/' + fileId + '=w3000';
     }
 
     // 替换原有的 jsonp 函数
@@ -1033,27 +1036,61 @@
             }
         });
     }
+    
+    // --- 图片加载容错机制 ---
+    // 当一张图加载失败时，自动尝试备用链接
+    document.addEventListener('error', function(e) {
+        var img = e.target;
+        // 只处理 img 标签的错误
+        if (img.tagName !== 'IMG') return;
+
+        // 获取原始 File ID (从当前 src 中提取)
+        // 假设 src 包含 fileId，通常在 '=' 或 '/' 附近
+        // 这里我们用一个更稳妥的方法：在 applyImages 时把 ID 存到 dataset
+        var fileId = img.dataset.fileId;
+        
+        if (!fileId) return; // 如果没有 ID，无法重试
+
+        // 定义重试次数，防止死循环
+        var retryCount = parseInt(img.dataset.retry || '0');
+        
+        if (retryCount === 0) {
+            // 第一次失败：尝试官方缩略图接口 (Backup 1)
+            img.dataset.retry = '1';
+            img.src = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w3000';
+            console.warn('Image failed, retrying backup 1: ' + fileId);
+        } else if (retryCount === 1) {
+            // 第二次失败：尝试原始查看接口 (Backup 2 - 慢但兼容性好)
+            img.dataset.retry = '2';
+            img.src = 'https://drive.google.com/uc?export=view&id=' + fileId;
+            console.warn('Image failed, retrying backup 2: ' + fileId);
+        } else {
+            // 彻底失败：显示占位图或错误提示
+            img.alt = "Image failed to load. Please refresh.";
+            img.style.border = "2px solid red";
+        }
+    }, true); // true 表示在捕获阶段处理，确保能抓到 error 事件
 
     function applyImages(fid1, fid2) {
         if (!fid1 || !fid2) return;
         
-        // --- [补丁] 使用非官方 CDN 链接绕过 Drive 限制 ---
-        // 这种链接格式通常是: https://lh3.googleusercontent.com/d/{FILE_ID}=s3000
-        // 注意：这依然依赖 Google 的非公开接口，但比 uc?export=view 稳定得多
-        var url1 = 'https://lh3.googleusercontent.com/d/' + fid1 + '=s3000';
-        var url2 = 'https://lh3.googleusercontent.com/d/' + fid2 + '=s3000';
+        var url1 = getFastDriveUrl(fid1);
+        var url2 = getFastDriveUrl(fid2);
         
-        // 原有的: var url1 = getFastDriveUrl(fid1); ...
+        // --- 修改点：同时设置 src 和 data-file-id ---
+        qa('.survey-img-1').forEach(img => {
+            img.src = url1;
+            img.dataset.fileId = fid1; // 存入 ID 供重试使用
+            img.dataset.retry = '0';   // 重置重试计数
+        });
         
-        qa('.survey-img-1').forEach(img => img.src = url1);
-        qa('.survey-img-2').forEach(img => img.src = url2);
+        qa('.survey-img-2').forEach(img => {
+            img.src = url2;
+            img.dataset.fileId = fid2;
+            img.dataset.retry = '0';
+        });
 
-        var count = 0;
-        function checkDone() {
-            count++;
-            if (count >= 2) q('#loading-overlay').style.display = 'none';
-        }
-        // 预加载两张主图，确保显示时已就绪
+        // 预加载逻辑保持不变...
         var i1 = new Image(); i1.onload = checkDone; i1.onerror = checkDone; i1.src = url1;
         var i2 = new Image(); i2.onload = checkDone; i2.onerror = checkDone; i2.src = url2;
         
