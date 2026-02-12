@@ -834,7 +834,7 @@
 
     // *** 配置常量 ***
     // 请确保此 URL 是您最新部署的 Web App URL
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzubnnKmOUmH5sOM9KMhV9Ysr41nlNlKLl2D9xV5E6n4v4WTc8UtsCCYgqwILlEEtJn/exec';
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzOL8I6TimC_UcCKnYs2_LvWU8T8HEmeWEEdyPFNC8F45mHYN_COcV4FmxkdyhWOv6X/exec';
     const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
 
     // [新增] 第8页固定图片的 ID (请将第一步获取到的真实ID填入此处)
@@ -1036,8 +1036,14 @@
 
     function applyImages(fid1, fid2) {
         if (!fid1 || !fid2) return;
-        var url1 = getFastDriveUrl(fid1);
-        var url2 = getFastDriveUrl(fid2);
+        
+        // --- [补丁] 使用非官方 CDN 链接绕过 Drive 限制 ---
+        // 这种链接格式通常是: https://lh3.googleusercontent.com/d/{FILE_ID}=s3000
+        // 注意：这依然依赖 Google 的非公开接口，但比 uc?export=view 稳定得多
+        var url1 = 'https://lh3.googleusercontent.com/d/' + fid1 + '=s3000';
+        var url2 = 'https://lh3.googleusercontent.com/d/' + fid2 + '=s3000';
+        
+        // 原有的: var url1 = getFastDriveUrl(fid1); ...
         
         qa('.survey-img-1').forEach(img => img.src = url1);
         qa('.survey-img-2').forEach(img => img.src = url2);
@@ -1786,4 +1792,3 @@
 </script>
 </body>
 </html>
-
