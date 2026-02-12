@@ -1074,10 +1074,11 @@
     function applyImages(fid1, fid2) {
         if (!fid1 || !fid2) return;
         
+        // 1. 获取 URL (使用新的抗压 CDN 链接)
         var url1 = getFastDriveUrl(fid1);
         var url2 = getFastDriveUrl(fid2);
         
-        // --- 修改点：同时设置 src 和 data-file-id ---
+        // 2. 设置页面上的图片元素 (并绑定重试所需的 ID)
         qa('.survey-img-1').forEach(img => {
             img.src = url1;
             img.dataset.fileId = fid1; // 存入 ID 供重试使用
@@ -1090,11 +1091,34 @@
             img.dataset.retry = '0';
         });
 
-        // 预加载逻辑保持不变...
-        var i1 = new Image(); i1.onload = checkDone; i1.onerror = checkDone; i1.src = url1;
-        var i2 = new Image(); i2.onload = checkDone; i2.onerror = checkDone; i2.src = url2;
+        // 3. [关键修复] 定义 checkDone 函数
+        // 这个函数必须定义在 applyImages 内部，因为它使用了局部变量 count
+        var count = 0;
+        function checkDone() {
+            count++;
+            // 当两张主图都完成加载（无论成功还是失败）后，移除遮罩层
+            if (count >= 2) {
+                var overlay = document.getElementById('loading-overlay');
+                if (overlay) overlay.style.display = 'none';
+            }
+        }
+
+        // 4. 执行预加载 (Preload)
+        // 使用 JS Image 对象在后台加载，一旦完成（onload）或失败（onerror），都触发 checkDone
+        var i1 = new Image(); 
+        i1.onload = checkDone; 
+        i1.onerror = checkDone; 
+        i1.src = url1;
+
+        var i2 = new Image(); 
+        i2.onload = checkDone; 
+        i2.onerror = checkDone; 
+        i2.src = url2;
         
-        document.body.dataset.pairIds = assignedPairInfo.pair_id || ('pair_' + fid1.slice(-5));
+        // 5. 记录 Pair ID
+        if (assignedPairInfo) {
+            document.body.dataset.pairIds = assignedPairInfo.pair_id || ('pair_' + fid1.slice(-5));
+        }
     }
 
     // --- 评分 UI (最终优化版: Fits + 属性加粗) ---
