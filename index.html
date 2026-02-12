@@ -834,7 +834,7 @@
 
     // *** 配置常量 ***
     // 请确保此 URL 是您最新部署的 Web App URL
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwnvAzDpXSnSLXjo8xM4pM838-riYAFXZGqq9VJemuySPYQf0l6v7oc1iin9azEwaM2/exec';
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbydUymgHH4JFVAfHUeuHBZkqmjGD1XIggro6qXfEhi0XNyUCwx5IyRYIOqGKDCBu8V6/exec';
     const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
 
     // [新增] 第8页固定图片的 ID (请将第一步获取到的真实ID填入此处)
@@ -954,19 +954,53 @@
         return 'https://lh3.googleusercontent.com/d/' + fileId;
     }
 
-    // JSONP (解决跨域 GET 请求)
-    function jsonp(url, callback) {
+    // 替换原有的 jsonp 函数
+    function jsonp(url, callback, retryCount) {
+        retryCount = retryCount || 0;
         var cbName = 'cb_' + Math.random().toString(36).slice(2);
+        
+        // 超时检测定时器
+        var timeoutTimer = setTimeout(function() {
+             handleError("Timeout");
+        }, 15000); // 15秒超时
+
         window[cbName] = function(data) {
+            clearTimeout(timeoutTimer);
             delete window[cbName];
             var el = document.getElementById('sc-' + cbName);
             if(el) el.remove();
-            callback(data);
+            
+            // 如果后端返回 busy 或 error，自动重试
+            if (data && (data.status === 'busy' || data.error === 'Lock timeout')) {
+                handleError('Server busy');
+            } else {
+                callback(data);
+            }
         };
+
+        function handleError(reason) {
+            var el = document.getElementById('sc-' + cbName);
+            if(el) el.remove();
+            delete window[cbName];
+
+            if (retryCount < 3) { // 最多重试 3 次
+                console.warn("Retrying request due to: " + reason);
+                var delay = 1000 * Math.pow(2, retryCount); // 1s, 2s, 4s
+                setTimeout(function() {
+                    jsonp(url, callback, retryCount + 1);
+                }, delay);
+            } else {
+                callback({ error: 'Server is busy. Please refresh the page to try again.' });
+            }
+        }
+
         var s = document.createElement('script');
         s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
         s.id = 'sc-' + cbName;
-        s.onerror = function() { callback({ error: 'Network error. Please check your connection.' }); };
+        s.onerror = function() { 
+            clearTimeout(timeoutTimer);
+            handleError('Network Error'); 
+        };
         document.body.appendChild(s);
     }
 
