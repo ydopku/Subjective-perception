@@ -835,7 +835,7 @@
 
     // *** 配置常量 ***
     // 请确保此 URL 是您最新部署的 Web App URL
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzOL8I6TimC_UcCKnYs2_LvWU8T8HEmeWEEdyPFNC8F45mHYN_COcV4FmxkdyhWOv6X/exec';
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwRfwbZhhcd6hqpV2pyZ0L6bAhHUpwUCb4K2QWJurh3NXneNsooOBUnjK0AU00iT3Qe/exec';
     const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
 
     // [新增] 第8页固定图片的 ID (请将第一步获取到的真实ID填入此处)
@@ -1816,20 +1816,25 @@
         buildRatingControls();
         setupFabricControls(); 
 
-        // [新增] 立即加载 Page 8 的固定图片 (无需等待后端)
-        // 注意：根据问卷逻辑：
-        // 第1组：A=Rural (rural1), B=Urban (urban1)
-        // 第2组：A=Urban (urban2), B=Rural (rural2)
-        // 第3组：A=Urban (urban3), B=Rural (rural3)
-        
-        q('#qc-img-1-A').src = getFastDriveUrl(CHECK_IMAGE_IDS.rural1);
-        q('#qc-img-1-B').src = getFastDriveUrl(CHECK_IMAGE_IDS.urban1);
+        // [修正版] 加载 QC 图片：同时设置 src 和 data-file-id 以支持自动重试
+        function setQCImage(domId, fileId) {
+            var img = document.querySelector(domId);
+            if (img && fileId) {
+                img.src = getFastDriveUrl(fileId); // 使用高速 CDN
+                img.dataset.fileId = fileId;       // *** 关键：绑定 ID 供自动重试使用 ***
+                img.dataset.retry = '0';           // 初始化重试计数
+            }
+        }
 
-        q('#qc-img-2-A').src = getFastDriveUrl(CHECK_IMAGE_IDS.urban2);
-        q('#qc-img-2-B').src = getFastDriveUrl(CHECK_IMAGE_IDS.rural2);
+        // 批量应用 6 张 QC 图
+        setQCImage('#qc-img-1-A', CHECK_IMAGE_IDS.rural1);
+        setQCImage('#qc-img-1-B', CHECK_IMAGE_IDS.urban1);
 
-        q('#qc-img-3-A').src = getFastDriveUrl(CHECK_IMAGE_IDS.urban3);
-        q('#qc-img-3-B').src = getFastDriveUrl(CHECK_IMAGE_IDS.rural3);
+        setQCImage('#qc-img-2-A', CHECK_IMAGE_IDS.urban2);
+        setQCImage('#qc-img-2-B', CHECK_IMAGE_IDS.rural2);
+
+        setQCImage('#qc-img-3-A', CHECK_IMAGE_IDS.urban3);
+        setQCImage('#qc-img-3-B', CHECK_IMAGE_IDS.rural3);
         
         var pid = getProlificPid();
         if(pid) {
