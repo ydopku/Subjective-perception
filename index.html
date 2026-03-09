@@ -835,7 +835,7 @@
 
     // *** 配置常量 ***
     // 请确保此 URL 是您最新部署的 Web App URL
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwRfwbZhhcd6hqpV2pyZ0L6bAhHUpwUCb4K2QWJurh3NXneNsooOBUnjK0AU00iT3Qe/exec';
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzJw1MwRGIbBVCWyP3ONHab5dqIK1oL7tUbSu6TyeQnSyl6PNWa9qPHBGIAB5NAiaet/exec';
     const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
 
     // [新增] 第8页固定图片的 ID (请将第一步获取到的真实ID填入此处)
@@ -1707,6 +1707,11 @@
     }
 
     function submitData() {
+        var qc = state.quality_check;
+        if (qc.q1 !== 'A' || qc.q2 !== 'B' || qc.q3 !== 'B') {
+            showFriendlyQCWarning();
+            return; // 直接中止，绝不向后端发送请求，也不显示提交动画
+        }
         var btn = q('#finish');
         btn.disabled = true; 
         
@@ -1730,70 +1735,71 @@
         fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData })
         .then(r => r.json())
         .then(data => {
-            
             // [逻辑分支 1] 如果后端返回 QC 失败
             if (data.status === 'qc_fail') {
-                // 1. 移除加载动画
                 q('#submit-overlay').classList.remove('show');
                 q('.spinner').style.display = 'none';
-
-                // 2. 调用新的友好弹窗函数 (替换原来的 showDialog)
                 showFriendlyQCWarning();
-                
-                // 3. 恢复提交按钮
                 btn.disabled = false;
                 btn.textContent = "Finish and export ▶";
-                
-                return; // 结束执行
+                return;
             }
 
-            // [逻辑分支 2] 提交成功 (status === 'ok')
-            q('#submit-overlay-message').textContent = 'Submission Complete!';
-            q('#submit-overlay-status').textContent = 'Reference ID: ' + (data.submissionId || 'OK');
-            
-            q('#submit-overlay-confirm').style.display = 'inline-block';
-            q('.spinner').style.display = 'none';
-            
-            // 点击 OK 后显示完成码
-            q('#submit-overlay-confirm').onclick = () => {
-                overlay.classList.remove('show');
-                q('#submission-receipt').style.display = 'block';
+            // [新增的关键拦截] 如果后端明确表示文件未保存成功
+            if (data.status === 'error') {
+                // 抛出错误，强制进入下方的 .catch 块，绝对不显示返回码
+                throw new Error(data.message || 'Server failed to save data.');
+            }
+
+            // [逻辑分支 2] 真正的提交成功 (status === 'ok')
+            if (data.status === 'ok') {
+                q('#submit-overlay-message').textContent = 'Submission Complete!';
+                q('#submit-overlay-status').textContent = 'Reference ID: ' + (data.submissionId || 'OK');
                 
-                // *** 您的 Prolific 完成链接 ***
-                var completionUrl = "https://app.prolific.com/submissions/complete?cc=CLUCC7RR";
+                q('#submit-overlay-confirm').style.display = 'inline-block';
+                q('.spinner').style.display = 'none';
                 
-                q('#receipt-content').innerHTML = `
-                    <div style="color:#166534; font-weight:bold; font-size:18px; margin-bottom:16px;">
-                        Submission Successful!
-                    </div>
-                    <div style="margin-bottom:20px; color:#475569;">
-                        Thank you for your time. Your response has been recorded.
-                    </div>
+                // 点击 OK 后显示完成码
+                q('#submit-overlay-confirm').onclick = () => {
+                    overlay.classList.remove('show');
+                    q('#submission-receipt').style.display = 'block';
+                
+                    // *** 您的 Prolific 完成链接 ***
+                    var completionUrl = "https://app.prolific.com/submissions/complete?cc=CLUCC7RR";
                     
-                    <a href="${completionUrl}" target="_blank" style="
-                        display:inline-block;
-                        background:#2563eb; 
-                        color:#fff; 
-                        padding:16px 32px; 
-                        text-decoration:none; 
-                        border-radius:8px; 
-                        font-weight:bold;
-                        font-size:16px;
-                        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
-                        transition: all 0.2s;
-                    ">
-                       Click here to complete on Prolific
-                    </a>
+                    q('#receipt-content').innerHTML = `
+                        <div style="color:#166534; font-weight:bold; font-size:18px; margin-bottom:16px;">
+                            Submission Successful!
+                        </div>
+                        <div style="margin-bottom:20px; color:#475569;">
+                            Thank you for your time. Your response has been recorded.
+                        </div>
+                        
+                        <a href="${completionUrl}" target="_blank" style="
+                            display:inline-block;
+                            background:#2563eb; 
+                            color:#fff; 
+                            padding:16px 32px; 
+                            text-decoration:none; 
+                            border-radius:8px; 
+                            font-weight:bold;
+                            font-size:16px;
+                            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+                            transition: all 0.2s;
+                        ">
+                        Click here to complete on Prolific
+                        </a>
+                        
+                        <div style="margin-top:12px; font-size:13px; color:#94a3b8;">
+                            (Or use completion code: <strong>CLUCC7RR</strong>)
+                        </div>
+                    `;
                     
-                    <div style="margin-top:12px; font-size:13px; color:#94a3b8;">
-                        (Or use completion code: <strong>CLUCC7RR</strong>)
-                    </div>
-                `;
-                
-                btn.textContent = "Data Submitted";
-                btn.disabled = true;
-                window.scrollTo(0, document.body.scrollHeight);
-            };
+                    btn.textContent = "Data Submitted";
+                    btn.disabled = true;
+                    window.scrollTo(0, document.body.scrollHeight);
+                };
+            }
         })
         .catch(err => {
             q('#submit-overlay-message').textContent = 'Error during upload.';
