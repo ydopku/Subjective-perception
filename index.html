@@ -1745,60 +1745,78 @@
                 return;
             }
 
-            // [新增的关键拦截] 如果后端明确表示文件未保存成功
+            // [防线 2：你的核心诉求] 云盘文件保存失败 (并发超时等)
             if (data.status === 'error') {
-                // 抛出错误，强制进入下方的 .catch 块，绝对不显示返回码
-                throw new Error(data.message || 'Server failed to save data.');
+                q('#submit-overlay-message').textContent = 'Server Error';
+                // 提示用户由于网络拥挤保存失败，并允许他们重试
+                q('#submit-overlay-status').textContent = data.message || 'Failed to save file to Google Drive due to high traffic. Please try submitting again.';
+                q('.spinner').style.display = 'none'; // 隐藏转圈动画
+                
+                // 允许他们重新点击提交按钮进行重试
+                btn.disabled = false; 
+                btn.textContent = "Retry Submit"; 
+                
+                alert("Server is busy and your data was not saved. Please click 'Retry Submit' in a few seconds.");
+                return; // 立即终止，绝不给完成码
             }
 
-            // [逻辑分支 2] 真正的提交成功 (status === 'ok')
+            // [防线 3：最终胜利] 只有后端明确返回 'ok'，证明文件已确切存在 Drive 中
             if (data.status === 'ok') {
                 q('#submit-overlay-message').textContent = 'Submission Complete!';
-                q('#submit-overlay-status').textContent = 'Reference ID: ' + (data.submissionId || 'OK');
+                q('#submit-overlay-status').textContent = 'Redirecting to Prolific automatically...'; // 提示自动跳转
                 
-                q('#submit-overlay-confirm').style.display = 'inline-block';
                 q('.spinner').style.display = 'none';
                 
-                // 点击 OK 后显示完成码
-                q('#submit-overlay-confirm').onclick = () => {
-                    overlay.classList.remove('show');
-                    q('#submission-receipt').style.display = 'block';
+                var completionUrl = "https://app.prolific.com/submissions/complete?cc=CLUCC7RR";
                 
-                    // *** 您的 Prolific 完成链接 ***
-                    var completionUrl = "https://app.prolific.com/submissions/complete?cc=CLUCC7RR";
-                    
-                    q('#receipt-content').innerHTML = `
-                        <div style="color:#166534; font-weight:bold; font-size:18px; margin-bottom:16px;">
-                            Submission Successful!
-                        </div>
-                        <div style="margin-bottom:20px; color:#475569;">
-                            Thank you for your time. Your response has been recorded.
-                        </div>
-                        
-                        <a href="${completionUrl}" target="_blank" style="
-                            display:inline-block;
-                            background:#2563eb; 
-                            color:#fff; 
-                            padding:16px 32px; 
-                            text-decoration:none; 
-                            border-radius:8px; 
-                            font-weight:bold;
-                            font-size:16px;
-                            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
-                            transition: all 0.2s;
-                        ">
-                        Click here to complete on Prolific
-                        </a>
-                        
-                        <div style="margin-top:12px; font-size:13px; color:#94a3b8;">
-                            (Or use completion code: <strong>CLUCC7RR</strong>)
-                        </div>
-                    `;
-                    
-                    btn.textContent = "Data Submitted";
-                    btn.disabled = true;
-                    window.scrollTo(0, document.body.scrollHeight);
+                // 【核心新增】：设定 2.5 秒后自动跳转
+                var redirectTimer = setTimeout(() => {
+                    window.location.href = completionUrl; // 强制当前页面跳转
+                }, 2500);
+
+                // 备用方案：以防受试者的浏览器拦截了自动跳转
+                q('#submit-overlay-confirm').style.display = 'inline-block';
+                q('#submit-overlay-confirm').textContent = 'Go to Prolific Now';
+                
+                q('#submit-overlay-confirm').onclick = () => {
+                    clearTimeout(redirectTimer); // 如果用户等不及自己点了，就取消自动跳转的定时器
+                    window.location.href = completionUrl; 
                 };
+
+                // 同时在背后渲染那个带有完成码的收据页面，作为最后的兜底 (Fallback)
+                overlay.classList.remove('show');
+                q('#submission-receipt').style.display = 'block';
+                q('#receipt-content').innerHTML = `
+                    <div style="color:#166534; font-weight:bold; font-size:18px; margin-bottom:16px;">
+                        Data Saved Successfully!
+                    </div>
+                    <div style="margin-bottom:20px; color:#475569;">
+                        You are being redirected to Prolific...<br>
+                        If nothing happens in 3 seconds, please click the button below.
+                    </div>
+                    
+                    <a href="${completionUrl}" style="
+                        display:inline-block;
+                        background:#2563eb; 
+                        color:#fff; 
+                        padding:16px 32px; 
+                        text-decoration:none; 
+                        border-radius:8px; 
+                        font-weight:bold;
+                        font-size:16px;
+                        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+                    ">
+                       Return to Prolific
+                    </a>
+                    
+                    <div style="margin-top:12px; font-size:13px; color:#94a3b8;">
+                        (Or manually enter completion code: <strong>CLUCC7RR</strong>)
+                    </div>
+                `;
+                
+                btn.textContent = "Data Submitted";
+                btn.disabled = true; 
+                window.scrollTo(0, document.body.scrollHeight);
             }
         })
         .catch(err => {
