@@ -3,16 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Street Perception Survey</title>
+  <title>Global Streetscape Perception Survey</title>
   <meta name="referrer" content="no-referrer" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
   <style>
     :root {
       --accent: #2563eb;
       --accent-hover: #1d4ed8;
       --muted: #64748b;
-      --pos: #22c55e;
-      --neg: #ef4444;
       --bg-gray: #f8fafc;
       --text-main: #0f172a;
       --font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -45,7 +42,7 @@
     .page.active { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* 表单控件 */
+    /* Form Controls */
     label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 16px; color: #334155; }
     input[type=text], select, input[type=number] {
       width: 100%; padding: 14px 16px; border: 1px solid #cbd5e1;
@@ -56,7 +53,7 @@
 
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
 
-    /* 按钮样式 */
+    /* Buttons */
     .buttons { display: flex; justify-content: space-between; margin-top: 50px; padding-top: 30px; border-top: 1px solid #f1f5f9; }
     button {
       background: var(--accent); color: #fff; padding: 16px 28px;
@@ -71,62 +68,32 @@
     button.secondary:hover { background: #e2e8f0; color: #1e293b; border-color: #cbd5e1; }
     button:disabled { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; }
 
+    .btn-decline { background: #fff; color: #ef4444; border: 1px solid #fca5a5; box-shadow: none; }
+    .btn-decline:hover { background: #fef2f2; color: #dc2626; border-color: #ef4444; }
+
     .definition-box {
       background: #eff6ff; border-left: 6px solid var(--accent);
       padding: 20px; margin-bottom: 30px; border-radius: 8px;
       color: #1e40af; font-size: 16px; line-height: 1.6;
     }
 
-    /* --- 核心图片容器修复 (Patch V2) --- */
+    /* Images */
     .images { 
-      display: flex; 
-      gap: 15px; 
-      justify-content: space-between; 
-      height: 550px; /* 固定高度，保证视觉一致性 */
-      margin-bottom: 30px; 
-      align-items: stretch; 
+      display: flex; gap: 15px; justify-content: space-between; 
+      height: 550px; margin-bottom: 30px; align-items: stretch; 
     }
-    
-    /* 外层容器 */
-    .img-wrapper, .regions-wrap { 
-      flex: 1; 
-      position: relative; 
-      width: 100%;
-      background: #f1f5f9; 
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      overflow: hidden; 
-      padding: 10px; /* 增加一点内边距，更美观 */
-      box-sizing: border-box;
-      
-      /* 关键：使用 Flexbox 强制居中内容 */
-      display: flex !important; 
-      justify-content: center !important;
-      align-items: center !important;
+    .img-wrapper { 
+      flex: 1; position: relative; width: 100%;
+      background: #f1f5f9; border: 1px solid #cbd5e1;
+      border-radius: 8px; overflow: hidden; padding: 10px; box-sizing: border-box;
+      display: flex !important; justify-content: center !important; align-items: center !important;
+    }
+    .images img { 
+      display: block; width: auto; height: auto;
+      max-width: 100%; max-height: 100%; object-fit: fill; 
     }
 
-    /* 图片本身：移除 object-fit，改用 max 约束 */
-    /* 这样 img 标签的物理尺寸 = 视觉可见尺寸 */
-    .images img, .regions-wrap img { 
-      display: block;
-      width: auto;
-      height: auto;
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: fill; /* 恢复默认，防止干扰 */
-    }
-
-    /* Canvas 容器：强制绝对居中，覆盖在 img 之上 */
-    /* Fabric.js 会自动包裹 canvas 在 .canvas-container 中 */
-    .canvas-container { 
-      position: absolute !important; 
-      top: 50% !important; 
-      left: 50% !important; 
-      transform: translate(-50%, -50%) !important; 
-      z-index: 10; 
-    }
-
-    /* 评分列表 */
+    /* Rating List */
     .rating-list { display: flex; flex-direction: column; gap: 14px; max-width: 750px; margin: 0 auto; }
     .rating-option {
       display: flex; align-items: center; padding: 18px 24px;
@@ -138,60 +105,7 @@
     .rating-option input { width: 22px; height: 22px; margin-right: 18px; accent-color: var(--accent); }
     .rating-option span { font-size: 17px; color: #334155; font-weight: 500; }
 
-    /* 圈选工具栏 */
-    .circling-header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 20px; font-size: 15px; color: var(--muted);
-      background: #f8fafc; padding: 14px 24px; border-radius: 10px; border: 1px solid #e2e8f0;
-    }
-    .legend span { display: inline-flex; align-items: center; margin-left: 24px; font-weight: 600; }
-    .legend .dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; margin-right: 8px; }
-
-    .controls-toolbar {
-      display: flex; gap: 14px; justify-content: center; margin-top: 24px;
-      padding: 16px; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; flex-wrap: wrap;
-    }
-    .controls-toolbar button.small { padding: 10px 20px; font-size: 15px; display: flex; align-items: center; gap: 8px; height: 44px; }
-    .btn-toggle { background: #fff; border: 1px solid #cbd5e1; color: #334155; }
-    .btn-toggle:not(:disabled):hover { border-color: var(--accent); color: var(--accent); background: #eff6ff; }
-    .btn-delete { background: #fff; border: 1px solid #cbd5e1; color: var(--neg); }
-    .btn-delete:not(:disabled):hover { background: #fef2f2; border-color: var(--neg); }
-
-    /* 圈选同步列表 */
-    .region-list-container { margin-top: 24px; display: flex; gap: 30px; border-top: 1px dashed #e2e8f0; padding-top: 24px; }
-    .region-col { flex: 1; }
-    .region-col h4 { font-size: 14px; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; margin-bottom: 12px; }
-    .region-items { display: flex; flex-direction: column; gap: 10px; max-height: 200px; overflow-y: auto; }
-    .region-item {
-      padding: 12px 16px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
-      cursor: pointer; display: flex; justify-content: space-between; align-items: center;
-      font-size: 15px; transition: all 0.15s;
-    }
-    .region-item:hover { background: #f1f5f9; border-color: #cbd5e1; }
-    .region-item.active { border-color: var(--accent); background: #eff6ff; font-weight: 600; box-shadow: 0 2px 5px rgba(37,99,235,0.1); }
-    .region-item.pos { border-left: 6px solid var(--pos); }
-    .region-item.neg { border-left: 6px solid var(--neg); }
-
-    /* Global Factor Section */
-    .global-factor-section { 
-        margin-top: 30px; 
-        padding: 24px; 
-        background: #fff7ed; /* 橙色背景 */
-        border: 1px solid #fed7aa; /* 橙色边框 */
-        border-radius: 12px; 
-    }
-    .global-factor-section h3 { color: #9a3412; } 
-    
-    .checkbox-group { display: flex; flex-wrap: wrap; gap: 16px; }
-    .checkbox-item {
-      display: flex; align-items: center; background: #fff; padding: 10px 16px;
-      border-radius: 8px; border: 1px solid #fdba74; cursor: pointer;
-      font-size: 15px; color: #7c2d12; transition: all 0.2s;
-    }
-    .checkbox-item:hover { background: #ffedd5; }
-    .checkbox-item input { width: 18px; height: 18px; margin-right: 10px; accent-color: #ea580c; }
-
-    /* 检查页 */
+    /* Quality Check Section */
     .check-section { border: 1px solid #e2e8f0; padding: 30px; border-radius: 12px; background: #fff; margin-bottom: 30px; }
     .check-row { display: flex; gap: 20px; margin-bottom: 30px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 30px; }
     .check-pair { flex: 1; display: flex; gap: 30px; }
@@ -205,7 +119,7 @@
     .check-img-wrap img { width: 100%; height: 300px; object-fit: contain; border-radius: 8px; background: #e2e8f0; }
     .check-label { margin-top: 12px; font-weight: 700; color: #64748b; font-size: 16px; }
 
-    /* 弹窗 */
+    /* Modal / Dialog */
     #msg-modal {
       position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 10001;
       display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px);
@@ -223,84 +137,38 @@
       border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 16px;
     }
 
-    @media (max-width:768px){
-      .row { grid-template-columns: 1fr; }
-      .images { flex-direction: column; height: auto; }
-      .images img, .regions-wrap img { width: 100%; height: auto; max-height: 400px; }
-      .check-pair { flex-direction: column; }
-      .check-img-wrap img { height: 220px; }
-      .buttons { flex-direction: column-reverse; gap: 16px; }
-      button { width: 100%; }
-      .region-list-container { flex-direction: column; gap: 16px; }
-    }
-    
-    /* --- [新增补丁] 响应式文字切换 --- */
-    .mobile-text { display: none; }
-    .desktop-text { display: inline; }
-
-    @media (max-width: 768px) {
-      .mobile-text { display: inline; }
-      .desktop-text { display: none; }
-    }
+    .msg-box.warning-theme { border-top: 8px solid #f59e0b; background: #fff; }
+    .msg-box.warning-theme .msg-icon { font-size: 56px; margin-bottom: 12px; animation: pulse-icon 2s infinite; }
+    .msg-box.warning-theme .msg-text { color: #4b5563; font-size: 16px; text-align: left !important; white-space: normal !important; line-height: 1.5; }
+    .msg-box.warning-theme .msg-btn { background: #f59e0b; color: #fff; box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.4); width: 100%; margin-top: 16px; }
+    .msg-box.warning-theme .msg-btn:hover { background: #d97706; transform: translateY(-1px); }
+    @keyframes pulse-icon { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
     /* Summary Table Style */
     .summary-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 15px; }
     .summary-table th, .summary-table td { padding: 14px; border: 1px solid #cbd5e1; text-align: center; }
     .summary-table th { background: #f1f5f9; color: #334155; font-weight: 700; }
     
-    /* Submit Overlay */
-    #submit-overlay { 
-        position: fixed; inset: 0; background: rgba(11,17,32,0.8); z-index: 9999; 
-        display: none; 
-        align-items: center; justify-content: center; 
-    }
+    /* Submit Overlay & Receipt */
+    #submit-overlay { position: fixed; inset: 0; background: rgba(11,17,32,0.8); z-index: 9999; display: none; align-items: center; justify-content: center; }
     #submit-overlay.show { display: flex; }
     .card { background: #fff; padding: 36px; border-radius: 16px; width: 400px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
-
-    /* Submission Receipt */
-    #submission-receipt {
-        background: #f0fdf4; 
-        border: 2px solid #bbf7d0; 
-        border-radius: 12px; 
-        padding: 24px; 
-        text-align: center; 
-        color: #14532d;
-    }
+    #submission-receipt { background: #f0fdf4; border: 2px solid #bbf7d0; border-radius: 12px; padding: 24px; text-align: center; color: #14532d; }
     #submission-receipt h3 { color: #15803d; margin-bottom: 12px; }
-    /* --- [修正版] 友好的警告弹窗样式 --- */
-    .msg-box.warning-theme {
-      border-top: 8px solid #f59e0b;
-      background: #fff;
-    }
-    .msg-box.warning-theme .msg-icon {
-      font-size: 56px;
-      margin-bottom: 12px;
-      animation: pulse-icon 2s infinite;
-    }
-    /* 关键修正：强制左对齐，并忽略代码中的换行符/空格 */
-    .msg-box.warning-theme .msg-text {
-      color: #4b5563;
-      font-size: 16px;
-      text-align: left !important;   /* 强制左对齐 */
-      white-space: normal !important; /* 关键：忽略代码缩进，确保文字顶格 */
-      line-height: 1.5;
-    }
-    .msg-box.warning-theme .msg-btn {
-      background: #f59e0b;
-      color: #fff;
-      box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.4);
-      width: 100%;
-      margin-top: 16px; /* 增加一点间距 */
-    }
-    .msg-box.warning-theme .msg-btn:hover {
-      background: #d97706;
-      transform: translateY(-1px);
-    }
-    
-    @keyframes pulse-icon {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); }
+
+    /* Responsive */
+    .mobile-text { display: none; }
+    .desktop-text { display: inline; }
+    @media (max-width:768px){
+      .row { grid-template-columns: 1fr; }
+      .images { flex-direction: column; height: auto; }
+      .images img { width: 100%; height: auto; max-height: 400px; }
+      .check-pair { flex-direction: column; }
+      .check-img-wrap img { height: 220px; }
+      .buttons { flex-direction: column-reverse; gap: 16px; }
+      button { width: 100%; }
+      .mobile-text { display: inline; }
+      .desktop-text { display: none; }
     }
   </style>
 </head>
@@ -315,18 +183,41 @@
   </div>
 </div>
 
-<div id="loading-overlay" style="position:fixed;inset:0;background:#fff;z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+<!-- 修改：默认隐藏 Loading 遮罩层 (display:none) -->
+<div id="loading-overlay" style="position:fixed;inset:0;background:#fff;z-index:10000;display:none;flex-direction:column;align-items:center;justify-content:center;">
   <div style="font-size:1.5rem;font-weight:700;color:#1e293b;margin-bottom:10px;">Loading Survey</div>
   <div style="width:40px;height:40px;border:5px solid rgba(37,99,235,0.2);border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite;"></div>
   <div id="loading-error" style="display:none;margin-top:20px;color:#ef4444;font-weight:600;"></div>
 </div>
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
-<div class="container">
-    <h1>Street Perception Survey</h1>
+<div class="container" id="main-container">
+    <h1>Global Streetscape Perception Survey</h1>
 
-    <div id="page-1" class="page active">
-      <h2>1. Participant information</h2>
+    <!-- Page 0: Informed Consent -->
+    <div id="page-0" class="page active">
+      <h2>Informed Consent Form</h2>
+      <div class="definition-box" style="border-left-color: var(--muted); background: #f8fafc; color: #334155;">
+        <p><strong>Welcome to our Global Streetscape Perception Study.</strong></p>
+        <p>Before you begin, please read the following information carefully. This research is conducted by the University of Tokyo and aims to understand how different people perceive urban environments worldwide.</p>
+        <ul style="padding-left: 20px; margin-bottom: 0;">
+            <li style="margin-bottom: 8px;"><strong>Voluntary Participation:</strong> Your participation is completely voluntary. You may withdraw from the study at any time without penalty.</li>
+            <li style="margin-bottom: 8px;"><strong>Anonymity & Privacy:</strong> All data collected will be strictly anonymous. Your personal identity will not be linked to your responses or published in any academic papers.</li>
+            <li style="margin-bottom: 8px;"><strong>Task Description:</strong> You will be asked to compare pairs of street-level images and choose which one better represents a specific attribute (e.g., safety, beauty).</li>
+            <li><strong>Duration:</strong> The survey will take approximately 3-5 minutes to complete.</li>
+        </ul>
+      </div>
+      <p style="font-weight: 600; color: #0f172a; text-align: center;">By clicking "I Agree" below, you confirm that you have read and understood the information provided and consent to participate in this study.</p>
+      
+      <div class="buttons" style="justify-content: space-between;">
+        <button class="btn-decline" id="btn-disagree" type="button">I Disagree (Exit Survey)</button>
+        <button data-next="1" type="button">I Agree (Start Survey) ▶</button>
+      </div>
+    </div>
+
+    <!-- Page 1: Demographics -->
+    <div id="page-1" class="page">
+      <h2>1. Participant Information</h2>
       <div class="row">
         <div>
           <label for="user-id">User ID (required)</label>
@@ -344,7 +235,7 @@
           <label for="nationality">Nationality (required)</label>
           <select id="nationality" required>
             <option value="">Please choose...</option>
-            <option value="Afghanistan">Afghanistan</option><option value="Albania">Albania</option><option value="Algeria">Algeria</option><option value="Andorra">Andorra</option><option value="Angola">Angola</option><option value="Argentina">Argentina</option><option value="Armenia">Armenia</option><option value="Australia">Australia</option><option value="Austria">Austria</option><option value="Azerbaijan">Azerbaijan</option><option value="Bahamas">Bahamas</option><option value="Bahrain">Bahrain</option><option value="Bangladesh">Bangladesh</option><option value="Barbados">Barbados</option><option value="Belarus">Belarus</option><option value="Belgium">Belgium</option><option value="Belize">Belize</option><option value="Benin">Benin</option><option value="Bhutan">Bhutan</option><option value="Bolivia">Bolivia</option><option value="Bosnia and Herzegovina">Bosnia and Herzegovina</option><option value="Botswana">Botswana</option><option value="Brazil">Brazil</option><option value="Brunei Darussalam">Brunei Darussalam</option><option value="Bulgaria">Bulgaria</option><option value="Burkina Faso">Burkina Faso</option><option value="Burundi">Burundi</option><option value="Cambodia">Cambodia</option><option value="Cameroon">Cameroon</option><option value="Canada">Canada</option><option value="Cape Verde">Cape Verde</option><option value="Central African Republic">Central African Republic</option><option value="Chad">Chad</option><option value="Chile">Chile</option><option value="China">China</option><option value="Colombia">Colombia</option><option value="Comoros">Comoros</option><option value="Congo">Congo</option><option value="Costa Rica">Costa Rica</option><option value="Croatia">Croatia</option><option value="Cuba">Cuba</option><option value="Cyprus">Cyprus</option><option value="Czech Republic">Czech Republic</option><option value="Denmark">Denmark</option><option value="Djibouti">Djibouti</option><option value="Dominica">Dominica</option><option value="Dominican Republic">Dominican Republic</option><option value="Ecuador">Ecuador</option><option value="Egypt">Egypt</option><option value="El Salvador">El Salvador</option><option value="Equatorial Guinea">Equatorial Guinea</option><option value="Eritrea">Eritrea</option><option value="Estonia">Estonia</option><option value="Ethiopia">Ethiopia</option><option value="Fiji">Fiji</option><option value="Finland">Finland</option><option value="France">France</option><option value="Gabon">Gabon</option><option value="Gambia">Gambia</option><option value="Georgia">Georgia</option><option value="Germany">Germany</option><option value="Ghana">Ghana</option><option value="Greece">Greece</option><option value="Grenada">Grenada</option><option value="Guatemala">Guatemala</option><option value="Guinea">Guinea</option><option value="Guyana">Guyana</option><option value="Haiti">Haiti</option><option value="Honduras">Honduras</option><option value="Hong Kong">Hong Kong</option><option value="Hungary">Hungary</option><option value="Iceland">Iceland</option><option value="India">India</option><option value="Indonesia">Indonesia</option><option value="Iran, Islamic Republic of">Iran, Islamic Republic of</option><option value="Iraq">Iraq</option><option value="Ireland">Ireland</option><option value="Israel">Israel</option><option value="Italy">Italy</option><option value="Jamaica">Jamaica</option><option value="Japan">Japan</option><option value="Jordan">Jordan</option><option value="Kazakhstan">Kazakhstan</option><option value="Kenya">Kenya</option><option value="Kiribati">Kiribati</option><option value="Korea, Republic of">Korea, Republic of</option><option value="Kuwait">Kuwait</option><option value="Kyrgyzstan">Kyrgyzstan</option><option value="Lao People's Democratic Republic">Lao People's Democratic Republic</option><option value="Latvia">Latvia</option><option value="Lebanon">Lebanon</option><option value="Lesotho">Lesotho</option><option value="Liberia">Liberia</option><option value="Libya">Libya</option><option value="Liechtenstein">Liechtenstein</option><option value="Lithuania">Lithuania</option><option value="Luxembourg">Luxembourg</option><option value="Macao">Macao</option><option value="Macedonia">Macedonia</option><option value="Madagascar">Madagascar</option><option value="Malawi">Malawi</option><option value="Malaysia">Malaysia</option><option value="Maldives">Maldives</option><option value="Mali">Mali</option><option value="Malta">Malta</option><option value="Mauritania">Mauritania</option><option value="Mauritius">Mauritius</option><option value="Mexico">Mexico</option><option value="Moldova">Moldova</option><option value="Monaco">Monaco</option><option value="Mongolia">Mongolia</option><option value="Montenegro">Montenegro</option><option value="Morocco">Morocco</option><option value="Mozambique">Mozambique</option><option value="Myanmar">Myanmar</option><option value="Namibia">Namibia</option><option value="Nepal">Nepal</option><option value="Netherlands">Netherlands</option><option value="New Zealand">New Zealand</option><option value="Nicaragua">Nicaragua</option><option value="Niger">Niger</option><option value="Nigeria">Nigeria</option><option value="Norway">Norway</option><option value="Oman">Oman</option><option value="Pakistan">Pakistan</option><option value="Palau">Palau</option><option value="Panama">Panama</option><option value="Papua New Guinea">Papua New Guinea</option><option value="Paraguay">Paraguay</option><option value="Peru">Peru</option><option value="Philippines">Philippines</option><option value="Poland">Poland</option><option value="Portugal">Portugal</option><option value="Qatar">Qatar</option><option value="Romania">Romania</option><option value="Russian Federation">Russian Federation</option><option value="Rwanda">Rwanda</option><option value="Samoa">Samoa</option><option value="Saudi Arabia">Saudi Arabia</option><option value="Senegal">Senegal</option><option value="Serbia">Serbia</option><option value="Seychelles">Seychelles</option><option value="Sierra Leone">Sierra Leone</option><option value="Singapore">Singapore</option><option value="Slovakia">Slovakia</option><option value="Slovenia">Slovenia</option><option value="Somalia">Somalia</option><option value="South Africa">South Africa</option><option value="Spain">Spain</option><option value="Sri Lanka">Sri Lanka</option><option value="Sudan">Sudan</option><option value="Suriname">Suriname</option><option value="Swaziland">Swaziland</option><option value="Sweden">Sweden</option><option value="Switzerland">Switzerland</option><option value="Syria">Syria</option><option value="Taiwan">Taiwan</option><option value="Tajikistan">Tajikistan</option><option value="Tanzania">Tanzania</option><option value="Thailand">Thailand</option><option value="Timor-Leste">Timor-Leste</option><option value="Togo">Togo</option><option value="Tonga">Tonga</option><option value="Trinidad and Tobago">Trinidad and Tobago</option><option value="Tunisia">Tunisia</option><option value="Turkey">Turkey</option><option value="Turkmenistan">Turkmenistan</option><option value="Uganda">Uganda</option><option value="Ukraine">Ukraine</option><option value="United Arab Emirates">United Arab Emirates</option><option value="United Kingdom">United Kingdom</option><option value="United States">United States</option><option value="Uruguay">Uruguay</option><option value="Uzbekistan">Uzbekistan</option><option value="Venezuela">Venezuela</option><option value="Vietnam">Vietnam</option><option value="Yemen">Yemen</option><option value="Zambia">Zambia</option><option value="Zimbabwe">Zimbabwe</option><option value="Other">Other</option>
+            <option value="Afghanistan">Afghanistan</option><option value="Albania">Albania</option><option value="Algeria">Algeria</option><option value="Argentina">Argentina</option><option value="Australia">Australia</option><option value="Austria">Austria</option><option value="Bangladesh">Bangladesh</option><option value="Belgium">Belgium</option><option value="Brazil">Brazil</option><option value="Canada">Canada</option><option value="Chile">Chile</option><option value="China">China</option><option value="Colombia">Colombia</option><option value="Denmark">Denmark</option><option value="Egypt">Egypt</option><option value="Finland">Finland</option><option value="France">France</option><option value="Germany">Germany</option><option value="Greece">Greece</option><option value="India">India</option><option value="Indonesia">Indonesia</option><option value="Iran">Iran</option><option value="Ireland">Ireland</option><option value="Israel">Israel</option><option value="Italy">Italy</option><option value="Japan">Japan</option><option value="Kenya">Kenya</option><option value="Korea, Republic of">Korea, Republic of</option><option value="Malaysia">Malaysia</option><option value="Mexico">Mexico</option><option value="Netherlands">Netherlands</option><option value="New Zealand">New Zealand</option><option value="Nigeria">Nigeria</option><option value="Norway">Norway</option><option value="Pakistan">Pakistan</option><option value="Peru">Peru</option><option value="Philippines">Philippines</option><option value="Poland">Poland</option><option value="Portugal">Portugal</option><option value="Russian Federation">Russian Federation</option><option value="Saudi Arabia">Saudi Arabia</option><option value="Singapore">Singapore</option><option value="South Africa">South Africa</option><option value="Spain">Spain</option><option value="Sweden">Sweden</option><option value="Switzerland">Switzerland</option><option value="Taiwan">Taiwan</option><option value="Thailand">Thailand</option><option value="Turkey">Turkey</option><option value="United Arab Emirates">United Arab Emirates</option><option value="United Kingdom">United Kingdom</option><option value="United States">United States</option><option value="Vietnam">Vietnam</option><option value="Other">Other</option>
           </select>
         </div>
         <div>
@@ -352,9 +243,10 @@
           <select id="education"><option value="">(optional)</option><option value="highschool">High school or lower</option><option value="bachelor">Bachelor</option><option value="master">Master</option><option value="phd">PhD</option></select>
         </div>
       </div>
-      <div class="buttons"><div></div><button id="to-page-2" data-next="2" type="button">Next: Safe — Rating ▶</button></div>
+      <div class="buttons"><div></div><button data-next="2" type="button">Next: Safe ▶</button></div>
     </div>
 
+    <!-- Page 2: Safe -->
     <div id="page-2" class="page" data-attr-index="0">
       <h2>2. Safe — Pairwise comparison</h2>
       <div class="definition-box"><strong>Safe:</strong> Looks safe, secure, and not threatening.</div>
@@ -363,206 +255,34 @@
         <div class="img-wrapper"><img class="survey-img-2" src=""></div>
       </div>
       <div class="rating-list" id="rating-Safe"></div>
-      <div class="buttons"><button class="secondary" data-go="1" type="button">◀ Back</button><button data-next="3" type="button">Next: mark Safe points ▶</button></div>
+      <div class="buttons"><button class="secondary" data-go="1" type="button">◀ Back</button><button data-next="3" type="button">Next: Lively ▶</button></div>
     </div>
 
-    <div id="page-3" class="page" data-attr-index="0">
-      <h2>3. Safe — Circle regions</h2>
-      <div class="definition-box"><strong>Safe:</strong> Looks safe, secure, and not threatening.</div>
-      <p style="font-weight:700; color:#1e293b; margin-bottom:20px; font-size:17px;">Please circle the streetscape elements that influence your perception of this dimension (positive or negative).</p>
-      <div class="circling-header" style="display: block; padding: 16px 24px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
-            <strong style="color:#334155; font-size:15px;">How to Annotate:</strong>
-            <div class="legend">
-                <span style="color:var(--pos)"><span class="dot" style="background:var(--pos)"></span>Positive</span> 
-                <span style="color:var(--neg)"><span class="dot" style="background:var(--neg)"></span>Negative</span>
-            </div>
-        </div>
-        
-        <div style="font-size:13px; color:#475569; display:grid; grid-template-columns: 1fr 1fr; gap:12px; line-height:1.4;">
-            <div style="grid-column: span 2;">
-                <strong>1. Draw:</strong> Click & drag to circle an object. 
-                <span style="color:#b45309; background:#fffbeb; padding:0 4px; border-radius:4px;">Please circle distinct elements separately, even if they are close.</span>
-            </div>
-            <div style="grid-column: span 2;">
-                <strong>2. Select:</strong> Click the circle <em>OR</em> the list item below to highlight it.
-            </div>
-            <div style="grid-column: span 2;">
-                <strong>3. Sentiment:</strong> Select a circle and click <strong>Toggle (+/-)</strong> button to switch meaning: <br>
-                &nbsp;&nbsp;&nbsp; <span style="color:var(--pos)">● Green (Positive)</span> vs <span style="color:var(--neg)">● Red (Negative)</span>.
-            </div>
-            <div style="grid-column: span 2;">
-                <strong>4. Tools:</strong> Use <strong>Undo</strong> to step back, <strong>Delete Selected</strong> to remove one shape, or <strong>Clear All</strong> to reset.
-            </div>
-        </div>
-      </div>
-      <div class="images">
-        <div class="regions-wrap"><img id="img-Safe-1" class="survey-img-1" src="" /><canvas id="cvs-Safe-1"></canvas></div>
-        <div class="regions-wrap"><img id="img-Safe-2" class="survey-img-2" src="" /><canvas id="cvs-Safe-2"></canvas></div>
-      </div>
-      
-      <div class="controls-toolbar">
-        <button class="small secondary" data-undo type="button">⟲ Undo last action</button>
-        <button class="small secondary" data-clear type="button">Clear All</button>
-        <div style="width:1px; background:#cbd5e1; margin:0 12px;"></div>
-        <button class="small btn-toggle" data-toggle-sentiment type="button" disabled>Toggle (+/-)</button>
-        <button class="small btn-delete" data-delete-selected type="button" disabled>Delete Selected</button>
-      </div>
-
-      <div class="region-list-container">
-        <div class="region-col">
-          <h4>Image 1 Regions</h4>
-          <div class="region-items" id="list-Safe-1"></div>
-        </div>
-        <div class="region-col">
-          <h4>Image 2 Regions</h4>
-          <div class="region-items" id="list-Safe-2"></div>
-        </div>
-      </div>
-
-      <div class="global-factor-section">
-        <h3>Is there a global atmospheric factor influencing your choice?</h3>
-        <p>(If you have circled specific elements above, you may skip this. Otherwise, please select at least one.)</p>
-        <div class="checkbox-group" id="global-Safe">
-            <label class="checkbox-item"><input type="checkbox" value="Lighting"> Lighting / Brightness</label>
-            <label class="checkbox-item"><input type="checkbox" value="Weather"> Weather / Sky</label>
-            <label class="checkbox-item"><input type="checkbox" value="Layout"> Overall Layout / Openness</label>
-            <label class="checkbox-item"><input type="checkbox" value="None"> No specific reason</label>
-        </div>
-      </div>
-
-      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="4" type="button">Next: Lively — Rating ▶</button></div>
-    </div>
-
-    <div id="page-4" class="page" data-attr-index="1">
-      <h2>4. Lively — Pairwise comparison</h2>
+    <!-- Page 3: Lively -->
+    <div id="page-3" class="page" data-attr-index="1">
+      <h2>3. Lively — Pairwise comparison</h2>
       <div class="definition-box"><strong>Lively:</strong> Bustling with activities, energetic, and vibrant.</div>
       <div class="images"><div class="img-wrapper"><img class="survey-img-1" src=""></div><div class="img-wrapper"><img class="survey-img-2" src=""></div></div>
       <div class="rating-list" id="rating-Lively"></div>
-      <div class="buttons"><button class="secondary" data-go="3" type="button">◀ Back</button><button data-next="5" type="button">Next: mark Lively points ▶</button></div>
+      <div class="buttons"><button class="secondary" data-go="2" type="button">◀ Back</button><button data-next="4" type="button">Next: Beautiful ▶</button></div>
     </div>
 
-    <div id="page-5" class="page" data-attr-index="1">
-      <h2>5. Lively — Circle regions</h2>
-      <div class="definition-box"><strong>Lively:</strong> Bustling with activities, energetic, and vibrant.</div>
-      <p style="font-weight:700; color:#1e293b; margin-bottom:20px; font-size:17px;">Please circle the streetscape elements that influence your perception of this dimension (positive or negative).</p>
-      <div class="circling-header" style="display: block; padding: 16px 24px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
-            <strong style="color:#334155; font-size:15px;">How to Annotate:</strong>
-            <div class="legend">
-                <span style="color:var(--pos)"><span class="dot" style="background:var(--pos)"></span>Positive</span> 
-                <span style="color:var(--neg)"><span class="dot" style="background:var(--neg)"></span>Negative</span>
-            </div>
-        </div>
-        
-        <div style="font-size:13px; color:#475569; display:grid; grid-template-columns: 1fr 1fr; gap:12px; line-height:1.4;">
-            <div style="grid-column: span 2;">
-                <strong>1. Draw:</strong> Click & drag to circle an object. 
-                <span style="color:#b45309; background:#fffbeb; padding:0 4px; border-radius:4px;">Please circle distinct elements separately, even if they are close.</span>
-            </div>
-            <div style="grid-column: span 2;">
-                <strong>2. Select:</strong> Click the circle <em>OR</em> the list item below to highlight it.
-            </div>
-            <div style="grid-column: span 2;">
-                <strong>3. Sentiment:</strong> Select a circle and click <strong>Toggle (+/-)</strong> button to switch meaning: <br>
-                &nbsp;&nbsp;&nbsp; <span style="color:var(--pos)">● Green (Positive)</span> vs <span style="color:var(--neg)">● Red (Negative)</span>.
-            </div>
-            <div style="grid-column: span 2;">
-                <strong>4. Tools:</strong> Use <strong>Undo</strong> to step back, <strong>Delete Selected</strong> to remove one shape, or <strong>Clear All</strong> to reset.
-            </div>
-        </div>
-      </div>
-      <div class="images">
-        <div class="regions-wrap"><img id="img-Lively-1" class="survey-img-1" src="" /><canvas id="cvs-Lively-1"></canvas></div>
-        <div class="regions-wrap"><img id="img-Lively-2" class="survey-img-2" src="" /><canvas id="cvs-Lively-2"></canvas></div>
-      </div>
-      <div class="controls-toolbar">
-        <button class="small secondary" data-undo type="button">⟲ Undo last action</button><button class="small secondary" data-clear type="button">Clear All</button>
-        <div style="width:1px; background:#cbd5e1; margin:0 12px;"></div>
-        <button class="small btn-toggle" data-toggle-sentiment type="button" disabled>Toggle (+/-)</button><button class="small btn-delete" data-delete-selected type="button" disabled>Delete Selected</button>
-      </div>
-      <div class="region-list-container">
-        <div class="region-col"><h4>Image 1 Regions</h4><div class="region-items" id="list-Lively-1"></div></div>
-        <div class="region-col"><h4>Image 2 Regions</h4><div class="region-items" id="list-Lively-2"></div></div>
-      </div>
-      <div class="global-factor-section">
-        <h3>Is there a global atmospheric factor influencing your choice?</h3>
-        <p>(If you have circled specific elements above, you may skip this. Otherwise, please select at least one.)</p>
-        <div class="checkbox-group" id="global-Lively">
-            <label class="checkbox-item"><input type="checkbox" value="Lighting"> Lighting / Brightness</label><label class="checkbox-item"><input type="checkbox" value="Weather"> Weather / Sky</label><label class="checkbox-item"><input type="checkbox" value="Layout"> Overall Layout / Openness</label><label class="checkbox-item"><input type="checkbox" value="None"> No specific reason</label>
-        </div>
-      </div>
-      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="6" type="button">Next: Beautiful — Rating ▶</button></div>
-    </div>
-
-    <div id="page-6" class="page" data-attr-index="2">
-      <h2>6. Beautiful — Pairwise comparison</h2>
+    <!-- Page 4: Beautiful -->
+    <div id="page-4" class="page" data-attr-index="2">
+      <h2>4. Beautiful — Pairwise comparison</h2>
       <div class="definition-box"><strong>Beautiful:</strong> Aesthetically pleasing and nice to look at.</div>
       <div class="images"><div class="img-wrapper"><img class="survey-img-1" src=""></div><div class="img-wrapper"><img class="survey-img-2" src=""></div></div>
       <div class="rating-list" id="rating-Beautiful"></div>
-      <div class="buttons"><button class="secondary" data-go="5" type="button">◀ Back</button><button data-next="7" type="button">Next: mark Beautiful points ▶</button></div>
+      <div class="buttons"><button class="secondary" data-go="3" type="button">◀ Back</button><button data-next="5" type="button">Next: Environment Classification ▶</button></div>
     </div>
 
-    <div id="page-7" class="page" data-attr-index="2">
-      <h2>7. Beautiful — Circle regions</h2>
-      <div class="definition-box"><strong>Beautiful:</strong> Aesthetically pleasing and nice to look at.</div>
-      <p style="font-weight:700; color:#1e293b; margin-bottom:20px; font-size:17px;">Please circle the streetscape elements that influence your perception of this dimension (positive or negative).</p>
-      <div class="circling-header" style="display: block; padding: 16px 24px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
-            <strong style="color:#334155; font-size:15px;">How to Annotate:</strong>
-            <div class="legend">
-                <span style="color:var(--pos)"><span class="dot" style="background:var(--pos)"></span>Positive</span> 
-                <span style="color:var(--neg)"><span class="dot" style="background:var(--neg)"></span>Negative</span>
-            </div>
-        </div>
-        
-        <div style="font-size:13px; color:#475569; display:grid; grid-template-columns: 1fr 1fr; gap:12px; line-height:1.4;">
-            <div style="grid-column: span 2;">
-                <strong>1. Draw:</strong> Click & drag to circle an object. 
-                <span style="color:#b45309; background:#fffbeb; padding:0 4px; border-radius:4px;">Please circle distinct elements separately, even if they are close.</span>
-            </div>
-            <div style="grid-column: span 2;">
-                <strong>2. Select:</strong> Click the circle <em>OR</em> the list item below to highlight it.
-            </div>
-            <div style="grid-column: span 2;">
-                <strong>3. Sentiment:</strong> Select a circle and click <strong>Toggle (+/-)</strong> button to switch meaning: <br>
-                &nbsp;&nbsp;&nbsp; <span style="color:var(--pos)">● Green (Positive)</span> vs <span style="color:var(--neg)">● Red (Negative)</span>.
-            </div>
-            <div style="grid-column: span 2;">
-                <strong>4. Tools:</strong> Use <strong>Undo</strong> to step back, <strong>Delete Selected</strong> to remove one shape, or <strong>Clear All</strong> to reset.
-            </div>
-        </div>
-      </div>
-      <div class="images">
-        <div class="regions-wrap"><img id="img-Beautiful-1" class="survey-img-1" src="" /><canvas id="cvs-Beautiful-1"></canvas></div>
-        <div class="regions-wrap"><img id="img-Beautiful-2" class="survey-img-2" src="" /><canvas id="cvs-Beautiful-2"></canvas></div>
-      </div>
-      <div class="controls-toolbar">
-        <button class="small secondary" data-undo type="button">⟲ Undo last action</button><button class="small secondary" data-clear type="button">Clear All</button>
-        <div style="width:1px; background:#cbd5e1; margin:0 12px;"></div>
-        <button class="small btn-toggle" data-toggle-sentiment type="button" disabled>Toggle (+/-)</button><button class="small btn-delete" data-delete-selected type="button" disabled>Delete Selected</button>
-      </div>
-      <div class="region-list-container">
-        <div class="region-col"><h4>Image 1 Regions</h4><div class="region-items" id="list-Beautiful-1"></div></div>
-        <div class="region-col"><h4>Image 2 Regions</h4><div class="region-items" id="list-Beautiful-2"></div></div>
-      </div>
-      <div class="global-factor-section">
-        <h3>Is there a global atmospheric factor influencing your choice?</h3>
-        <p>(If you have circled specific elements above, you may skip this. Otherwise, please select at least one.)</p>
-        <div class="checkbox-group" id="global-Beautiful">
-            <label class="checkbox-item"><input type="checkbox" value="Lighting"> Lighting / Brightness</label><label class="checkbox-item"><input type="checkbox" value="Weather"> Weather / Sky</label><label class="checkbox-item"><input type="checkbox" value="Layout"> Overall Layout / Openness</label><label class="checkbox-item"><input type="checkbox" value="None"> No specific reason</label>
-        </div>
-      </div>
-      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="check" type="button">Next: Environment Classification ▶</button></div>
-    </div>
-
-    <div id="page-check" class="page">
-      <h2>8. Environment Classification</h2>
+    <!-- Page 5: QC -->
+    <div id="page-5" class="page">
+      <h2>5. Environment Classification</h2>
       <p style="margin-bottom:20px; color:var(--muted)">To help us better understand your preferences, please answer the following questions.</p>
       
       <div class="check-section">
         <h3 style="margin-top:0;">1. In each row below, please click on the image that best represents a <strong>Rural</strong> (countryside) environment.</h3>
-        
         <div class="check-row" id="qc-row-1">
           <div style="width:30px;font-weight:700;padding-top:12px;">1.</div>
           <div class="check-pair">
@@ -571,7 +291,6 @@
           </div>
           <input type="hidden" id="qc-ans-1" value="">
         </div>
-
         <div class="check-row" id="qc-row-2">
             <div style="width:30px;font-weight:700;padding-top:12px;">2.</div>
             <div class="check-pair">
@@ -580,7 +299,6 @@
             </div>
             <input type="hidden" id="qc-ans-2" value="">
         </div>
-
         <div class="check-row" id="qc-row-3">
             <div style="width:30px;font-weight:700;padding-top:12px;">3.</div>
             <div class="check-pair">
@@ -595,215 +313,53 @@
         <h3 style="margin-top:0;">2. General Preference</h3>
         <p style="font-size:16px; margin-bottom:16px;">In general, which type of environment do you prefer living in?</p>
         <div style="display:flex; flex-direction:column; gap:12px;">
-           <label class="rating-option">
-               <input type="radio" name="preference" value="urban"> <span style="font-weight:400">I prefer Urban (City)</span>
-           </label>
-           <label class="rating-option">
-               <input type="radio" name="preference" value="rural"> <span style="font-weight:400">I prefer Rural (Countryside)</span>
-           </label>
-           <label class="rating-option">
-               <input type="radio" name="preference" value="neutral"> <span style="font-weight:400">No preference / Neutral</span>
-           </label>
+           <label class="rating-option"><input type="radio" name="preference" value="urban"> <span style="font-weight:400">I prefer Urban (City)</span></label>
+           <label class="rating-option"><input type="radio" name="preference" value="rural"> <span style="font-weight:400">I prefer Rural (Countryside)</span></label>
+           <label class="rating-option"><input type="radio" name="preference" value="neutral"> <span style="font-weight:400">No preference / Neutral</span></label>
         </div>
       </div>
-
       <div class="buttons">
-        <button class="secondary" data-go="7" type="button">◀ Back</button>
-        <button id="btn-check-next" data-next="9" type="button">Next: Wealthy — Rating ▶</button>
+        <button class="secondary" data-go="4" type="button">◀ Back</button>
+        <button id="btn-check-next" data-next="6" type="button">Next: Wealthy ▶</button>
       </div>
     </div>
 
-    <div id="page-9" class="page" data-attr-index="3">
-      <h2>9. Wealthy — Pairwise comparison</h2>
+    <!-- Page 6: Wealthy -->
+    <div id="page-6" class="page" data-attr-index="3">
+      <h2>6. Wealthy — Pairwise comparison</h2>
       <div class="definition-box"><strong>Wealthy:</strong> Affluent, high-status, and expensive neighborhood.</div>
       <div class="images"><div class="img-wrapper"><img class="survey-img-1" src=""></div><div class="img-wrapper"><img class="survey-img-2" src=""></div></div>
       <div class="rating-list" id="rating-Wealthy"></div>
-      <div class="buttons"><button class="secondary" data-go="check" type="button">◀ Back</button><button data-next="10" type="button">Next: mark Wealthy points ▶</button></div>
+      <div class="buttons"><button class="secondary" data-go="5" type="button">◀ Back</button><button data-next="7" type="button">Next: Boring ▶</button></div>
     </div>
 
-    <div id="page-10" class="page" data-attr-index="3">
-      <h2>10. Wealthy — Circle regions</h2>
-      <div class="definition-box"><strong>Wealthy:</strong> Affluent, high-status, and expensive neighborhood.</div>
-      <p style="font-weight:700; color:#1e293b; margin-bottom:20px; font-size:17px;">Please circle the streetscape elements that influence your perception of this dimension (positive or negative).</p>
-      <div class="circling-header" style="display: block; padding: 16px 24px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
-            <strong style="color:#334155; font-size:15px;">How to Annotate:</strong>
-            <div class="legend">
-                <span style="color:var(--pos)"><span class="dot" style="background:var(--pos)"></span>Positive</span> 
-                <span style="color:var(--neg)"><span class="dot" style="background:var(--neg)"></span>Negative</span>
-            </div>
-        </div>
-        
-        <div style="font-size:13px; color:#475569; display:grid; grid-template-columns: 1fr 1fr; gap:12px; line-height:1.4;">
-            <div style="grid-column: span 2;">
-                <strong>1. Draw:</strong> Click & drag to circle an object. 
-                <span style="color:#b45309; background:#fffbeb; padding:0 4px; border-radius:4px;">Please circle distinct elements separately, even if they are close.</span>
-            </div>
-            <div style="grid-column: span 2;">
-                <strong>2. Select:</strong> Click the circle <em>OR</em> the list item below to highlight it.
-            </div>
-            <div style="grid-column: span 2;">
-                <strong>3. Sentiment:</strong> Select a circle and click <strong>Toggle (+/-)</strong> button to switch meaning: <br>
-                &nbsp;&nbsp;&nbsp; <span style="color:var(--pos)">● Green (Positive)</span> vs <span style="color:var(--neg)">● Red (Negative)</span>.
-            </div>
-            <div style="grid-column: span 2;">
-                <strong>4. Tools:</strong> Use <strong>Undo</strong> to step back, <strong>Delete Selected</strong> to remove one shape, or <strong>Clear All</strong> to reset.
-            </div>
-        </div>
-      </div>
-      <div class="images">
-        <div class="regions-wrap"><img id="img-Wealthy-1" class="survey-img-1" src="" /><canvas id="cvs-Wealthy-1"></canvas></div>
-        <div class="regions-wrap"><img id="img-Wealthy-2" class="survey-img-2" src="" /><canvas id="cvs-Wealthy-2"></canvas></div>
-      </div>
-      <div class="controls-toolbar">
-        <button class="small secondary" data-undo type="button">⟲ Undo last action</button><button class="small secondary" data-clear type="button">Clear All</button>
-        <div style="width:1px; background:#cbd5e1; margin:0 12px;"></div>
-        <button class="small btn-toggle" data-toggle-sentiment type="button" disabled>Toggle (+/-)</button><button class="small btn-delete" data-delete-selected type="button" disabled>Delete Selected</button>
-      </div>
-      <div class="region-list-container">
-        <div class="region-col"><h4>Image 1 Regions</h4><div class="region-items" id="list-Wealthy-1"></div></div>
-        <div class="region-col"><h4>Image 2 Regions</h4><div class="region-items" id="list-Wealthy-2"></div></div>
-      </div>
-      <div class="global-factor-section">
-        <h3>Is there a global atmospheric factor influencing your choice?</h3>
-        <p>(If you have circled specific elements above, you may skip this. Otherwise, please select at least one.)</p>
-        <div class="checkbox-group" id="global-Wealthy">
-            <label class="checkbox-item"><input type="checkbox" value="Lighting"> Lighting / Brightness</label><label class="checkbox-item"><input type="checkbox" value="Weather"> Weather / Sky</label><label class="checkbox-item"><input type="checkbox" value="Layout"> Overall Layout / Openness</label><label class="checkbox-item"><input type="checkbox" value="None"> No specific reason</label>
-        </div>
-      </div>
-      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="11" type="button">Next: Boring — Rating ▶</button></div>
-    </div>
-
-    <div id="page-11" class="page" data-attr-index="4">
-      <h2>11. Boring — Pairwise comparison</h2>
+    <!-- Page 7: Boring -->
+    <div id="page-7" class="page" data-attr-index="4">
+      <h2>7. Boring — Pairwise comparison</h2>
       <div class="definition-box"><strong>Boring:</strong> Dull, uninteresting, and monotonous.</div>
       <div class="images"><div class="img-wrapper"><img class="survey-img-1" src=""></div><div class="img-wrapper"><img class="survey-img-2" src=""></div></div>
       <div class="rating-list" id="rating-Boring"></div>
-      <div class="buttons"><button class="secondary" data-go="10" type="button">◀ Back</button><button data-next="12" type="button">Next: mark Boring points ▶</button></div>
+      <div class="buttons"><button class="secondary" data-go="6" type="button">◀ Back</button><button data-next="8" type="button">Next: Depressing ▶</button></div>
     </div>
 
-    <div id="page-12" class="page" data-attr-index="4">
-      <h2>12. Boring — Circle regions</h2>
-      <div class="definition-box"><strong>Boring:</strong> Dull, uninteresting, and monotonous.</div>
-      <p style="font-weight:700; color:#1e293b; margin-bottom:20px; font-size:17px;">Please circle the streetscape elements that influence your perception of this dimension (positive or negative).</p>
-      <div class="circling-header" style="display: block; padding: 16px 24px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
-            <strong style="color:#334155; font-size:15px;">How to Annotate:</strong>
-            <div class="legend">
-                <span style="color:var(--pos)"><span class="dot" style="background:var(--pos)"></span>Positive</span> 
-                <span style="color:var(--neg)"><span class="dot" style="background:var(--neg)"></span>Negative</span>
-            </div>
-        </div>
-        
-        <div style="font-size:13px; color:#475569; display:grid; grid-template-columns: 1fr 1fr; gap:12px; line-height:1.4;">
-            <div style="grid-column: span 2;">
-                <strong>1. Draw:</strong> Click & drag to circle an object. 
-                <span style="color:#b45309; background:#fffbeb; padding:0 4px; border-radius:4px;">Please circle distinct elements separately, even if they are close.</span>
-            </div>
-            <div style="grid-column: span 2;">
-                <strong>2. Select:</strong> Click the circle <em>OR</em> the list item below to highlight it.
-            </div>
-            <div style="grid-column: span 2;">
-                <strong>3. Sentiment:</strong> Select a circle and click <strong>Toggle (+/-)</strong> button to switch meaning: <br>
-                &nbsp;&nbsp;&nbsp; <span style="color:var(--pos)">● Green (Positive)</span> vs <span style="color:var(--neg)">● Red (Negative)</span>.
-            </div>
-            <div style="grid-column: span 2;">
-                <strong>4. Tools:</strong> Use <strong>Undo</strong> to step back, <strong>Delete Selected</strong> to remove one shape, or <strong>Clear All</strong> to reset.
-            </div>
-        </div>
-      </div>
-      <div class="images">
-        <div class="regions-wrap"><img id="img-Boring-1" class="survey-img-1" src="" /><canvas id="cvs-Boring-1"></canvas></div>
-        <div class="regions-wrap"><img id="img-Boring-2" class="survey-img-2" src="" /><canvas id="cvs-Boring-2"></canvas></div>
-      </div>
-      <div class="controls-toolbar">
-        <button class="small secondary" data-undo type="button">⟲ Undo last action</button><button class="small secondary" data-clear type="button">Clear All</button>
-        <div style="width:1px; background:#cbd5e1; margin:0 12px;"></div>
-        <button class="small btn-toggle" data-toggle-sentiment type="button" disabled>Toggle (+/-)</button><button class="small btn-delete" data-delete-selected type="button" disabled>Delete Selected</button>
-      </div>
-      <div class="region-list-container">
-        <div class="region-col"><h4>Image 1 Regions</h4><div class="region-items" id="list-Boring-1"></div></div>
-        <div class="region-col"><h4>Image 2 Regions</h4><div class="region-items" id="list-Boring-2"></div></div>
-      </div>
-      <div class="global-factor-section">
-        <h3>Is there a global atmospheric factor influencing your choice?</h3>
-        <p>(If you have circled specific elements above, you may skip this. Otherwise, please select at least one.)</p>
-        <div class="checkbox-group" id="global-Boring">
-            <label class="checkbox-item"><input type="checkbox" value="Lighting"> Lighting / Brightness</label><label class="checkbox-item"><input type="checkbox" value="Weather"> Weather / Sky</label><label class="checkbox-item"><input type="checkbox" value="Layout"> Overall Layout / Openness</label><label class="checkbox-item"><input type="checkbox" value="None"> No specific reason</label>
-        </div>
-      </div>
-      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="13" type="button">Next: Depressing — Rating ▶</button></div>
-    </div>
-
-    <div id="page-13" class="page" data-attr-index="5">
-      <h2>13. Depressing — Pairwise comparison</h2>
+    <!-- Page 8: Depressing -->
+    <div id="page-8" class="page" data-attr-index="5">
+      <h2>8. Depressing — Pairwise comparison</h2>
       <div class="definition-box"><strong>Depressing:</strong> Grim, bleak, and evoking sadness.</div>
       <div class="images"><div class="img-wrapper"><img class="survey-img-1" src=""></div><div class="img-wrapper"><img class="survey-img-2" src=""></div></div>
       <div class="rating-list" id="rating-Depressing"></div>
-      <div class="buttons"><button class="secondary" data-go="12" type="button">◀ Back</button><button data-next="14" type="button">Next: mark Depressing points ▶</button></div>
+      <div class="buttons"><button class="secondary" data-go="7" type="button">◀ Back</button><button data-next="9" type="button">Next: Review & Submit ▶</button></div>
     </div>
 
-    <div id="page-14" class="page" data-attr-index="5">
-      <h2>14. Depressing — Circle regions</h2>
-      <div class="definition-box"><strong>Depressing:</strong> Grim, bleak, and evoking sadness.</div>
-      <p style="font-weight:700; color:#1e293b; margin-bottom:20px; font-size:17px;">Please circle the streetscape elements that influence your perception of this dimension (positive or negative).</p>
-      <div class="circling-header" style="display: block; padding: 16px 24px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
-            <strong style="color:#334155; font-size:15px;">How to Annotate:</strong>
-            <div class="legend">
-                <span style="color:var(--pos)"><span class="dot" style="background:var(--pos)"></span>Positive</span> 
-                <span style="color:var(--neg)"><span class="dot" style="background:var(--neg)"></span>Negative</span>
-            </div>
-        </div>
-        
-        <div style="font-size:13px; color:#475569; display:grid; grid-template-columns: 1fr 1fr; gap:12px; line-height:1.4;">
-            <div style="grid-column: span 2;">
-                <strong>1. Draw:</strong> Click & drag to circle an object. 
-                <span style="color:#b45309; background:#fffbeb; padding:0 4px; border-radius:4px;">Please circle distinct elements separately, even if they are close.</span>
-            </div>
-            <div style="grid-column: span 2;">
-                <strong>2. Select:</strong> Click the circle <em>OR</em> the list item below to highlight it.
-            </div>
-            <div style="grid-column: span 2;">
-                <strong>3. Sentiment:</strong> Select a circle and click <strong>Toggle (+/-)</strong> button to switch meaning: <br>
-                &nbsp;&nbsp;&nbsp; <span style="color:var(--pos)">● Green (Positive)</span> vs <span style="color:var(--neg)">● Red (Negative)</span>.
-            </div>
-            <div style="grid-column: span 2;">
-                <strong>4. Tools:</strong> Use <strong>Undo</strong> to step back, <strong>Delete Selected</strong> to remove one shape, or <strong>Clear All</strong> to reset.
-            </div>
-        </div>
-      </div>
-      <div class="images">
-        <div class="regions-wrap"><img id="img-Depressing-1" class="survey-img-1" src="" /><canvas id="cvs-Depressing-1"></canvas></div>
-        <div class="regions-wrap"><img id="img-Depressing-2" class="survey-img-2" src="" /><canvas id="cvs-Depressing-2"></canvas></div>
-      </div>
-      <div class="controls-toolbar">
-        <button class="small secondary" data-undo type="button">⟲ Undo last action</button><button class="small secondary" data-clear type="button">Clear All</button>
-        <div style="width:1px; background:#cbd5e1; margin:0 12px;"></div>
-        <button class="small btn-toggle" data-toggle-sentiment type="button" disabled>Toggle (+/-)</button><button class="small btn-delete" data-delete-selected type="button" disabled>Delete Selected</button>
-      </div>
-      <div class="region-list-container">
-        <div class="region-col"><h4>Image 1 Regions</h4><div class="region-items" id="list-Depressing-1"></div></div>
-        <div class="region-col"><h4>Image 2 Regions</h4><div class="region-items" id="list-Depressing-2"></div></div>
-      </div>
-      <div class="global-factor-section">
-        <h3>Is there a global atmospheric factor influencing your choice?</h3>
-        <p>(If you have circled specific elements above, you may skip this. Otherwise, please select at least one.)</p>
-        <div class="checkbox-group" id="global-Depressing">
-            <label class="checkbox-item"><input type="checkbox" value="Lighting"> Lighting / Brightness</label><label class="checkbox-item"><input type="checkbox" value="Weather"> Weather / Sky</label><label class="checkbox-item"><input type="checkbox" value="Layout"> Overall Layout / Openness</label><label class="checkbox-item"><input type="checkbox" value="None"> No specific reason</label>
-        </div>
-      </div>
-      <div class="buttons"><button class="secondary" data-back-to-rating type="button">◀ Back to rating</button><button data-next="15" type="button">Next: Review & Submit ▶</button></div>
-    </div>
-
-    <div id="page-15" class="page">
-      <h2>15. Review & Submit</h2>
+    <!-- Page 9: Review & Submit -->
+    <div id="page-9" class="page">
+      <h2>9. Review & Submit</h2>
       <p style="margin-bottom:20px; font-size:16px;">Please review your responses before submitting.</p>
       
       <div id="summary-container"></div>
       
       <div class="buttons">
-        <button class="secondary" data-go="14" type="button">◀ Back</button>
+        <button class="secondary" data-go="8" type="button">◀ Back</button>
         <div>
           <button id="finish" type="button">Finish and export ▶</button>
         </div>
@@ -818,27 +374,27 @@
 
 </div>
 
+<!-- Loading & Submitting Overlays -->
 <div id="submit-overlay">
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:center;">
         <div class="title" style="font-weight:700;font-size:18px;margin-bottom:8px;">Submitting…</div>
-        <div class="spinner" style="margin-left:12px;"></div>
+        <div class="spinner" style="margin-left:12px; width:20px; height:20px; border:3px solid rgba(37,99,235,0.2); border-top-color:#2563eb; border-radius:50%; animation:spin 1s linear infinite;"></div>
       </div>
       <div class="message" id="submit-overlay-message" style="margin-bottom:16px;">Please wait...</div>
       <div class="status-small" id="submit-overlay-status" style="font-size:13px; color:#64748b;"></div>
       <button id="submit-overlay-confirm" style="margin-top:16px;display:none;background:#22c55e;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600;">OK</button>
     </div>
 </div>
+
 <script>
 (function() {
     'use strict';
 
-    // *** 配置常量 ***
-    // 请确保此 URL 是您最新部署的 Web App URL
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzJw1MwRGIbBVCWyP3ONHab5dqIK1oL7tUbSu6TyeQnSyl6PNWa9qPHBGIAB5NAiaet/exec';
+    // *** Configuration ***
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwNapJukV7klbOLhwi2rm8tmf0qX9ewIEDfELoGadxBPAc2ch6tLEUUdWzP8rhLlKWL/exec';
     const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
 
-    // [新增] 第8页固定图片的 ID (请将第一步获取到的真实ID填入此处)
     const CHECK_IMAGE_IDS = {
         "urban1": "1bFvVbyeq7hpJkwxENMVLIBGv-7ZImGCY",
         "rural1": "1Sf1rEYMSqPyZIieJN0ePfymK2coRa-5j",
@@ -847,97 +403,11 @@
         "urban3": "17YQrGfNb354lxHfFJg6vUJzWkamFgxCb",
         "rural3": "1Qen32uNnoHxjYXPkJJOkjehEFdoyPcpI"
     };
-    
-    // 颜色配置
-    const COLORS = {
-        pos: { stroke: '#22c55e', fill: 'rgba(34, 197, 94, 0.2)' }, 
-        neg: { stroke: '#ef4444', fill: 'rgba(239, 68, 68, 0.2)' }
-    };
 
-    // *** 全局状态 ***
-    var state = { 
-        demographics: {}, 
-        pairwise: {}, 
-        points: {}, 
-        global_factors: {}, 
-        quality_check: {} 
-    };
-
-    // 初始化数据结构
-    ATTRIBUTES.forEach(a => {
-        state.points[a] = { '1.jpg': [], '2.jpg': [] };
-        state.global_factors[a] = [];
-    });
-
+    var state = { demographics: {}, pairwise: {}, quality_check: {} };
     var assignedPairInfo = null;
-    var fabricCanvases = {};  // 存储 Canvas 实例
-    
-    // --- 撤销系统 (Undo System) ---
-    var canvasHistory = {};   // { 'Safe-1': [json1, json2...] }
-    var pageActionStack = []; // ['Safe-1', 'Safe-2'...] 记录操作顺序
-    var isRestoring = false; 
+    window.imagesLoaded = false; // [新增] 设立全局图片加载状态通行证
 
-    // --- 统一消息提示框 ---
-    function showDialog(title, text) {
-        var modal = document.getElementById('msg-modal');
-        var content = document.getElementById('msg-content');
-        var icon = '👋';
-        if(title.includes('Missing') || title.includes('Required')) icon = '📝';
-        if(title.includes('Logic')) icon = '💡';
-        if(title.includes('Error')) icon = '⚠️';
-
-        modal.querySelector('.msg-icon').textContent = icon;
-        var html = `<strong>${title}</strong>\n\n${text}`;
-        content.innerHTML = html.replace(/\n/g, '<br/>');
-        modal.classList.add('show');
-    }
-    // [升级版] 带有“质量警告”的 QC 提示函数
-    function showFriendlyQCWarning() {
-        var modal = document.getElementById('msg-modal');
-        var box = modal.querySelector('.msg-box');
-        var content = document.getElementById('msg-content');
-        var btn = modal.querySelector('.msg-btn');
-
-        // 1. 应用暖色调主题
-        box.classList.add('warning-theme');
-
-        // 2. 设置文案：从“提示”升级为“警告”
-        modal.querySelector('.msg-icon').textContent = '🛑'; // 换成“停止/警告”手势，比“观察”更严肃
-        
-        content.innerHTML = `
-            <strong style="font-size:20px; color:#b91c1c; display:block; margin-bottom:12px; text-align:center;">Data Quality Check Failed</strong>
-            
-            <p style="margin:0 0 12px 0;">We detected inconsistent answers in the <strong>Environment Classification</strong> section (Page 8).</p>
-            
-            <div style="margin:0 0 16px 0; background:#fff1f2; padding:14px; border-radius:8px; border:1px solid #fecdd3; border-left:5px solid #e11d48; color:#881337;">
-                <strong style="display:block; margin-bottom:6px;">⚠️ Warning:</strong>
-                <p style="margin:0 0 8px 0; font-size:15px;">This suggests that your previous responses might also be rushed or careless.</p>
-                <p style="margin:0; font-weight:700; font-size:15px;">Please review your answers carefully. Submissions with random or careless responses will be REJECTED.</p>
-            </div>
-
-            <p style="margin:0; font-size:15px; color:#4b5563;">To proceed, please correct the classification errors on Page 8.</p>
-        `;
-
-        // 3. 修改按钮行为
-        // 按钮文字改为“我明白了”这种承诺式的语气
-        btn.textContent = "I understand. Let me fix it.";
-        
-        btn.onclick = function() {
-            modal.classList.remove('show');
-            box.classList.remove('warning-theme'); 
-            
-            // 跳转到第8页
-            showPage('check'); 
-            
-            // 恢复按钮默认行为
-            btn.onclick = function() { document.getElementById('msg-modal').classList.remove('show'); };
-        };
-
-        // 4. 显示弹窗
-        modal.classList.add('show');
-    }
-
-    // --- 基础工具 ---
     function q(s) { return document.querySelector(s); }
     function qa(s) { return Array.from(document.querySelectorAll(s)); }
     function getQueryParam(n) { try { return new URL(window.location.href).searchParams.get(n); } catch (e) { return null; } }
@@ -951,21 +421,13 @@
     }
 
     function getFastDriveUrl(fileId) {
-        // 优先使用 Google User Content CDN (速度最快，不消耗 Drive 配额)
-        // 格式: https://lh3.googleusercontent.com/d/{FILE_ID}=w{WIDTH}
-        // w3000 表示请求宽度 3000px 的图 (Google 会自动缩放)
         return 'https://lh3.googleusercontent.com/d/' + fileId + '=w3000';
     }
 
-    // 替换原有的 jsonp 函数
     function jsonp(url, callback, retryCount) {
         retryCount = retryCount || 0;
         var cbName = 'cb_' + Math.random().toString(36).slice(2);
-        
-        // 超时检测定时器
-        var timeoutTimer = setTimeout(function() {
-             handleError("Timeout");
-        }, 15000); // 15秒超时
+        var timeoutTimer = setTimeout(function() { handleError("Timeout"); }, 15000);
 
         window[cbName] = function(data) {
             clearTimeout(timeoutTimer);
@@ -973,7 +435,6 @@
             var el = document.getElementById('sc-' + cbName);
             if(el) el.remove();
             
-            // 如果后端返回 busy 或 error，自动重试
             if (data && (data.status === 'busy' || data.error === 'Lock timeout')) {
                 handleError('Server busy');
             } else {
@@ -985,13 +446,8 @@
             var el = document.getElementById('sc-' + cbName);
             if(el) el.remove();
             delete window[cbName];
-
-            if (retryCount < 3) { // 最多重试 3 次
-                console.warn("Retrying request due to: " + reason);
-                var delay = 1000 * Math.pow(2, retryCount); // 1s, 2s, 4s
-                setTimeout(function() {
-                    jsonp(url, callback, retryCount + 1);
-                }, delay);
+            if (retryCount < 3) {
+                setTimeout(function() { jsonp(url, callback, retryCount + 1); }, 1000 * Math.pow(2, retryCount));
             } else {
                 callback({ error: 'Server is busy. Please refresh the page to try again.' });
             }
@@ -1000,14 +456,10 @@
         var s = document.createElement('script');
         s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
         s.id = 'sc-' + cbName;
-        s.onerror = function() { 
-            clearTimeout(timeoutTimer);
-            handleError('Network Error'); 
-        };
+        s.onerror = function() { clearTimeout(timeoutTimer); handleError('Network Error'); };
         document.body.appendChild(s);
     }
 
-    // --- 初始化流程 ---
     function requestAssignment() {
         var workerId = getProlificPid();
         var url = APPS_SCRIPT_URL + '?action=assign&worker_id=' + encodeURIComponent(workerId);
@@ -1016,146 +468,72 @@
             if (data && (data.pair_id || data.file_id1)) {
                 assignedPairInfo = data;
                 applyImages(data.file_id1, data.file_id2);
-                
-                // 预加载 Page 8 的 QC 图片 (如果后端返回了 ID)
-                // 这消除了翻页时的加载延迟
                 if (data.check_images) {
                     var ci = data.check_images;
                     if(ci.rural1) q('#qc-img-1-A').src = getFastDriveUrl(ci.rural1);
                     if(ci.urban1) q('#qc-img-1-B').src = getFastDriveUrl(ci.urban1);
-
                     if(ci.urban2) q('#qc-img-2-A').src = getFastDriveUrl(ci.urban2);
                     if(ci.rural2) q('#qc-img-2-B').src = getFastDriveUrl(ci.rural2);
-
                     if(ci.urban3) q('#qc-img-3-A').src = getFastDriveUrl(ci.urban3);
                     if(ci.rural3) q('#qc-img-3-B').src = getFastDriveUrl(ci.rural3);
                 }
             } else {
+                q('#loading-overlay').style.display = 'flex'; // [新增] 如果服务器报错没分发到任务，强制显示遮罩层挡住
                 q('#loading-error').style.display = 'block';
                 q('#loading-error').textContent = "Server Error: " + (data.error || 'No tasks available.');
             }
         });
     }
-    
-    // --- 图片加载容错机制 ---
-    // 当一张图加载失败时，自动尝试备用链接
+
     document.addEventListener('error', function(e) {
         var img = e.target;
-        // 只处理 img 标签的错误
         if (img.tagName !== 'IMG') return;
-
-        // 获取原始 File ID (从当前 src 中提取)
-        // 假设 src 包含 fileId，通常在 '=' 或 '/' 附近
-        // 这里我们用一个更稳妥的方法：在 applyImages 时把 ID 存到 dataset
         var fileId = img.dataset.fileId;
-        
-        if (!fileId) return; // 如果没有 ID，无法重试
+        if (!fileId) return; 
 
-        // 定义重试次数，防止死循环
         var retryCount = parseInt(img.dataset.retry || '0');
-        
         if (retryCount === 0) {
-            // 第一次失败：尝试官方缩略图接口 (Backup 1)
             img.dataset.retry = '1';
             img.src = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w3000';
-            console.warn('Image failed, retrying backup 1: ' + fileId);
         } else if (retryCount === 1) {
-            // 第二次失败：尝试原始查看接口 (Backup 2 - 慢但兼容性好)
             img.dataset.retry = '2';
             img.src = 'https://drive.google.com/uc?export=view&id=' + fileId;
-            console.warn('Image failed, retrying backup 2: ' + fileId);
         } else {
-            // 彻底失败：显示占位图或错误提示
             img.alt = "Image failed to load. Please refresh.";
             img.style.border = "2px solid red";
         }
-    }, true); // true 表示在捕获阶段处理，确保能抓到 error 事件
+    }, true); 
 
     function applyImages(fid1, fid2) {
         if (!fid1 || !fid2) return;
-        
-        // 1. 获取 URL (使用新的抗压 CDN 链接)
         var url1 = getFastDriveUrl(fid1);
         var url2 = getFastDriveUrl(fid2);
         
-        // 2. 设置页面上的图片元素 (并绑定重试所需的 ID)
-        qa('.survey-img-1').forEach(img => {
-            img.src = url1;
-            img.dataset.fileId = fid1; // 存入 ID 供重试使用
-            img.dataset.retry = '0';   // 重置重试计数
-        });
-        
-        qa('.survey-img-2').forEach(img => {
-            img.src = url2;
-            img.dataset.fileId = fid2;
-            img.dataset.retry = '0';
-        });
+        qa('.survey-img-1').forEach(img => { img.src = url1; img.dataset.fileId = fid1; img.dataset.retry = '0'; });
+        qa('.survey-img-2').forEach(img => { img.src = url2; img.dataset.fileId = fid2; img.dataset.retry = '0'; });
 
-        // 3. [关键修复] 定义 checkDone 函数
-        // 这个函数必须定义在 applyImages 内部，因为它使用了局部变量 count
         var count = 0;
         function checkDone() {
             count++;
-            // 当两张主图都完成加载（无论成功还是失败）后，移除遮罩层
             if (count >= 2) {
+                window.imagesLoaded = true; // [新增] 图片加载完毕，发放通行证
                 var overlay = document.getElementById('loading-overlay');
                 if (overlay) overlay.style.display = 'none';
             }
         }
-
-        // 4. 执行预加载 (Preload)
-        // 使用 JS Image 对象在后台加载，一旦完成（onload）或失败（onerror），都触发 checkDone
-        var i1 = new Image(); 
-        i1.onload = checkDone; 
-        i1.onerror = checkDone; 
-        i1.src = url1;
-
-        var i2 = new Image(); 
-        i2.onload = checkDone; 
-        i2.onerror = checkDone; 
-        i2.src = url2;
+        var i1 = new Image(); i1.onload = checkDone; i1.onerror = checkDone; i1.src = url1;
+        var i2 = new Image(); i2.onload = checkDone; i2.onerror = checkDone; i2.src = url2;
         
-        // 5. 记录 Pair ID
-        if (assignedPairInfo) {
-            document.body.dataset.pairIds = assignedPairInfo.pair_id || ('pair_' + fid1.slice(-5));
-        }
+        if (assignedPairInfo) { document.body.dataset.pairIds = assignedPairInfo.pair_id || ('pair_' + fid1.slice(-5)); }
     }
 
-    // --- 评分 UI (最终优化版: Fits + 属性加粗) ---
     function buildRatingControls() {
-        
-        // 定义层级配置
         const levels = [
-            { 
-                val: 1, 
-                desk: "Left fits", 
-                mob: "Top fits", 
-                end: "much better" 
-            },
-            { 
-                val: 0.5, 
-                desk: "Left fits", 
-                mob: "Top fits", 
-                end: "slightly better" 
-            },
-            { 
-                val: 0, 
-                desk: "Equal / Hard to tell", 
-                mob: "Equal / Hard to tell",
-                isNeutral: true 
-            },
-            { 
-                val: -0.5, 
-                desk: "Right fits", 
-                mob: "Bottom fits", 
-                end: "slightly better" 
-            },
-            { 
-                val: -1, 
-                desk: "Right fits", 
-                mob: "Bottom fits", 
-                end: "much better" 
-            }
+            { val: 1, desk: "Left fits", mob: "Top fits", end: "much better" },
+            { val: 0.5, desk: "Left fits", mob: "Top fits", end: "slightly better" },
+            { val: 0, desk: "Equal / Hard to tell", mob: "Equal / Hard to tell", isNeutral: true },
+            { val: -0.5, desk: "Right fits", mob: "Bottom fits", end: "slightly better" },
+            { val: -1, desk: "Right fits", mob: "Bottom fits", end: "much better" }
         ];
 
         ATTRIBUTES.forEach(attr => {
@@ -1166,10 +544,6 @@
             levels.forEach(lvl => {
                 var label = document.createElement('label');
                 label.className = 'rating-option';
-                
-                // 动态构建文案
-                // 修改点：在 ${attr} 前后加上 <strong> 标签使其加粗
-                // 效果: "Left fits <strong>Safe</strong> much better"
                 var txtDesktop = lvl.isNeutral ? lvl.desk : `${lvl.desk} <strong>${attr}</strong> ${lvl.end}`;
                 var txtMobile  = lvl.isNeutral ? lvl.mob  : `${lvl.mob} <strong>${attr}</strong> ${lvl.end}`;
                 
@@ -1180,7 +554,6 @@
                         <span class="mobile-text">${txtMobile}</span>
                     </span>
                 `;
-                
                 label.addEventListener('change', function() {
                     container.querySelectorAll('.rating-option').forEach(o => o.classList.remove('selected'));
                     if(this.querySelector('input').checked) {
@@ -1193,375 +566,78 @@
         });
     }
 
-    // --- Fabric.js 核心逻辑 ---
+    function showDialog(title, text) {
+        var modal = document.getElementById('msg-modal');
+        var content = document.getElementById('msg-content');
+        var icon = '👋';
+        if(title.includes('Missing') || title.includes('Required')) icon = '📝';
+        if(title.includes('Logic')) icon = '💡';
+        if(title.includes('Error')) icon = '⚠️';
 
-    function initFabricCanvasForPage(attr) {
-        pageActionStack = []; 
-
-        ['1', '2'].forEach(idx => {
-            var key = `${attr}-${idx}`;
-            var canvasId = `cvs-${attr}-${idx}`;
-            var canvasEl = document.getElementById(canvasId);
-            // 注意：这里我们获取的是 img 标签，不是 wrapper
-            var imgEl = document.getElementById(`img-${attr}-${idx}`); 
-            
-            if (!canvasEl || !imgEl) return;
-            
-            // [补丁] 获取精确的图像渲染尺寸
-            // 由于 CSS 改为了 max-height/width，imgEl 的 rect 就是真实可视区域
-            // 使用 getBoundingClientRect 以处理亚像素（Sub-pixel）渲染，更精确
-            var rect = imgEl.getBoundingClientRect();
-            var w = rect.width;
-            var h = rect.height;
-
-            // 只有当图片已加载且有尺寸时才初始化
-            if (w === 0 || h === 0) {
-                // 如果图片还没加载完，等待一下（简单的重试机制）
-                imgEl.onload = function() { initFabricCanvasForPage(attr); };
-                return;
-            }
-            
-            if (fabricCanvases[key]) {
-                fabricCanvases[key].setDimensions({ width: w, height: h });
-                fabricCanvases[key].calcOffset();
-                // 重新定位 Canvas 容器确保居中（Fabric有时会重置 top/left）
-                var canvasContainer = fabricCanvases[key].wrapperEl;
-                canvasContainer.style.position = 'absolute';
-                canvasContainer.style.top = '50%';
-                canvasContainer.style.left = '50%';
-                canvasContainer.style.transform = 'translate(-50%, -50%)';
-                return;
-            }
-            
-            canvasHistory[key] = [];
-
-            var canvas = new fabric.Canvas(canvasId, { 
-                isDrawingMode: true, 
-                width: w, 
-                height: h 
-            });
-
-            // ================================================
-            // [新增补丁] 坐标钳制：强制画笔不超出画布边缘
-            // ================================================
-            // 保存原始的坐标获取方法
-            canvas.originalGetPointer = canvas.getPointer;
-            
-            // 重写该实例的 getPointer 方法
-            canvas.getPointer = function(e, ignoreZoom) {
-                // 1. 获取原始坐标（包含负数或超出宽高的值）
-                var ptr = canvas.originalGetPointer.call(canvas, e, ignoreZoom);
-                
-                // 2. 强制限制 X 轴在 [0, width] 之间
-                if (ptr.x < 0) ptr.x = 0;
-                if (ptr.x > canvas.width) ptr.x = canvas.width;
-                
-                // 3. 强制限制 Y 轴在 [0, height] 之间
-                if (ptr.y < 0) ptr.y = 0;
-                if (ptr.y > canvas.height) ptr.y = canvas.height;
-                
-                return ptr;
-            };
-            // ================================================
-            
-            canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-            canvas.freeDrawingBrush.width = 3;
-            canvas.freeDrawingBrush.color = COLORS.pos.stroke;
-
-            fabricCanvases[key] = canvas;
-            saveHistory(key);
-
-            // *** 智能模式切换 (Smart Mode Switching) ***
-            // 解决 "画笔模式下无法点击/选中已画圈" 的问题
-            canvas.on('mouse:move', function(opt) {
-                var pointer = canvas.getPointer(opt.e);
-                var isHoveringObject = false;
-                
-                var objects = canvas.getObjects();
-                for (var i = objects.length - 1; i >= 0; i--) {
-                    if (objects[i].containsPoint(pointer)) {
-                        isHoveringObject = true;
-                        break;
-                    }
-                }
-
-                if (!canvas.getActiveObject()) {
-                    if (isHoveringObject) {
-                        if (canvas.isDrawingMode) canvas.isDrawingMode = false; // 允许点击
-                    } else {
-                        if (!canvas.isDrawingMode) canvas.isDrawingMode = true; // 允许画画
-                    }
-                }
-            });
-
-            // 绘制完成事件
-            canvas.on('path:created', function(e) {
-                var path = e.path;
-                if (path.width < 5 && path.height < 5) { canvas.remove(path); return; }
-
-                var rawPoints = extractPointsFromPath(path);
-                var polyObj = new fabric.Polygon(rawPoints, {
-                    fill: COLORS.pos.fill,
-                    stroke: COLORS.pos.stroke,
-                    strokeWidth: 3,
-                    selectable: true,
-                    perPixelTargetFind: true, // 确保点击内部也能选中
-                    objectCaching: false,
-                    hasControls: false,
-                    hasBorders: true
-                });
-                
-                polyObj.sentiment = 'positive'; 
-
-                canvas.remove(path);
-                canvas.add(polyObj);
-                canvas.setActiveObject(polyObj);
-                
-                deselectOtherCanvases(key); // 互斥
-                pushPageAction(key); 
-                saveHistory(key);
-                updateUIState();
-            });
-
-            // 事件绑定
-            canvas.on('selection:created', () => { deselectOtherCanvases(key); updateUIState(); });
-            canvas.on('selection:updated', updateUIState);
-            canvas.on('selection:cleared', updateUIState);
-            canvas.on('object:modified', () => { pushPageAction(key); saveHistory(key); });
-            canvas.on('mouse:down', (opt) => {
-                if(!opt.target) {
-                    canvas.discardActiveObject();
-                    canvas.requestRenderAll();
-                    updateUIState();
-                }
-            });
-        });
+        modal.querySelector('.msg-icon').textContent = icon;
+        content.innerHTML = `<strong>${title}</strong><br><br>${text.replace(/\n/g, '<br/>')}`;
+        modal.classList.add('show');
     }
 
-    function deselectOtherCanvases(activeKey) {
-        Object.keys(fabricCanvases).forEach(k => {
-            if (k !== activeKey && fabricCanvases[k]) {
-                fabricCanvases[k].discardActiveObject();
-                fabricCanvases[k].requestRenderAll();
-            }
-        });
+    function showFriendlyQCWarning() {
+        var modal = document.getElementById('msg-modal');
+        var box = modal.querySelector('.msg-box');
+        var content = document.getElementById('msg-content');
+        var btn = modal.querySelector('.msg-btn');
+
+        box.classList.add('warning-theme');
+        modal.querySelector('.msg-icon').textContent = '🛑';
+        content.innerHTML = `
+            <strong style="font-size:20px; color:#b91c1c; display:block; margin-bottom:12px; text-align:center;">Data Quality Check Failed</strong>
+            <p style="margin:0 0 12px 0;">We detected inconsistent answers in the <strong>Environment Classification</strong> section (Page 5).</p>
+            <div style="margin:0 0 16px 0; background:#fff1f2; padding:14px; border-radius:8px; border:1px solid #fecdd3; border-left:5px solid #e11d48; color:#881337;">
+                <strong style="display:block; margin-bottom:6px;">⚠️ Warning:</strong>
+                <p style="margin:0 0 8px 0; font-size:15px;">This suggests that your previous responses might also be rushed or careless.</p>
+                <p style="margin:0; font-weight:700; font-size:15px;">Please review your answers carefully. Submissions with random or careless responses will be REJECTED.</p>
+            </div>
+            <p style="margin:0; font-size:15px; color:#4b5563;">To proceed, please correct the classification errors.</p>
+        `;
+        btn.textContent = "I understand. Let me fix it.";
+        btn.onclick = function() {
+            modal.classList.remove('show');
+            box.classList.remove('warning-theme'); 
+            showPage('5'); 
+            btn.onclick = function() { document.getElementById('msg-modal').classList.remove('show'); };
+        };
+        modal.classList.add('show');
     }
 
-    function pushPageAction(canvasKey) {
-        pageActionStack.push(canvasKey);
-    }
-
-    function saveHistory(key) {
-        if(isRestoring) return;
-        var canvas = fabricCanvases[key];
-        if(!canvas) return;
-        var json = JSON.stringify(canvas.toDatalessJSON(['sentiment']));
-        canvasHistory[key].push(json);
-        if(canvasHistory[key].length > 30) canvasHistory[key].shift();
-        renderRegionList(key);
-    }
-
-    function performGlobalUndo() {
-        if (pageActionStack.length === 0) return; 
-        var lastModifiedKey = pageActionStack.pop(); 
-        var stack = canvasHistory[lastModifiedKey];
-        var canvas = fabricCanvases[lastModifiedKey];
-
-        if (stack && stack.length > 1 && canvas) {
-            stack.pop(); 
-            var prevState = stack[stack.length - 1]; 
-            isRestoring = true;
-            canvas.loadFromJSON(prevState, function() {
-                canvas.renderAll();
-                isRestoring = false;
-                renderRegionList(lastModifiedKey);
-                updateUIState();
-            });
-        }
-    }
-
-    function renderRegionList(key) {
-        var parts = key.split('-');
-        var listContainer = document.getElementById(`list-${parts[0]}-${parts[1]}`);
-        if(!listContainer) return;
-        
-        var canvas = fabricCanvases[key];
-        var objects = canvas.getObjects();
-        
-        listContainer.innerHTML = '';
-        if (objects.length === 0) {
-            listContainer.innerHTML = '<div style="color:#94a3b8;font-style:italic;padding:4px;font-size:13px;">No regions drawn yet</div>';
-            return;
-        }
-
-        objects.forEach((obj, i) => {
-            var item = document.createElement('div');
-            var isPos = (obj.sentiment !== 'negative');
-            item.className = `region-item ${isPos ? 'pos' : 'neg'}`;
-            
-            if (canvas.getActiveObjects().indexOf(obj) > -1) item.classList.add('active');
-            
-            item.innerHTML = `<span>Region ${i + 1}</span> <span style="font-size:12px;color:#64748b">${isPos?'Positive':'Negative'}</span>`;
-            
-            item.addEventListener('click', (e) => {
-                e.stopPropagation(); 
-                deselectOtherCanvases(key);
-                canvas.discardActiveObject();
-                canvas.setActiveObject(obj);
-                canvas.requestRenderAll();
-                updateUIState();
-            });
-            listContainer.appendChild(item);
-        });
-    }
-
-    function getGlobalActiveObject() {
-        var keys = Object.keys(fabricCanvases);
-        for(var i=0; i<keys.length; i++) {
-            var c = fabricCanvases[keys[i]];
-            var act = c.getActiveObject();
-            if(act) return { canvas: c, object: act, key: keys[i] };
-        }
-        return null;
-    }
-
-    function updateUIState() {
-        var curPage = document.querySelector('.page.active');
-        if (!curPage || !curPage.dataset.attrIndex || !curPage.querySelector('canvas')) return;
-
-        var attr = ATTRIBUTES[parseInt(curPage.dataset.attrIndex)];
-        var activeInfo = getGlobalActiveObject();
-        var hasActive = !!activeInfo;
-
-        var btnToggle = curPage.querySelector('[data-toggle-sentiment]');
-        var btnDelete = curPage.querySelector('[data-delete-selected]');
-        if(btnToggle) btnToggle.disabled = !hasActive;
-        if(btnDelete) btnDelete.disabled = !hasActive;
-
-        renderRegionList(`${attr}-1`);
-        renderRegionList(`${attr}-2`);
-    }
-
-    // *** 激活工具栏按钮 ***
-    function setupFabricControls() {
-        qa('[data-toggle-sentiment]').forEach(btn => {
-            btn.addEventListener('click', function() {
-                var info = getGlobalActiveObject();
-                if(info) {
-                    var act = info.object;
-                    act.sentiment = (act.sentiment === 'positive' ? 'negative' : 'positive');
-                    act.set(act.sentiment === 'positive' ? COLORS.pos : COLORS.neg);
-                    info.canvas.requestRenderAll();
-                    pushPageAction(info.key);
-                    saveHistory(info.key);
-                    updateUIState();
-                }
-            });
-        });
-
-        qa('[data-delete-selected]').forEach(btn => {
-            btn.addEventListener('click', function() {
-                var info = getGlobalActiveObject();
-                if(info) {
-                    info.canvas.remove(info.object);
-                    info.canvas.discardActiveObject();
-                    info.canvas.requestRenderAll();
-                    pushPageAction(info.key);
-                    saveHistory(info.key);
-                    updateUIState();
-                }
-            });
-        });
-
-        qa('[data-undo]').forEach(btn => {
-            btn.addEventListener('click', performGlobalUndo);
-        });
-
-        qa('[data-clear]').forEach(btn => {
-            btn.addEventListener('click', function() {
-                if(!confirm("Are you sure you want to clear all regions on this page?")) return;
-                var curPage = document.querySelector('.page.active');
-                var attr = ATTRIBUTES[parseInt(curPage.dataset.attrIndex)];
-                
-                [`${attr}-1`, `${attr}-2`].forEach(key => {
-                    var c = fabricCanvases[key];
-                    if(c) {
-                        c.clear();
-                        c.isDrawingMode = true;
-                        pushPageAction(key);
-                        saveHistory(key);
-                    }
-                });
-                updateUIState();
-            });
-        });
-    }
-
-    function extractPointsFromPath(pathObj) {
-        var points = [];
-        var cmds = pathObj.path;
-        cmds.forEach(cmd => {
-            var len = cmd.length;
-            if (len >= 3) points.push({ x: cmd[len-2], y: cmd[len-1] });
-        });
-        return points;
-    }
-
-    function downsamplePoints(points, w, h) {
-        if (points.length < 5) return points; 
-        var result = [];
-        var lastX = -999, lastY = -999;
-        var threshold = 0.02; // 2% 距离阈值
-
-        points.forEach(p => {
-            var nx = Math.round((p.x / w) * 1000) / 1000;
-            var ny = Math.round((p.y / h) * 1000) / 1000;
-            var dist = Math.sqrt(Math.pow(nx - lastX, 2) + Math.pow(ny - lastY, 2));
-            if (dist > threshold) {
-                result.push([nx, ny]);
-                lastX = nx; lastY = ny;
-            }
-        });
-        
-        if (result.length < 3 && points.length >= 3) {
-             return [
-                 [Math.round(points[0].x/w*1000)/1000, Math.round(points[0].y/h*1000)/1000],
-                 [Math.round(points[Math.floor(points.length/2)].x/w*1000)/1000, Math.round(points[Math.floor(points.length/2)].y/h*1000)/1000],
-                 [Math.round(points[points.length-1].x/w*1000)/1000, Math.round(points[points.length-1].y/h*1000)/1000]
-             ];
-        }
-        return result;
-    }
-
-    function collectCanvasData(attr) {
-        ['1', '2'].forEach(idx => {
-            var k = idx + '.jpg';
-            var c = fabricCanvases[`${attr}-${idx}`];
-            if (!c) return;
-            var w = c.width;
-            var h = c.height;
-            var savedRegions = [];
-            c.getObjects().forEach(obj => {
-                if (obj.points) {
-                    var compactPoints = downsamplePoints(obj.points, w, h);
-                    savedRegions.push({
-                        points: compactPoints,
-                        sentiment: obj.sentiment || 'positive'
-                    });
-                }
-            });
-            state.points[attr][k] = savedRegions;
-        });
-    }
-
-    // --- 页面导航 ---
+    // --- Page Navigation ---
     document.addEventListener('click', function(e) {
         var btn = e.target.closest('button');
         if (!btn) return;
 
+        // Consent Page Exit Logic
+        if (btn.id === 'btn-disagree') {
+            // [修正] 盲退保险 (Blind Abort): 应对受访者点同意后“刷新页面”导致前端丢失状态，又点不同意的极端情况
+            var workerId = getProlificPid();
+            if (workerId) {
+                var url = APPS_SCRIPT_URL + '?action=abort&worker_id=' + encodeURIComponent(workerId);
+                jsonp(url, function() { console.log("Cleaned up any potential ghost assignments."); });
+            }
+
+            document.getElementById('main-container').innerHTML = `
+                <div style="text-align:center; padding: 60px 20px;">
+                    <h2 style="color:#ef4444; font-size:28px;">Session Terminated</h2>
+                    <p style="font-size: 18px; color: #475569;">You have chosen not to participate. Thank you for your time. You may now close this window or return the submission on Prolific.</p>
+                </div>
+            `;
+            return;
+        }
+
         if (btn.dataset.next) {
             var curPage = document.querySelector('.page.active');
             var nextId = btn.dataset.next;
+
+            // [新增] 延迟触发分配：仅当受访者点击“I Agree”进入第1页时，才向后端索要任务
+            if (curPage.id === 'page-0' && nextId === '1' && !assignedPairInfo) {
+                requestAssignment();
+            }
 
             if (curPage.id === 'page-1') {
                 var missing = [];
@@ -1581,6 +657,12 @@
                     nationality: q('#nationality').value,
                     education: q('#education').value || "Not specified"
                 };
+
+                // [新增] 拦截器：如果手速极快导致此时图片还没加载完，或者后端还没返回任务
+                if (!window.imagesLoaded || !assignedPairInfo) {
+                    // 弹出遮罩层。页面会继续切换到 Page 2，但受访者视野会被遮住，直到 checkDone() 将其隐藏。
+                    document.getElementById('loading-overlay').style.display = 'flex';
+                }
             }
 
             if (curPage.querySelector('.rating-list')) {
@@ -1591,25 +673,7 @@
                 }
             }
 
-            if (curPage.querySelector('canvas')) {
-                var attr = ATTRIBUTES[parseInt(curPage.dataset.attrIndex)];
-                collectCanvasData(attr);
-                var totalRegions = state.points[attr]['1.jpg'].length + state.points[attr]['2.jpg'].length;
-                var checkboxes = Array.from(document.querySelectorAll(`#global-${attr} input:checked`));
-                var globalVals = checkboxes.map(cb => cb.value === "None" ? "No specific reason" : cb.value);
-                state.global_factors[attr] = globalVals;
-
-                if (totalRegions === 0 && globalVals.length === 0) {
-                    showDialog("Logic Requirement", 
-                        "Please provide your reasoning by either:\n\n" +
-                        "1. Drawing circles around specific objects in the images.\n" +
-                        "   — OR —\n" +
-                        "2. Selecting a 'Global atmospheric factor' at the bottom (e.g., Lighting, Layout, or No specific reason).");
-                    return; 
-                }
-            }
-
-            if (curPage.id === 'page-check') {
+            if (curPage.id === 'page-5') {
                 var a1 = q('#qc-ans-1').value;
                 var a2 = q('#qc-ans-2').value;
                 var a3 = q('#qc-ans-3').value;
@@ -1620,8 +684,7 @@
                 if(!a3) missingQC.push("Image Pair 3");
                 if(!pref) missingQC.push("General Preference");
                 if (missingQC.length > 0) {
-                    showDialog("Action Required: Incomplete Selection", 
-                        "Please complete all the choices to proceed:\n\n• " + missingQC.join("\n• "));
+                    showDialog("Action Required: Incomplete Selection", "Please complete all the choices to proceed:\n\n• " + missingQC.join("\n• "));
                     return;
                 }
                 state.quality_check = { q1: a1, q2: a2, q3: a3, preference: pref.value };
@@ -1631,14 +694,6 @@
         }
 
         if (btn.dataset.go) showPage(btn.dataset.go);
-
-        if (btn.hasAttribute('data-back-to-rating')) {
-            var curPage = document.querySelector('.page.active');
-            var idx = parseInt(curPage.dataset.attrIndex);
-            var target = 2 + idx * 2;
-            if (idx >= 3) target += 1;
-            showPage(target);
-        }
 
         if (btn.id === 'finish') submitData();
     });
@@ -1657,15 +712,10 @@
         if(next) {
             next.classList.add('active');
             window.scrollTo(0,0);
-            if (idSuffix == 15) renderSummary(); 
-            if(next.dataset.attrIndex && next.querySelector('canvas')) {
-                var a = ATTRIBUTES[parseInt(next.dataset.attrIndex)];
-                setTimeout(() => { initFabricCanvasForPage(a); }, 150);
-            }
+            if (idSuffix == 9) renderSummary(); 
         }
     }
 
-    // *** 渲染 Review (文字优化版) ***
     function renderSummary() {
         var c = q('#summary-container');
         var d = state.demographics;
@@ -1688,19 +738,12 @@
             <div><strong>General Preference:</strong> ${qc.preference || '-'}</div>
         </div>`;
 
-        html += '<h3 style="margin-bottom:12px;">Perception Ratings</h3><table class="summary-table"><thead><tr><th>Attribute</th><th>Rating</th><th>Regions (Pos/Neg)</th><th>Global Factors</th></tr></thead><tbody>';
+        html += '<h3 style="margin-bottom:12px;">Perception Ratings</h3><table class="summary-table"><thead><tr><th>Attribute</th><th>Rating</th></tr></thead><tbody>';
         
         ATTRIBUTES.forEach(attr => {
             var val = state.pairwise[attr];
             var rText = (val===1)?'Left++':(val===0.5)?'Left+':(val===0)?'Equal':(val===-0.5)?'Right+':'Right++';
-            
-            var pos = 0, neg = 0;
-            ['1.jpg','2.jpg'].forEach(k => {
-                (state.points[attr][k]||[]).forEach(r => r.sentiment==='negative'?neg++:pos++);
-            });
-            var gf = (state.global_factors[attr]||[]).join(', ') || '-';
-            
-            html += `<tr><td>${attr}</td><td>${rText}</td><td><span style="color:#22c55e">${pos}</span> / <span style="color:#ef4444">${neg}</span></td><td>${gf}</td></tr>`;
+            html += `<tr><td>${attr}</td><td><strong>${rText}</strong></td></tr>`;
         });
         html += '</tbody></table>';
         c.innerHTML = html;
@@ -1710,7 +753,7 @@
         var qc = state.quality_check;
         if (qc.q1 !== 'A' || qc.q2 !== 'B' || qc.q3 !== 'B') {
             showFriendlyQCWarning();
-            return; // 直接中止，绝不向后端发送请求，也不显示提交动画
+            return; 
         }
         var btn = q('#finish');
         btn.disabled = true; 
@@ -1722,8 +765,6 @@
         var payload = {
             demographics: state.demographics,
             pairwise: state.pairwise,
-            points: state.points,
-            global_factors: state.global_factors,
             quality_check: state.quality_check,
             pair_ids: assignedPairInfo ? [assignedPairInfo.pair_id] : [],
             meta: { timestamp: new Date().toISOString() }
@@ -1735,87 +776,42 @@
         fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData })
         .then(r => r.json())
         .then(data => {
-            // [逻辑分支 1] 如果后端返回 QC 失败
             if (data.status === 'qc_fail') {
                 q('#submit-overlay').classList.remove('show');
-                q('.spinner').style.display = 'none';
                 showFriendlyQCWarning();
                 btn.disabled = false;
-                btn.textContent = "Finish and export ▶";
                 return;
             }
 
-            // [防线 2：你的核心诉求] 云盘文件保存失败 (并发超时等)
             if (data.status === 'error') {
                 q('#submit-overlay-message').textContent = 'Server Error';
-                // 提示用户由于网络拥挤保存失败，并允许他们重试
-                q('#submit-overlay-status').textContent = data.message || 'Failed to save file to Google Drive due to high traffic. Please try submitting again.';
-                q('.spinner').style.display = 'none'; // 隐藏转圈动画
-                
-                // 允许他们重新点击提交按钮进行重试
-                btn.disabled = false; 
-                btn.textContent = "Retry Submit"; 
-                
-                alert("Server is busy and your data was not saved. Please click 'Retry Submit' in a few seconds.");
-                return; // 立即终止，绝不给完成码
+                q('#submit-overlay-status').textContent = data.message || 'Failed to save file. Please try again.';
+                q('.spinner').style.display = 'none';
+                btn.disabled = false; btn.textContent = "Retry Submit"; 
+                alert("Server is busy. Please click 'Retry Submit' in a few seconds.");
+                return; 
             }
 
-            // [防线 3：最终胜利] 只有后端明确返回 'ok'，证明文件已确切存在 Drive 中
             if (data.status === 'ok') {
                 q('#submit-overlay-message').textContent = 'Submission Complete!';
-                q('#submit-overlay-status').textContent = 'Redirecting to Prolific automatically...'; // 提示自动跳转
-                
+                q('#submit-overlay-status').textContent = 'Redirecting to Prolific automatically...'; 
                 q('.spinner').style.display = 'none';
                 
                 var completionUrl = "https://app.prolific.com/submissions/complete?cc=CLUCC7RR";
-                
-                // 【核心新增】：设定 2.5 秒后自动跳转
-                var redirectTimer = setTimeout(() => {
-                    window.location.href = completionUrl; // 强制当前页面跳转
-                }, 2500);
+                var redirectTimer = setTimeout(() => { window.location.href = completionUrl; }, 2500);
 
-                // 备用方案：以防受试者的浏览器拦截了自动跳转
                 q('#submit-overlay-confirm').style.display = 'inline-block';
                 q('#submit-overlay-confirm').textContent = 'Go to Prolific Now';
-                
-                q('#submit-overlay-confirm').onclick = () => {
-                    clearTimeout(redirectTimer); // 如果用户等不及自己点了，就取消自动跳转的定时器
-                    window.location.href = completionUrl; 
-                };
+                q('#submit-overlay-confirm').onclick = () => { clearTimeout(redirectTimer); window.location.href = completionUrl; };
 
-                // 同时在背后渲染那个带有完成码的收据页面，作为最后的兜底 (Fallback)
                 overlay.classList.remove('show');
                 q('#submission-receipt').style.display = 'block';
                 q('#receipt-content').innerHTML = `
-                    <div style="color:#166534; font-weight:bold; font-size:18px; margin-bottom:16px;">
-                        Data Saved Successfully!
-                    </div>
-                    <div style="margin-bottom:20px; color:#475569;">
-                        You are being redirected to Prolific...<br>
-                        If nothing happens in 3 seconds, please click the button below.
-                    </div>
-                    
-                    <a href="${completionUrl}" style="
-                        display:inline-block;
-                        background:#2563eb; 
-                        color:#fff; 
-                        padding:16px 32px; 
-                        text-decoration:none; 
-                        border-radius:8px; 
-                        font-weight:bold;
-                        font-size:16px;
-                        box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
-                    ">
-                       Return to Prolific
-                    </a>
-                    
-                    <div style="margin-top:12px; font-size:13px; color:#94a3b8;">
-                        (Or manually enter completion code: <strong>CLUCC7RR</strong>)
-                    </div>
+                    <div style="color:#166534; font-weight:bold; font-size:18px; margin-bottom:16px;">Data Saved Successfully!</div>
+                    <div style="margin-bottom:20px; color:#475569;">You are being redirected to Prolific...</div>
+                    <a href="${completionUrl}" style="display:inline-block; background:#2563eb; color:#fff; padding:16px 32px; text-decoration:none; border-radius:8px; font-weight:bold;">Return to Prolific</a>
                 `;
-                
-                btn.textContent = "Data Submitted";
-                btn.disabled = true; 
+                btn.textContent = "Data Submitted"; btn.disabled = true; 
                 window.scrollTo(0, document.body.scrollHeight);
             }
         })
@@ -1824,39 +820,31 @@
             q('#submit-overlay-status').textContent = err.message;
             q('.spinner').style.borderTopColor = '#ef4444';
             
-            // 自动下载备份
             var a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'}));
             a.download = state.demographics.id + '_backup.json';
             a.click();
-            
             alert("Network Error. A backup file has been saved. Please contact the researcher.");
             btn.disabled = false;
         });
     }
 
-    // --- 启动监听 ---
     window.addEventListener('DOMContentLoaded', () => {
         buildRatingControls();
-        setupFabricControls(); 
 
-        // [修正版] 加载 QC 图片：同时设置 src 和 data-file-id 以支持自动重试
         function setQCImage(domId, fileId) {
             var img = document.querySelector(domId);
             if (img && fileId) {
-                img.src = getFastDriveUrl(fileId); // 使用高速 CDN
-                img.dataset.fileId = fileId;       // *** 关键：绑定 ID 供自动重试使用 ***
-                img.dataset.retry = '0';           // 初始化重试计数
+                img.src = getFastDriveUrl(fileId);
+                img.dataset.fileId = fileId;       
+                img.dataset.retry = '0';           
             }
         }
 
-        // 批量应用 6 张 QC 图
         setQCImage('#qc-img-1-A', CHECK_IMAGE_IDS.rural1);
         setQCImage('#qc-img-1-B', CHECK_IMAGE_IDS.urban1);
-
         setQCImage('#qc-img-2-A', CHECK_IMAGE_IDS.urban2);
         setQCImage('#qc-img-2-B', CHECK_IMAGE_IDS.rural2);
-
         setQCImage('#qc-img-3-A', CHECK_IMAGE_IDS.urban3);
         setQCImage('#qc-img-3-B', CHECK_IMAGE_IDS.rural3);
         
@@ -1867,15 +855,8 @@
             q('#user-id').style.background = '#e2e8f0';
         }
         
-        requestAssignment();
-
-        window.addEventListener('resize', () => {
-             var cur = document.querySelector('.page.active');
-             if(cur && cur.dataset.attrIndex && cur.querySelector('canvas')) {
-                 var attr = ATTRIBUTES[parseInt(cur.dataset.attrIndex)];
-                 initFabricCanvasForPage(attr); 
-             }
-        });
+        // [移除] 不再于页面加载时抢占配额
+        // requestAssignment();
     });
 
 })();
