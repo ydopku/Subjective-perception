@@ -171,6 +171,30 @@
       .desktop-text { display: none; }
     }
   </style>
+
+<style id="v3-review-and-rating-ui">
+.image-slot{flex:1;min-width:0;width:100%;display:flex;flex-direction:column;gap:8px}
+.image-slot .img-wrapper{flex:1;width:100%}
+.image-ab-label{color:#334155;font-size:14px;font-weight:700;text-align:center;line-height:1.25;pointer-events:none}
+.five-point-meter{position:relative;max-width:750px;margin:4px auto 18px;padding:8px 8px 0}
+.five-point-track{position:relative;display:grid;grid-template-columns:repeat(5,1fr);align-items:center;min-height:34px}
+.five-point-track::before{content:"";position:absolute;left:10%;right:10%;top:50%;height:3px;background:#cbd5e1;transform:translateY(-50%);z-index:0}
+.meter-point{position:relative;z-index:1;width:26px;height:26px;margin:0 auto;border-radius:50%;border:3px solid #94a3b8;background:#fff;cursor:pointer;padding:0;transition:transform .15s ease,border-color .15s ease,background .15s ease}
+.meter-point:hover,.meter-point:focus-visible{transform:scale(1.12);border-color:#2563eb;outline:none}
+.meter-point.selected{border-color:#2563eb;background:#2563eb;box-shadow:0 0 0 4px rgba(37,99,235,.14)}
+.meter-captions{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:7px;color:#475569;font-size:12px;line-height:1.25;text-align:center}
+.meter-captions strong{display:block;color:#0f172a;font-size:12px}
+.review-image-panel{margin:0 0 24px;padding:18px;border:1px solid #cbd5e1;border-radius:12px;background:#f8fafc}
+.review-image-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.review-thumb-title{margin-bottom:8px;text-align:center;font-weight:700;color:#0f172a}
+.review-thumb-canvas{display:block;width:100%;aspect-ratio:16/9;border-radius:8px;border:1px solid #cbd5e1;background:#e2e8f0}
+.review-thumb-note{margin:12px 0 0;color:#64748b;font-size:13px;text-align:center}
+@media(max-width:640px){
+  .meter-captions,.meter-captions strong{font-size:10px}
+  .review-image-grid{grid-template-columns:1fr}
+}
+</style>
+
 </head>
 
 <body data-pair-ids="">
@@ -187,7 +211,8 @@
 <div id="loading-overlay" style="position:fixed;inset:0;background:#fff;z-index:10000;display:none;flex-direction:column;align-items:center;justify-content:center;">
   <div style="font-size:1.5rem;font-weight:700;color:#1e293b;margin-bottom:10px;">Loading Survey</div>
   <div style="width:40px;height:40px;border:5px solid rgba(37,99,235,0.2);border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite;"></div>
-  <div id="loading-error" style="display:none;margin-top:20px;color:#ef4444;font-weight:600;"></div>
+  <div id="loading-error" style="display:none;margin-top:20px;color:#ef4444;font-weight:600;max-width:760px;text-align:center;padding:0 24px;"></div>
+  <button id="loading-reload" type="button" style="display:none;margin-top:18px;padding:12px 22px;" onclick="window.location.reload()">Refresh survey</button>
 </div>
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
@@ -203,11 +228,14 @@
         <ul style="padding-left: 20px; margin-bottom: 0;">
             <li style="margin-bottom: 8px;"><strong>Voluntary Participation:</strong> Your participation is completely voluntary. You may withdraw from the study at any time without penalty.</li>
             <li style="margin-bottom: 8px;"><strong>Anonymity & Privacy:</strong> All data collected will be strictly anonymous. Your personal identity will not be linked to your responses or published in any academic papers.</li>
-            <li style="margin-bottom: 8px;"><strong>Task Description:</strong> You will be asked to compare pairs of street-level images and choose which one better represents a specific attribute (e.g., safety, beauty).</li>
+            <li style="margin-bottom: 8px;"><strong>Task Description:</strong> You will be asked to compare pairs of street-level images and choose which one better represents a specific attribute (e.g., safety, beauty). Please make your judgments as if you were a pedestrian walking through the scene.</li>
             <li><strong>Duration:</strong> The survey will take approximately 3-5 minutes to complete.</li>
         </ul>
       </div>
       <p style="font-weight: 600; color: #0f172a; text-align: center;">By clicking "I Agree" below, you confirm that you have read and understood the information provided and consent to participate in this study.</p>
+      <div style="margin:18px auto 0;max-width:900px;padding:14px 16px;border-radius:10px;background:#fffbeb;border:1px solid #fde68a;color:#78350f;font-size:14px;line-height:1.55;">
+        <strong>Technical note:</strong> Images are delivered from Google Drive. If the survey becomes stuck on “Loading Survey” or an image does not appear after several seconds, please refresh this page once before contacting the researcher. After refreshing, click “I Agree” again; your assigned image pair will be restored automatically. Any unsent answers may need to be entered again.
+      </div>
       
       <div class="buttons" style="justify-content: space-between;">
         <button class="btn-decline" id="btn-disagree" type="button">I Disagree (Exit Survey)</button>
@@ -392,7 +420,7 @@
     'use strict';
 
     // *** Configuration ***
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxxautcE3NZ-wl6OnsXNobUxL3r8kyBrixYLfIBN6_eIUPMX0AwDbZ6pCfNlYAm5z_M/exec';
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxCc1OrTFsI9_5nC9de2Ru7VA12xjxCuP8uJZiaRLB2KUbvY3q-L500V-qtCf62eG0x/exec';
     const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
 
     const CHECK_IMAGE_IDS = {
@@ -406,7 +434,14 @@
 
     var state = { demographics: {}, pairwise: {}, quality_check: {} };
     var assignedPairInfo = null;
-    window.imagesLoaded = false; // [新增] 设立全局图片加载状态通行证
+    var assignmentRequestInFlight = false;
+    var currentCheckImageIds = Object.assign({}, CHECK_IMAGE_IDS);
+    var resolvedPairImages = null;
+    var resolvedQCImages = {};
+    var qcImagePromises = {};
+    var qcBackgroundStarted = false;
+    var assignmentResumeHint = false;
+    window.imagesLoaded = false;
 
     function q(s) { return document.querySelector(s); }
     function qa(s) { return Array.from(document.querySelectorAll(s)); }
@@ -420,148 +455,676 @@
         return s;
     }
 
-    function getFastDriveUrl(fileId) {
-        return 'https://lh3.googleusercontent.com/d/' + fileId + '=w3000';
+    function getFastDriveUrl(fileId, width) {
+        width = width || 1600;
+        return 'https://lh3.googleusercontent.com/d/' + fileId + '=w' + width;
+    }
+
+    function assignmentStorageKey(name) {
+        return 'streetscape_' + name + '_' + getProlificPid();
+    }
+
+    function getOrCreateAssignmentRequestId() {
+        var key = assignmentStorageKey('request_id');
+        var requestId = localStorage.getItem(key);
+        if (!requestId) {
+            requestId = 'req-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+            localStorage.setItem(key, requestId);
+        }
+        return requestId;
+    }
+
+    function markAssignmentPending() {
+        localStorage.setItem(assignmentStorageKey('pending'), '1');
+    }
+
+    function markAssignmentActive() {
+        localStorage.removeItem(assignmentStorageKey('pending'));
+        localStorage.setItem(assignmentStorageKey('active'), '1');
+    }
+
+    function submissionStorageKey(name) {
+        return 'streetscape_submission_' + name + '_' + getProlificPid();
+    }
+
+    function getOrCreateSubmissionId() {
+        var key = submissionStorageKey('id');
+        var submissionId = localStorage.getItem(key);
+        if (!submissionId) {
+            submissionId = 'sub-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+            localStorage.setItem(key, submissionId);
+        }
+        localStorage.setItem(submissionStorageKey('pending'), '1');
+        return submissionId;
+    }
+
+    function clearSubmissionClientState() {
+        localStorage.removeItem(submissionStorageKey('id'));
+        localStorage.removeItem(submissionStorageKey('pending'));
+    }
+
+    function clearAssignmentClientState() {
+        localStorage.removeItem(assignmentStorageKey('pending'));
+        localStorage.removeItem(assignmentStorageKey('active'));
+        localStorage.removeItem(assignmentStorageKey('request_id'));
+        clearSubmissionClientState();
+    }
+
+    function showRecoveredSubmissionComplete() {
+        clearAssignmentClientState();
+        var loadingOverlay = q('#loading-overlay');
+        if (loadingOverlay) loadingOverlay.style.display = 'none';
+        var completionUrl = 'https://app.prolific.com/submissions/complete?cc=CLUCC7RR';
+        var container = document.getElementById('main-container');
+        if (!container) return;
+
+        container.innerHTML = `
+            <div style="text-align:center;padding:60px 20px;max-width:760px;margin:0 auto;">
+                <h2 style="color:#15803d;font-size:28px;">Submission Already Received</h2>
+                <p style="font-size:17px;color:#475569;line-height:1.6;">
+                    Your response has already been saved successfully. No additional survey response is required.
+                </p>
+                <a href="${completionUrl}" style="display:inline-block;margin-top:18px;background:#2563eb;color:#fff;padding:14px 26px;text-decoration:none;border-radius:8px;font-weight:700;">
+                    Return to Prolific
+                </a>
+            </div>`;
+    }
+
+    function showLoadingFailure(message, allowRefresh) {
+        var overlay = q('#loading-overlay');
+        var loadingError = q('#loading-error');
+        var reloadButton = q('#loading-reload');
+        if (overlay) overlay.style.display = 'flex';
+        if (loadingError) {
+            loadingError.style.display = 'block';
+            loadingError.textContent = message;
+        }
+        if (reloadButton) reloadButton.style.display = allowRefresh ? 'inline-block' : 'none';
+    }
+
+    function clearLoadingFailure() {
+        var loadingError = q('#loading-error');
+        var reloadButton = q('#loading-reload');
+        if (loadingError) {
+            loadingError.style.display = 'none';
+            loadingError.textContent = '';
+        }
+        if (reloadButton) reloadButton.style.display = 'none';
+    }
+
+    function sleep(ms) {
+        return new Promise(function(resolve) { setTimeout(resolve, ms); });
+    }
+
+    function randomBetween(min, max) {
+        return Math.floor(min + Math.random() * (max - min + 1));
     }
 
     function jsonp(url, callback, retryCount) {
         retryCount = retryCount || 0;
+        var MAX_RETRIES = 6;
         var cbName = 'cb_' + Math.random().toString(36).slice(2);
-        var timeoutTimer = setTimeout(function() { handleError("Timeout"); }, 15000);
+        var settled = false;
+        var scriptEl = null;
 
-        window[cbName] = function(data) {
+        function cleanup() {
+            if (scriptEl && scriptEl.parentNode) scriptEl.parentNode.removeChild(scriptEl);
+            try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+        }
+
+        function isBusyResponse(data) {
+            if (!data) return false;
+            var msg = String(data.error || data.message || '');
+            return data.status === 'busy' ||
+                   data.code === 'LOCK_BUSY' ||
+                   data.code === 'ASSIGN_PERSIST_BUSY' ||
+                   data.code === 'ASSIGNMENTS_SHEET_BUSY' ||
+                   data.code === 'ASSIGN_RESTORE_BUSY' ||
+                   /锁超时|lock\s*timeout|another process.*lock/i.test(msg);
+        }
+
+        function retryOrFail(reason, serverDelay) {
+            if (settled) return;
+            settled = true;
             clearTimeout(timeoutTimer);
-            delete window[cbName];
-            var el = document.getElementById('sc-' + cbName);
-            if(el) el.remove();
-            
-            if (data && (data.status === 'busy' || data.error === 'Lock timeout')) {
-                handleError('Server busy');
-            } else {
-                callback(data);
-            }
-        };
+            cleanup();
 
-        function handleError(reason) {
-            var el = document.getElementById('sc-' + cbName);
-            if(el) el.remove();
-            delete window[cbName];
-            if (retryCount < 3) {
-                setTimeout(function() { jsonp(url, callback, retryCount + 1); }, 1000 * Math.pow(2, retryCount));
+            if (retryCount < MAX_RETRIES) {
+                var exponential = Math.min(800 * Math.pow(2, retryCount), 7000);
+                var requestedDelay = parseInt(serverDelay, 10);
+                var baseDelay = Number.isFinite(requestedDelay) && requestedDelay > 0 ? requestedDelay : exponential;
+                var jitter = randomBetween(250, 950);
+                var delay = Math.min(baseDelay + jitter, 9000);
+
+                console.warn('Assignment retry ' + (retryCount + 1) + '/' + MAX_RETRIES +
+                             ' after ' + delay + ' ms (' + reason + ')');
+
+                setTimeout(function() {
+                    jsonp(url, callback, retryCount + 1);
+                }, delay);
             } else {
-                callback({ error: 'Server is busy. Please refresh the page to try again.' });
+                callback({
+                    status: 'error',
+                    code: 'ASSIGN_RETRY_EXHAUSTED',
+                    error: 'The server is temporarily busy after several retries. Please refresh the page once and click “I Agree” again.'
+                });
             }
         }
 
-        var s = document.createElement('script');
-        s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cbName;
-        s.id = 'sc-' + cbName;
-        s.onerror = function() { clearTimeout(timeoutTimer); handleError('Network Error'); };
-        document.body.appendChild(s);
+        var timeoutTimer = setTimeout(function() {
+            retryOrFail('Timeout');
+        }, 15000);
+
+        window[cbName] = function(data) {
+            if (settled) return;
+
+            if (isBusyResponse(data)) {
+                retryOrFail('Server busy', data && data.retry_after_ms);
+                return;
+            }
+
+            settled = true;
+            clearTimeout(timeoutTimer);
+            cleanup();
+            callback(data);
+        };
+
+        scriptEl = document.createElement('script');
+        var separator = url.includes('?') ? '&' : '?';
+        scriptEl.src = url + separator + 'callback=' + cbName + '&client_retry=' + retryCount;
+        scriptEl.id = 'sc-' + cbName;
+        scriptEl.onerror = function() {
+            retryOrFail('Network Error');
+        };
+        document.body.appendChild(scriptEl);
     }
 
     function requestAssignment() {
+        if (assignedPairInfo || assignmentRequestInFlight) return;
+
+        assignmentRequestInFlight = true;
+        clearLoadingFailure();
+
         var workerId = getProlificPid();
-        var url = APPS_SCRIPT_URL + '?action=assign&worker_id=' + encodeURIComponent(workerId);
-        
+        var requestId = getOrCreateAssignmentRequestId();
+        var resumeFlag = assignmentResumeHint ? '1' : '0';
+
+        // Set this BEFORE the request. If the page is refreshed while a response
+        // is in flight, the next page load knows that it should attempt restore.
+        markAssignmentPending();
+
+        var url = APPS_SCRIPT_URL +
+            '?action=assign&worker_id=' + encodeURIComponent(workerId) +
+            '&request_id=' + encodeURIComponent(requestId) +
+            '&resume=' + resumeFlag;
+
         jsonp(url, function(data) {
+            assignmentRequestInFlight = false;
+
+            if (data && data.status === 'finished') {
+                showRecoveredSubmissionComplete();
+                return;
+            }
+
             if (data && (data.pair_id || data.file_id1)) {
+                if (data.type === 'new') clearSubmissionClientState();
                 assignedPairInfo = data;
-                applyImages(data.file_id1, data.file_id2);
+                markAssignmentActive();
+
                 if (data.check_images) {
-                    var ci = data.check_images;
-                    if(ci.rural1) q('#qc-img-1-A').src = getFastDriveUrl(ci.rural1);
-                    if(ci.urban1) q('#qc-img-1-B').src = getFastDriveUrl(ci.urban1);
-                    if(ci.urban2) q('#qc-img-2-A').src = getFastDriveUrl(ci.urban2);
-                    if(ci.rural2) q('#qc-img-2-B').src = getFastDriveUrl(ci.rural2);
-                    if(ci.urban3) q('#qc-img-3-A').src = getFastDriveUrl(ci.urban3);
-                    if(ci.rural3) q('#qc-img-3-B').src = getFastDriveUrl(ci.rural3);
+                    currentCheckImageIds = Object.assign({}, CHECK_IMAGE_IDS, data.check_images);
                 }
-            } else {
-                q('#loading-overlay').style.display = 'flex'; // [新增] 如果服务器报错没分发到任务，强制显示遮罩层挡住
-                q('#loading-error').style.display = 'block';
-                q('#loading-error').textContent = "Server Error: " + (data.error || 'No tasks available.');
+
+                applyImages(data.file_id1, data.file_id2);
+                return;
+            }
+
+            showLoadingFailure(
+                'Server Error: ' + ((data && (data.error || data.message)) || 'No tasks available.') +
+                ' If this appears to be temporary, please refresh the page once and click “I Agree” again.',
+                true
+            );
+        });
+    }
+
+    function getDriveImageCandidates(fileId, kind) {
+        var width = kind === 'qc' ? 1000 : 1600;
+        return [
+            getFastDriveUrl(fileId, width),
+            'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w' + width,
+            'https://drive.google.com/uc?export=view&id=' + fileId
+        ];
+    }
+
+    function loadSingleImage(url, timeoutMs) {
+        return new Promise(function(resolve, reject) {
+            var probe = new Image();
+            var finished = false;
+
+            var timer = setTimeout(function() {
+                if (finished) return;
+                finished = true;
+                probe.onload = null;
+                probe.onerror = null;
+                reject(new Error('Image request timed out'));
+            }, timeoutMs || 10000);
+
+            probe.onload = function() {
+                if (finished) return;
+                finished = true;
+                clearTimeout(timer);
+                resolve(url);
+            };
+
+            probe.onerror = function() {
+                if (finished) return;
+                finished = true;
+                clearTimeout(timer);
+                reject(new Error('Image request failed'));
+            };
+
+            probe.src = url;
+        });
+    }
+
+    function loadDriveImage(fileId, kind, urgent, startIndex) {
+        var candidates = getDriveImageCandidates(fileId, kind);
+        startIndex = Math.max(0, parseInt(startIndex || 0, 10));
+
+        function retryDelay(index) {
+            if (index <= 0) return 0;
+            if (urgent) {
+                return index === 1 ? randomBetween(650, 1250) : randomBetween(1800, 3000);
+            }
+            return index === 1 ? randomBetween(1000, 2000) : randomBetween(3000, 5000);
+        }
+
+        function attempt(index) {
+            if (index >= candidates.length) {
+                return Promise.reject(new Error('All image URLs failed for file ' + fileId));
+            }
+
+            var delay = retryDelay(index);
+            return sleep(delay)
+                .then(function() {
+                    return loadSingleImage(candidates[index], kind === 'qc' ? 9000 : 11000);
+                })
+                .then(function() {
+                    return {
+                        fileId: fileId,
+                        url: candidates[index],
+                        retryIndex: index,
+                        kind: kind
+                    };
+                })
+                .catch(function() {
+                    return attempt(index + 1);
+                });
+        }
+
+        return attempt(startIndex);
+    }
+
+    function setSurveyImage(img, resolved) {
+        if (!img || !resolved) return;
+        img.dataset.fileId = resolved.fileId;
+        img.dataset.retry = String(resolved.retryIndex || 0);
+        img.dataset.imageKind = 'main';
+        img.dataset.recovering = '0';
+        img.alt = '';
+        img.style.border = '';
+        if (img.src !== resolved.url) img.src = resolved.url;
+    }
+
+    function applyPairImagesToPage(page) {
+        if (!page || !resolvedPairImages || !page.hasAttribute('data-attr-index')) return;
+        setSurveyImage(page.querySelector('.survey-img-1'), resolvedPairImages.left);
+        setSurveyImage(page.querySelector('.survey-img-2'), resolvedPairImages.right);
+    }
+
+    function getQCItems() {
+        var ci = currentCheckImageIds || CHECK_IMAGE_IDS;
+        return [
+            { key: 'q1A', selector: '#qc-img-1-A', fileId: ci.rural1 },
+            { key: 'q1B', selector: '#qc-img-1-B', fileId: ci.urban1 },
+            { key: 'q2A', selector: '#qc-img-2-A', fileId: ci.urban2 },
+            { key: 'q2B', selector: '#qc-img-2-B', fileId: ci.rural2 },
+            { key: 'q3A', selector: '#qc-img-3-A', fileId: ci.urban3 },
+            { key: 'q3B', selector: '#qc-img-3-B', fileId: ci.rural3 }
+        ];
+    }
+
+    function applyResolvedQCImage(item, resolved) {
+        var img = q(item.selector);
+        if (!img || !resolved) return;
+        img.dataset.fileId = resolved.fileId;
+        img.dataset.retry = String(resolved.retryIndex || 0);
+        img.dataset.imageKind = 'qc';
+        img.dataset.qcKey = item.key;
+        img.dataset.recovering = '0';
+        img.alt = '';
+        img.style.border = '';
+        if (img.src !== resolved.url) img.src = resolved.url;
+    }
+
+    function ensureQCImage(item, urgent) {
+        if (!item || !item.fileId) return Promise.reject(new Error('Missing QC image id'));
+        if (resolvedQCImages[item.key]) return Promise.resolve(resolvedQCImages[item.key]);
+        if (qcImagePromises[item.key]) return qcImagePromises[item.key];
+
+        qcImagePromises[item.key] = loadDriveImage(item.fileId, 'qc', !!urgent, 0)
+            .then(function(resolved) {
+                resolvedQCImages[item.key] = resolved;
+                var qcPage = q('#page-5');
+                if (qcPage && qcPage.classList.contains('active')) {
+                    applyResolvedQCImage(item, resolved);
+                }
+                return resolved;
+            })
+            .catch(function(err) {
+                delete qcImagePromises[item.key];
+                throw err;
+            });
+
+        return qcImagePromises[item.key];
+    }
+
+    function startQCBackgroundPreload() {
+        if (qcBackgroundStarted) return;
+        qcBackgroundStarted = true;
+
+        // Fixed QC images are the hottest Google Drive objects because every
+        // participant requests the same six files. Stagger the start per user,
+        // then load only two at a time with a small random gap between batches.
+        setTimeout(function() {
+            var items = getQCItems();
+
+            (async function() {
+                for (var i = 0; i < items.length; i += 2) {
+                    var batch = items.slice(i, i + 2);
+                    await Promise.allSettled(batch.map(function(item) {
+                        return ensureQCImage(item, false);
+                    }));
+
+                    if (i + 2 < items.length) {
+                        await sleep(randomBetween(450, 1000));
+                    }
+                }
+            })().catch(function(err) {
+                console.warn('Background QC preload ended with an error:', err);
+            });
+        }, randomBetween(1500, 3500));
+    }
+
+    function loadQCImagesOnce() {
+        var items = getQCItems();
+
+        // Use anything already prefetched. Any remaining images are promoted
+        // to urgent loading in pairs when the participant actually reaches QC.
+        items.forEach(function(item) {
+            if (resolvedQCImages[item.key]) {
+                applyResolvedQCImage(item, resolvedQCImages[item.key]);
             }
         });
+
+        (async function() {
+            for (var i = 0; i < items.length; i += 2) {
+                var batch = items.slice(i, i + 2);
+                await Promise.allSettled(batch.map(function(item) {
+                    return ensureQCImage(item, true);
+                }));
+                if (i + 2 < items.length) await sleep(200);
+            }
+        })();
+    }
+
+    function recoverRenderedImage(img) {
+        if (!img || img.dataset.recovering === '1') return;
+        var fileId = img.dataset.fileId;
+        if (!fileId) return;
+
+        img.dataset.recovering = '1';
+        var kind = img.dataset.imageKind === 'qc' ? 'qc' : 'main';
+        var nextIndex = parseInt(img.dataset.retry || '0', 10) + 1;
+
+        loadDriveImage(fileId, kind, true, nextIndex)
+            .then(function(resolved) {
+                img.dataset.recovering = '0';
+
+                if (kind === 'qc') {
+                    var qcKey = img.dataset.qcKey;
+                    if (qcKey) resolvedQCImages[qcKey] = resolved;
+                    img.dataset.retry = String(resolved.retryIndex);
+                    img.src = resolved.url;
+                    return;
+                }
+
+                if (img.classList.contains('survey-img-1')) resolvedPairImages.left = resolved;
+                if (img.classList.contains('survey-img-2')) resolvedPairImages.right = resolved;
+                img.dataset.retry = String(resolved.retryIndex);
+                img.src = resolved.url;
+            })
+            .catch(function() {
+                img.dataset.recovering = '0';
+                img.alt = 'Image failed to load.';
+                img.style.border = '2px solid red';
+
+                if (img.closest('.page.active')) {
+                    if (kind === 'main') window.imagesLoaded = false;
+                    showLoadingFailure(
+                        'A required image could not be loaded after several retry attempts. Please refresh the page once, click “I Agree” again, and continue. Your assigned image pair will be restored automatically; unsent answers may need to be entered again.',
+                        true
+                    );
+                }
+            });
     }
 
     document.addEventListener('error', function(e) {
         var img = e.target;
-        if (img.tagName !== 'IMG') return;
-        var fileId = img.dataset.fileId;
-        if (!fileId) return; 
-
-        var retryCount = parseInt(img.dataset.retry || '0');
-        if (retryCount === 0) {
-            img.dataset.retry = '1';
-            img.src = 'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w3000';
-        } else if (retryCount === 1) {
-            img.dataset.retry = '2';
-            img.src = 'https://drive.google.com/uc?export=view&id=' + fileId;
-        } else {
-            img.alt = "Image failed to load. Please refresh.";
-            img.style.border = "2px solid red";
-        }
-    }, true); 
+        if (!img || img.tagName !== 'IMG' || !img.dataset.fileId) return;
+        recoverRenderedImage(img);
+    }, true);
 
     function applyImages(fid1, fid2) {
         if (!fid1 || !fid2) return;
-        var url1 = getFastDriveUrl(fid1);
-        var url2 = getFastDriveUrl(fid2);
-        
-        qa('.survey-img-1').forEach(img => { img.src = url1; img.dataset.fileId = fid1; img.dataset.retry = '0'; });
-        qa('.survey-img-2').forEach(img => { img.src = url2; img.dataset.fileId = fid2; img.dataset.retry = '0'; });
 
-        var count = 0;
-        function checkDone() {
-            count++;
-            if (count >= 2) {
-                window.imagesLoaded = true; // [新增] 图片加载完毕，发放通行证
-                var overlay = document.getElementById('loading-overlay');
-                if (overlay) overlay.style.display = 'none';
-            }
+        window.imagesLoaded = false;
+        resolvedPairImages = null;
+
+        if (assignedPairInfo) {
+            document.body.dataset.pairIds = assignedPairInfo.pair_id || ('pair_' + fid1.slice(-5));
         }
-        var i1 = new Image(); i1.onload = checkDone; i1.onerror = checkDone; i1.src = url1;
-        var i2 = new Image(); i2.onload = checkDone; i2.onerror = checkDone; i2.src = url2;
-        
-        if (assignedPairInfo) { document.body.dataset.pairIds = assignedPairInfo.pair_id || ('pair_' + fid1.slice(-5)); }
+
+        // The two main survey images have highest priority and begin loading as
+        // soon as assignment succeeds, while the participant fills demographics.
+        Promise.all([
+            loadDriveImage(fid1, 'main', true, 0),
+            loadDriveImage(fid2, 'main', true, 0)
+        ]).then(function(results) {
+            resolvedPairImages = {
+                left: results[0],
+                right: results[1]
+            };
+            window.imagesLoaded = true;
+
+            applyPairImagesToPage(document.querySelector('.page.active'));
+            clearLoadingFailure();
+
+            var overlay = q('#loading-overlay');
+            if (overlay) overlay.style.display = 'none';
+
+            // Only after the important pair is safe do we start the fixed QC
+            // images. Their requests are deliberately staggered across users.
+            startQCBackgroundPreload();
+        }).catch(function(err) {
+            console.error(err);
+            window.imagesLoaded = false;
+            showLoadingFailure(
+                'The survey images could not be loaded after several retry attempts. Please refresh the page once, click “I Agree” again, and continue. Your assigned image pair will be restored automatically; unsent answers may need to be entered again.',
+                true
+            );
+        });
+    }
+
+
+    function addImageABLabels() {
+        qa('.page[data-attr-index]').forEach(function(page) {
+            var imageRow = page.querySelector('.images');
+            if (!imageRow || imageRow.querySelector('.image-slot')) return;
+
+            var wrappers = Array.from(imageRow.querySelectorAll(':scope > .img-wrapper'));
+            ['Image A', 'Image B'].forEach(function(labelText, index) {
+                var wrapper = wrappers[index];
+                if (!wrapper) return;
+
+                var slot = document.createElement('div');
+                slot.className = 'image-slot';
+                imageRow.insertBefore(slot, wrapper);
+                slot.appendChild(wrapper);
+
+                var label = document.createElement('div');
+                label.className = 'image-ab-label';
+                label.textContent = labelText;
+                slot.appendChild(label);
+            });
+        });
+    }
+
+    function ratingTextForValue(value) {
+        var numeric = Number(value);
+        if (numeric === 1) return 'Image A — much better';
+        if (numeric === 0.5) return 'Image A — slightly better';
+        if (numeric === 0) return 'Equal / Hard to tell';
+        if (numeric === -0.5) return 'Image B — slightly better';
+        return 'Image B — much better';
+    }
+
+    function syncRatingMeter(container, value) {
+        if (!container) return;
+        container.querySelectorAll('.meter-point').forEach(function(point) {
+            var selected = Number(point.dataset.value) === Number(value);
+            point.classList.toggle('selected', selected);
+            point.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        });
+    }
+
+    function drawReviewThumbnail(sourceImg, canvas) {
+        if (!sourceImg || !canvas || !sourceImg.complete || !sourceImg.naturalWidth) return false;
+
+        var width = 640, height = 360;
+        canvas.width = width;
+        canvas.height = height;
+
+        var ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fillRect(0, 0, width, height);
+
+        var scale = Math.min(width / sourceImg.naturalWidth, height / sourceImg.naturalHeight);
+        var drawWidth = sourceImg.naturalWidth * scale;
+        var drawHeight = sourceImg.naturalHeight * scale;
+        ctx.drawImage(sourceImg, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
+        return true;
+    }
+
+    function renderReviewThumbnails() {
+        var canvasA = q('#review-canvas-A');
+        var canvasB = q('#review-canvas-B');
+        if (!canvasA || !canvasB) return;
+
+        var sourceA = qa('.survey-img-1').find(function(img) { return img.complete && img.naturalWidth > 0; });
+        var sourceB = qa('.survey-img-2').find(function(img) { return img.complete && img.naturalWidth > 0; });
+
+        var okA = drawReviewThumbnail(sourceA, canvasA);
+        var okB = drawReviewThumbnail(sourceB, canvasB);
+
+        var note = q('#review-thumb-note');
+        if (note && (!okA || !okB)) {
+            note.textContent = 'Preview unavailable. Please use Back to review the comparison pages.';
+        }
     }
 
     function buildRatingControls() {
         const levels = [
-            { val: 1, desk: "Left fits", mob: "Top fits", end: "much better" },
-            { val: 0.5, desk: "Left fits", mob: "Top fits", end: "slightly better" },
-            { val: 0, desk: "Equal / Hard to tell", mob: "Equal / Hard to tell", isNeutral: true },
-            { val: -0.5, desk: "Right fits", mob: "Bottom fits", end: "slightly better" },
-            { val: -1, desk: "Right fits", mob: "Bottom fits", end: "much better" }
+            { val: 1 },
+            { val: 0.5 },
+            { val: 0 },
+            { val: -0.5 },
+            { val: -1 }
         ];
 
-        ATTRIBUTES.forEach(attr => {
+        ATTRIBUTES.forEach(function(attr) {
             var container = document.getElementById('rating-' + attr);
             if (!container) return;
             container.innerHTML = '';
-            
-            levels.forEach(lvl => {
+
+            var meter = document.createElement('div');
+            meter.className = 'five-point-meter';
+            meter.innerHTML = `
+                <div class="five-point-track" role="group" aria-label="Five-point comparison scale for ${attr}">
+                    ${levels.map(function(lvl) {
+                        return `<button type="button" class="meter-point" data-value="${lvl.val}"
+                            aria-label="${ratingTextForValue(lvl.val)}" aria-pressed="false"></button>`;
+                    }).join('')}
+                </div>
+                <div class="meter-captions" aria-hidden="true">
+                    <span><strong>Image A</strong>Much better</span>
+                    <span><strong>Image A</strong>Slightly better</span>
+                    <span><strong>Equal</strong>Hard to tell</span>
+                    <span><strong>Image B</strong>Slightly better</span>
+                    <span><strong>Image B</strong>Much better</span>
+                </div>
+            `;
+            container.appendChild(meter);
+
+            levels.forEach(function(lvl) {
                 var label = document.createElement('label');
                 label.className = 'rating-option';
-                var txtDesktop = lvl.isNeutral ? lvl.desk : `${lvl.desk} <strong>${attr}</strong> ${lvl.end}`;
-                var txtMobile  = lvl.isNeutral ? lvl.mob  : `${lvl.mob} <strong>${attr}</strong> ${lvl.end}`;
-                
+
+                var displayText;
+                if (lvl.val === 0) {
+                    displayText = 'Equal / Hard to tell';
+                } else if (lvl.val > 0) {
+                    displayText = lvl.val === 1
+                        ? `Image A fits <strong>${attr}</strong> much better`
+                        : `Image A fits <strong>${attr}</strong> slightly better`;
+                } else {
+                    displayText = lvl.val === -1
+                        ? `Image B fits <strong>${attr}</strong> much better`
+                        : `Image B fits <strong>${attr}</strong> slightly better`;
+                }
+
                 label.innerHTML = `
                     <input type="radio" name="${attr}" value="${lvl.val}">
-                    <span>
-                        <span class="desktop-text">${txtDesktop}</span>
-                        <span class="mobile-text">${txtMobile}</span>
-                    </span>
+                    <span>${displayText}</span>
                 `;
+
                 label.addEventListener('change', function() {
-                    container.querySelectorAll('.rating-option').forEach(o => o.classList.remove('selected'));
-                    if(this.querySelector('input').checked) {
-                        this.classList.add('selected');
+                    container.querySelectorAll('.rating-option').forEach(function(option) {
+                        option.classList.remove('selected');
+                    });
+
+                    var radio = label.querySelector('input');
+                    if (radio.checked) {
+                        label.classList.add('selected');
                         state.pairwise[attr] = lvl.val;
+                        syncRatingMeter(container, lvl.val);
                     }
                 });
+
                 container.appendChild(label);
+            });
+
+            container.querySelectorAll('.meter-point').forEach(function(point) {
+                point.addEventListener('click', function() {
+                    var value = Number(point.dataset.value);
+                    var radio = container.querySelector(
+                        'input[name="' + attr + '"][value="' + String(value) + '"]'
+                    );
+                    if (!radio) return;
+                    radio.checked = true;
+                    radio.dispatchEvent(new Event('change', { bubbles: true }));
+                });
             });
         });
     }
@@ -620,6 +1183,7 @@
                 var url = APPS_SCRIPT_URL + '?action=abort&worker_id=' + encodeURIComponent(workerId);
                 jsonp(url, function() { console.log("Cleaned up any potential ghost assignments."); });
             }
+            clearAssignmentClientState();
 
             document.getElementById('main-container').innerHTML = `
                 <div style="text-align:center; padding: 60px 20px;">
@@ -712,7 +1276,21 @@
         if(next) {
             next.classList.add('active');
             window.scrollTo(0,0);
-            if (idSuffix == 9) renderSummary(); 
+
+            if (next.hasAttribute('data-attr-index')) {
+                if (window.imagesLoaded && resolvedPairImages) {
+                    applyPairImagesToPage(next);
+                } else {
+                    var overlay = q('#loading-overlay');
+                    if (overlay) overlay.style.display = 'flex';
+                }
+            }
+
+            if (String(idSuffix) === '5') {
+                loadQCImagesOnce();
+            }
+
+            if (String(idSuffix) === '9') renderSummary();
         }
     }
 
@@ -738,125 +1316,224 @@
             <div><strong>General Preference:</strong> ${qc.preference || '-'}</div>
         </div>`;
 
-        html += '<h3 style="margin-bottom:12px;">Perception Ratings</h3><table class="summary-table"><thead><tr><th>Attribute</th><th>Rating</th></tr></thead><tbody>';
+        html += `
+        <div class="review-image-panel">
+            <h3 style="margin-top:0; margin-bottom:14px;">Street Images</h3>
+            <div class="review-image-grid">
+                <div>
+                    <div class="review-thumb-title">Image A</div>
+                    <canvas id="review-canvas-A" class="review-thumb-canvas"></canvas>
+                </div>
+                <div>
+                    <div class="review-thumb-title">Image B</div>
+                    <canvas id="review-canvas-B" class="review-thumb-canvas"></canvas>
+                </div>
+            </div>
+            <p id="review-thumb-note" class="review-thumb-note">Please check that the ratings below match the two street images shown above.</p>
+        </div>`;
+
+        html += '<h3 style="margin-bottom:12px;">Perception Ratings</h3><table class="summary-table"><thead><tr><th>Attribute</th><th>Your selection</th></tr></thead><tbody>';
         
         ATTRIBUTES.forEach(attr => {
             var val = state.pairwise[attr];
-            var rText = (val===1)?'Left++':(val===0.5)?'Left+':(val===0)?'Equal':(val===-0.5)?'Right+':'Right++';
+            var rText = ratingTextForValue(val);
             html += `<tr><td>${attr}</td><td><strong>${rText}</strong></td></tr>`;
         });
         html += '</tbody></table>';
         c.innerHTML = html;
+
+        // Draw from already-loaded survey images. No new image URL is assigned here.
+        requestAnimationFrame(renderReviewThumbnails);
+    }
+
+    function postSubmissionWithRetry(payload, callback, retryCount) {
+        retryCount = retryCount || 0;
+        var MAX_RETRIES = 5;
+        var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        var timeoutId = setTimeout(function() {
+            if (controller) controller.abort();
+        }, 25000);
+
+        var formData = new URLSearchParams();
+        formData.append('payload', JSON.stringify(payload));
+
+        function scheduleRetry(reason, serverDelay) {
+            clearTimeout(timeoutId);
+
+            if (retryCount >= MAX_RETRIES) {
+                callback({
+                    status: 'error',
+                    code: 'SUBMIT_RETRY_EXHAUSTED',
+                    message: 'The submission could not be confirmed after several retries. Please click Retry Submit. Your submission ID has been kept, so retrying will not create a duplicate.',
+                    retryable: false,
+                    network_error: true
+                });
+                return;
+            }
+
+            var exponential = Math.min(900 * Math.pow(2, retryCount), 7000);
+            var requested = parseInt(serverDelay, 10);
+            var base = Number.isFinite(requested) && requested > 0 ? requested : exponential;
+            var delay = Math.min(base + randomBetween(250, 900), 9000);
+
+            q('#submit-overlay-message').textContent = 'Saving response...';
+            q('#submit-overlay-status').textContent = 'Temporary server delay. Retrying automatically...';
+
+            console.warn('Submission retry ' + (retryCount + 1) + '/' + MAX_RETRIES +
+                         ' after ' + delay + ' ms (' + reason + ')');
+
+            setTimeout(function() {
+                postSubmissionWithRetry(payload, callback, retryCount + 1);
+            }, delay);
+        }
+
+        fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            body: formData,
+            signal: controller ? controller.signal : undefined
+        })
+        .then(function(response) {
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            return response.json();
+        })
+        .then(function(data) {
+            clearTimeout(timeoutId);
+
+            if (data && (data.status === 'busy' || data.retryable === true)) {
+                scheduleRetry(data.code || 'Server busy', data.retry_after_ms);
+                return;
+            }
+
+            callback(data);
+        })
+        .catch(function(err) {
+            scheduleRetry(err && err.name === 'AbortError' ? 'Timeout' : 'Network error');
+        });
+    }
+
+    function completeSubmissionUI(btn, overlay) {
+        clearAssignmentClientState();
+        q('#submit-overlay-message').textContent = 'Submission Complete!';
+        q('#submit-overlay-status').textContent = 'Redirecting to Prolific automatically...';
+        q('.spinner').style.display = 'none';
+
+        var completionUrl = 'https://app.prolific.com/submissions/complete?cc=CLUCC7RR';
+        var redirectTimer = setTimeout(function() { window.location.href = completionUrl; }, 2500);
+
+        q('#submit-overlay-confirm').style.display = 'inline-block';
+        q('#submit-overlay-confirm').textContent = 'Go to Prolific Now';
+        q('#submit-overlay-confirm').onclick = function() {
+            clearTimeout(redirectTimer);
+            window.location.href = completionUrl;
+        };
+
+        overlay.classList.remove('show');
+        q('#submission-receipt').style.display = 'block';
+        q('#receipt-content').innerHTML = `
+            <div style="color:#166534;font-weight:bold;font-size:18px;margin-bottom:16px;">Data Saved Successfully!</div>
+            <div style="margin-bottom:20px;color:#475569;">Your response and assignment receipt have both been confirmed. You are being redirected to Prolific...</div>
+            <a href="${completionUrl}" style="display:inline-block;background:#2563eb;color:#fff;padding:16px 32px;text-decoration:none;border-radius:8px;font-weight:bold;">Return to Prolific</a>
+        `;
+        btn.textContent = 'Data Submitted';
+        btn.disabled = true;
+        window.scrollTo(0, document.body.scrollHeight);
     }
 
     function submitData() {
         var qc = state.quality_check;
         if (qc.q1 !== 'A' || qc.q2 !== 'B' || qc.q3 !== 'B') {
             showFriendlyQCWarning();
-            return; 
+            return;
         }
+
+        if (!assignedPairInfo || !assignedPairInfo.pair_id) {
+            showDialog('Submission Error', 'The original image assignment is missing. Please refresh the page and restore your assignment before submitting.');
+            return;
+        }
+
         var btn = q('#finish');
-        btn.disabled = true; 
-        
+        btn.disabled = true;
+
         var overlay = q('#submit-overlay');
         overlay.classList.add('show');
-        q('#submit-overlay-message').textContent = 'Uploading data...';
-        
+        q('#submit-overlay-message').textContent = 'Saving response...';
+        q('#submit-overlay-status').textContent = 'Please keep this page open until the submission is confirmed.';
+        q('.spinner').style.display = '';
+        q('.spinner').style.borderTopColor = '';
+
+        var submissionId = getOrCreateSubmissionId();
+        var assignmentRequestId = assignedPairInfo.assignment_request_id || getOrCreateAssignmentRequestId();
+
         var payload = {
             demographics: state.demographics,
             pairwise: state.pairwise,
             quality_check: state.quality_check,
-            pair_ids: assignedPairInfo ? [assignedPairInfo.pair_id] : [],
-            meta: { timestamp: new Date().toISOString() }
+            pair_ids: [assignedPairInfo.pair_id],
+            meta: {
+                timestamp: new Date().toISOString(),
+                submissionId: submissionId,
+                assignmentRequestId: assignmentRequestId
+            }
         };
-        
-        var formData = new URLSearchParams();
-        formData.append('payload', JSON.stringify(payload));
 
-        fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData })
-        .then(r => r.json())
-        .then(data => {
-            if (data.status === 'qc_fail') {
-                q('#submit-overlay').classList.remove('show');
+        postSubmissionWithRetry(payload, function(data) {
+            if (data && data.status === 'qc_fail') {
+                overlay.classList.remove('show');
                 showFriendlyQCWarning();
                 btn.disabled = false;
                 return;
             }
 
-            if (data.status === 'error') {
-                q('#submit-overlay-message').textContent = 'Server Error';
-                q('#submit-overlay-status').textContent = data.message || 'Failed to save file. Please try again.';
-                q('.spinner').style.display = 'none';
-                btn.disabled = false; btn.textContent = "Retry Submit"; 
-                alert("Server is busy. Please click 'Retry Submit' in a few seconds.");
-                return; 
+            // V4 only reports success after BOTH the durable JSON and the exact
+            // Assignments ledger row have been confirmed as finished.
+            if (data && data.status === 'ok' && data.json_saved === true && data.assignment_finished === true) {
+                if (data.sheet_synced === false) {
+                    console.warn('Response JSON and assignment receipt are safe; Responses sheet will be repaired by syncMissingResponses().');
+                }
+                completeSubmissionUI(btn, overlay);
+                return;
             }
 
-            if (data.status === 'ok') {
-                q('#submit-overlay-message').textContent = 'Submission Complete!';
-                q('#submit-overlay-status').textContent = 'Redirecting to Prolific automatically...'; 
-                q('.spinner').style.display = 'none';
-                
-                var completionUrl = "https://app.prolific.com/submissions/complete?cc=CLUCC7RR";
-                var redirectTimer = setTimeout(() => { window.location.href = completionUrl; }, 2500);
-
-                q('#submit-overlay-confirm').style.display = 'inline-block';
-                q('#submit-overlay-confirm').textContent = 'Go to Prolific Now';
-                q('#submit-overlay-confirm').onclick = () => { clearTimeout(redirectTimer); window.location.href = completionUrl; };
-
-                overlay.classList.remove('show');
-                q('#submission-receipt').style.display = 'block';
-                q('#receipt-content').innerHTML = `
-                    <div style="color:#166534; font-weight:bold; font-size:18px; margin-bottom:16px;">Data Saved Successfully!</div>
-                    <div style="margin-bottom:20px; color:#475569;">You are being redirected to Prolific...</div>
-                    <a href="${completionUrl}" style="display:inline-block; background:#2563eb; color:#fff; padding:16px 32px; text-decoration:none; border-radius:8px; font-weight:bold;">Return to Prolific</a>
-                `;
-                btn.textContent = "Data Submitted"; btn.disabled = true; 
-                window.scrollTo(0, document.body.scrollHeight);
-            }
-        })
-        .catch(err => {
-            q('#submit-overlay-message').textContent = 'Error during upload.';
-            q('#submit-overlay-status').textContent = err.message;
-            q('.spinner').style.borderTopColor = '#ef4444';
-            
-            var a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'}));
-            a.download = state.demographics.id + '_backup.json';
-            a.click();
-            alert("Network Error. A backup file has been saved. Please contact the researcher.");
+            q('#submit-overlay-message').textContent = 'Submission not confirmed';
+            q('#submit-overlay-status').textContent =
+                (data && (data.message || data.error)) ||
+                'The server could not confirm the submission. Please click Retry Submit.';
+            q('.spinner').style.display = 'none';
             btn.disabled = false;
-        });
+            btn.textContent = 'Retry Submit';
+
+            // Keep the stable submissionId in localStorage. A manual retry will
+            // therefore continue the same submission instead of creating a duplicate.
+            if (data && data.network_error) {
+                try {
+                    var a = document.createElement('a');
+                    a.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'}));
+                    a.download = state.demographics.id + '_backup.json';
+                    a.click();
+                } catch (backupErr) {}
+            }
+        }, 0);
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded' , () => {
         buildRatingControls();
+        addImageABLabels();
 
-        function setQCImage(domId, fileId) {
-            var img = document.querySelector(domId);
-            if (img && fileId) {
-                img.src = getFastDriveUrl(fileId);
-                img.dataset.fileId = fileId;       
-                img.dataset.retry = '0';           
-            }
-        }
+        // Consent is a guaranteed-light page: no study images are requested here.
+        // If this page was reached by a refresh after an assignment attempt,
+        // requestAssignment() will ask the backend to restore the durable row.
+        assignmentResumeHint =
+            localStorage.getItem(assignmentStorageKey('pending')) === '1' ||
+            localStorage.getItem(assignmentStorageKey('active')) === '1';
 
-        setQCImage('#qc-img-1-A', CHECK_IMAGE_IDS.rural1);
-        setQCImage('#qc-img-1-B', CHECK_IMAGE_IDS.urban1);
-        setQCImage('#qc-img-2-A', CHECK_IMAGE_IDS.urban2);
-        setQCImage('#qc-img-2-B', CHECK_IMAGE_IDS.rural2);
-        setQCImage('#qc-img-3-A', CHECK_IMAGE_IDS.urban3);
-        setQCImage('#qc-img-3-B', CHECK_IMAGE_IDS.rural3);
-        
         var pid = getProlificPid();
         if(pid) {
             q('#user-id').value = pid;
             q('#user-id').readOnly = true;
             q('#user-id').style.background = '#e2e8f0';
         }
-        
-        // [移除] 不再于页面加载时抢占配额
-        // requestAssignment();
+
+        // Assignment is intentionally delayed until the participant clicks I Agree; main-image preload begins immediately after assignment succeeds.
     });
 
 })();
