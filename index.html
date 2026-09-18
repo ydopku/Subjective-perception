@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Global Streetscape Perception Survey</title>
-  <meta name="referrer" content="no-referrer" />
-  <style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Global Streetscape Perception Survey</title>
+<meta name="referrer" content="no-referrer" />
+<style>
     :root {
       --accent: #2563eb;
       --accent-hover: #1d4ed8;
@@ -171,7 +171,6 @@
       .desktop-text { display: none; }
     }
   </style>
-
 <style id="v3-review-and-rating-ui">
 .image-slot{flex:1;min-width:0;width:100%;display:flex;flex-direction:column;gap:8px}
 .image-slot .img-wrapper{flex:1;width:100%}
@@ -195,56 +194,75 @@
 }
 </style>
 
+<style id="batch5-ui">
+.progress-strip{display:flex;justify-content:space-between;gap:16px;align-items:center;margin:0 0 14px;padding:12px 16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;color:#475569;font-size:14px;font-weight:650}
+.progress-strip strong{color:#0f172a}
+.progress-bar{height:7px;background:#e2e8f0;border-radius:999px;overflow:hidden;margin:-2px 0 22px}
+.progress-bar>span{display:block;height:100%;background:#2563eb;width:0;transition:width .2s ease}
+.comparison-note{font-size:13px;color:#64748b;text-align:center;margin:-18px 0 22px}
+#dynamic-rating{margin-top:10px}
+.qc-status-note{font-size:13px;color:#64748b;margin-top:10px}
+.qc-image-holder{min-height:240px;display:flex;align-items:center;justify-content:center;background:#e2e8f0;border-radius:8px;overflow:hidden}
+.qc-image-holder img{width:100%;height:300px;object-fit:contain;background:#e2e8f0}
+.review-pair-card{padding:18px;margin:0 0 22px;border:1px solid #cbd5e1;border-radius:12px;background:#f8fafc}
+.review-pair-card h3{margin:0 0 12px;color:#0f172a}
+.review-pair-images{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.review-pair-images canvas{display:block;width:100%;aspect-ratio:16/9;border:1px solid #cbd5e1;border-radius:8px;background:#e2e8f0}
+.review-pair-label{text-align:center;font-weight:700;font-size:13px;color:#334155;margin-bottom:6px}
+.resume-note{display:none;margin:14px 0 0;padding:12px 14px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:8px;color:#1e40af;font-size:14px}
+@media(max-width:768px){
+  .progress-strip{align-items:flex-start;flex-direction:column;gap:4px}
+  .review-pair-images{grid-template-columns:1fr}
+  .qc-image-holder img{height:220px}
+}
+</style>
+
 </head>
 
-<body data-pair-ids="">
+<body data-batch-id="">
 
 <div id="msg-modal">
   <div class="msg-box">
     <div class="msg-icon">👋</div>
     <div class="msg-text" id="msg-content">Notification</div>
-    <button class="msg-btn" onclick="document.getElementById('msg-modal').classList.remove('show')">OK, I understand</button>
+    <button class="msg-btn" id="msg-ok" type="button">OK, I understand</button>
   </div>
 </div>
 
-<!-- 修改：默认隐藏 Loading 遮罩层 (display:none) -->
 <div id="loading-overlay" style="position:fixed;inset:0;background:#fff;z-index:10000;display:none;flex-direction:column;align-items:center;justify-content:center;">
-  <div style="font-size:1.5rem;font-weight:700;color:#1e293b;margin-bottom:10px;">Loading Survey</div>
+  <div id="loading-title" style="font-size:1.5rem;font-weight:700;color:#1e293b;margin-bottom:10px;">Loading Survey</div>
   <div style="width:40px;height:40px;border:5px solid rgba(37,99,235,0.2);border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite;"></div>
   <div id="loading-error" style="display:none;margin-top:20px;color:#ef4444;font-weight:600;max-width:760px;text-align:center;padding:0 24px;"></div>
-  <button id="loading-reload" type="button" style="display:none;margin-top:18px;padding:12px 22px;" onclick="window.location.reload()">Refresh survey</button>
+  <button id="loading-reload" type="button" style="display:none;margin-top:18px;padding:12px 22px;">Refresh survey</button>
 </div>
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
 <div class="container" id="main-container">
-    <h1>Global Streetscape Perception Survey</h1>
+  <h1>Global Streetscape Perception Survey</h1>
 
-    <!-- Page 0: Informed Consent -->
-    <div id="page-0" class="page active">
-      <h2>Informed Consent Form</h2>
-      <div class="definition-box" style="border-left-color: var(--muted); background: #f8fafc; color: #334155;">
-        <p><strong>Welcome to our Global Streetscape Perception Study.</strong></p>
-        <p>Before you begin, please read the following information carefully. This research is conducted by the University of Tokyo and aims to understand how different people perceive urban environments worldwide.</p>
-        <ul style="padding-left: 20px; margin-bottom: 0;">
-            <li style="margin-bottom: 8px;"><strong>Voluntary Participation:</strong> Your participation is completely voluntary. You may withdraw from the study at any time without penalty.</li>
-            <li style="margin-bottom: 8px;"><strong>Anonymity & Privacy:</strong> All data collected will be strictly anonymous. Your personal identity will not be linked to your responses or published in any academic papers.</li>
-            <li style="margin-bottom: 8px;"><strong>Task Description:</strong> You will be asked to compare pairs of street-level images and choose which one better represents a specific attribute (e.g., safety, beauty). Please make your judgments as if you were a pedestrian walking through the scene.</li>
-            <li><strong>Duration:</strong> The survey will take approximately 3-5 minutes to complete.</li>
-        </ul>
-      </div>
-      <p style="font-weight: 600; color: #0f172a; text-align: center;">By clicking "I Agree" below, you confirm that you have read and understood the information provided and consent to participate in this study.</p>
-      <div style="margin:18px auto 0;max-width:900px;padding:14px 16px;border-radius:10px;background:#fffbeb;border:1px solid #fde68a;color:#78350f;font-size:14px;line-height:1.55;">
-        <strong>Technical note:</strong> Images are delivered from Google Drive. If the survey becomes stuck on “Loading Survey” or an image does not appear after several seconds, please refresh this page once before contacting the researcher. After refreshing, click “I Agree” again; your assigned image pair will be restored automatically. Any unsent answers may need to be entered again.
-      </div>
-      
-      <div class="buttons" style="justify-content: space-between;">
-        <button class="btn-decline" id="btn-disagree" type="button">I Disagree (Exit Survey)</button>
-        <button data-next="1" type="button">I Agree (Start Survey) ▶</button>
-      </div>
+  <div id="page-0" class="page active">
+    <h2>Informed Consent Form</h2>
+    <div class="definition-box" style="border-left-color:var(--muted);background:#f8fafc;color:#334155;">
+      <p><strong>Welcome to our Global Streetscape Perception Study.</strong></p>
+      <p>Before you begin, please read the following information carefully. This research is conducted by the University of Tokyo and aims to understand how different people perceive urban environments worldwide.</p>
+      <ul style="padding-left:20px;margin-bottom:0;">
+        <li style="margin-bottom:8px;"><strong>Voluntary Participation:</strong> Your participation is completely voluntary. You may withdraw from the study at any time without penalty.</li>
+        <li style="margin-bottom:8px;"><strong>Anonymity & Privacy:</strong> All data collected will be strictly anonymous. Your personal identity will not be linked to your responses or published in any academic papers.</li>
+        <li style="margin-bottom:8px;"><strong>Task Description:</strong> You will compare five pairs of street-level images and choose which image better represents several attributes (e.g., safety, beauty). Please make your judgments as if you were a pedestrian walking through the scene.</li>
+        <li><strong>Duration:</strong> The survey is expected to take approximately 6 minutes.</li>
+      </ul>
     </div>
+    <p style="font-weight:600;color:#0f172a;text-align:center;">By clicking "I Agree" below, you confirm that you have read and understood the information provided and consent to participate in this study.</p>
+    <div style="margin:18px auto 0;max-width:900px;padding:14px 16px;border-radius:10px;background:#fffbeb;border:1px solid #fde68a;color:#78350f;font-size:14px;line-height:1.55;">
+      <strong>Technical note:</strong> The main street images are delivered from Google Drive. If the survey becomes stuck on “Loading Survey” or an image does not appear after several seconds, please refresh this page once. After refreshing, click “I Agree” again. Your assigned five image pairs and locally saved progress will be restored automatically.
+    </div>
+    <div class="buttons" style="justify-content:space-between;">
+      <button class="btn-decline" id="btn-disagree" type="button">I Disagree (Exit Survey)</button>
+      <button id="btn-agree" data-next="1" type="button">I Agree (Start Survey) ▶</button>
+    </div>
+  </div>
 
-    <!-- Page 1: Demographics -->
-    <div id="page-1" class="page">
+  <div id="page-1" class="page">
       <h2>1. Participant Information</h2>
       <div class="row">
         <div>
@@ -271,1272 +289,1140 @@
           <select id="education"><option value="">(optional)</option><option value="highschool">High school or lower</option><option value="bachelor">Bachelor</option><option value="master">Master</option><option value="phd">PhD</option></select>
         </div>
       </div>
-      <div class="buttons"><div></div><button data-next="2" type="button">Next: Safe ▶</button></div>
+      <div class="buttons"><div></div><button id="demographics-next" type="button">Next: Start comparisons ▶</button></div>
     </div>
+  <div id="resume-note" class="resume-note">Previous progress was found for this assignment. After you confirm the participant information below, the survey will return to your last saved position.</div>
 
-    <!-- Page 2: Safe -->
-    <div id="page-2" class="page" data-attr-index="0">
-      <h2>2. Safe — Pairwise comparison</h2>
-      <div class="definition-box"><strong>Safe:</strong> Looks safe, secure, and not threatening.</div>
-      <div class="images">
-        <div class="img-wrapper"><img class="survey-img-1" src=""></div>
-        <div class="img-wrapper"><img class="survey-img-2" src=""></div>
+  <div id="page-comparison" class="page">
+    <div class="progress-strip">
+      <div>Image pair <strong><span id="pair-progress-current">1</span> of 5</strong></div>
+      <div>Attribute <strong><span id="attr-progress-current">1</span> of 6</strong></div>
+    </div>
+    <div class="progress-bar"><span id="comparison-progress-bar"></span></div>
+    <h2 id="comparison-title">Image Pair 1 of 5 — Safe</h2>
+    <div class="definition-box" id="attribute-definition"></div>
+    <div class="images">
+      <div class="image-slot">
+        <div class="img-wrapper" id="main-image-A"></div>
+        <div class="image-ab-label">Image A</div>
       </div>
-      <div class="rating-list" id="rating-Safe"></div>
-      <div class="buttons"><button class="secondary" data-go="1" type="button">◀ Back</button><button data-next="3" type="button">Next: Lively ▶</button></div>
+      <div class="image-slot">
+        <div class="img-wrapper" id="main-image-B"></div>
+        <div class="image-ab-label">Image B</div>
+      </div>
     </div>
-
-    <!-- Page 3: Lively -->
-    <div id="page-3" class="page" data-attr-index="1">
-      <h2>3. Lively — Pairwise comparison</h2>
-      <div class="definition-box"><strong>Lively:</strong> Bustling with activities, energetic, and vibrant.</div>
-      <div class="images"><div class="img-wrapper"><img class="survey-img-1" src=""></div><div class="img-wrapper"><img class="survey-img-2" src=""></div></div>
-      <div class="rating-list" id="rating-Lively"></div>
-      <div class="buttons"><button class="secondary" data-go="2" type="button">◀ Back</button><button data-next="4" type="button">Next: Beautiful ▶</button></div>
+    <div class="comparison-note">Use the same two images for all six attributes in this image pair.</div>
+    <div class="rating-list" id="dynamic-rating"></div>
+    <div class="buttons">
+      <button class="secondary" id="comparison-back" type="button">◀ Back</button>
+      <button id="comparison-next" type="button">Next question ▶</button>
     </div>
+  </div>
 
-    <!-- Page 4: Beautiful -->
-    <div id="page-4" class="page" data-attr-index="2">
-      <h2>4. Beautiful — Pairwise comparison</h2>
-      <div class="definition-box"><strong>Beautiful:</strong> Aesthetically pleasing and nice to look at.</div>
-      <div class="images"><div class="img-wrapper"><img class="survey-img-1" src=""></div><div class="img-wrapper"><img class="survey-img-2" src=""></div></div>
-      <div class="rating-list" id="rating-Beautiful"></div>
-      <div class="buttons"><button class="secondary" data-go="3" type="button">◀ Back</button><button data-next="5" type="button">Next: Environment Classification ▶</button></div>
-    </div>
+  <div id="page-qc" class="page">
+    <h2>Environment Classification</h2>
+    <p style="margin-bottom:20px;color:var(--muted);">Before continuing, please complete this short classification section.</p>
 
-    <!-- Page 5: QC -->
-    <div id="page-5" class="page">
-      <h2>5. Environment Classification</h2>
-      <p style="margin-bottom:20px; color:var(--muted)">To help us better understand your preferences, please answer the following questions.</p>
-      
-      <div class="check-section">
-        <h3 style="margin-top:0;">1. In each row below, please click on the image that best represents a <strong>Rural</strong> (countryside) environment.</h3>
-        <div class="check-row" id="qc-row-1">
-          <div style="width:30px;font-weight:700;padding-top:12px;">1.</div>
-          <div class="check-pair">
-            <div class="check-img-wrap" onclick="selectQC('1','A')"><img id="qc-img-1-A" src=""><div class="check-label">Image A</div></div>
-            <div class="check-img-wrap" onclick="selectQC('1','B')"><img id="qc-img-1-B" src=""><div class="check-label">Image B</div></div>
-          </div>
-          <input type="hidden" id="qc-ans-1" value="">
-        </div>
-        <div class="check-row" id="qc-row-2">
-            <div style="width:30px;font-weight:700;padding-top:12px;">2.</div>
-            <div class="check-pair">
-              <div class="check-img-wrap" onclick="selectQC('2','A')"><img id="qc-img-2-A" src=""><div class="check-label">Image A</div></div>
-              <div class="check-img-wrap" onclick="selectQC('2','B')"><img id="qc-img-2-B" src=""><div class="check-label">Image B</div></div>
-            </div>
-            <input type="hidden" id="qc-ans-2" value="">
-        </div>
-        <div class="check-row" id="qc-row-3">
-            <div style="width:30px;font-weight:700;padding-top:12px;">3.</div>
-            <div class="check-pair">
-              <div class="check-img-wrap" onclick="selectQC('3','A')"><img id="qc-img-3-A" src=""><div class="check-label">Image A</div></div>
-              <div class="check-img-wrap" onclick="selectQC('3','B')"><img id="qc-img-3-B" src=""><div class="check-label">Image B</div></div>
-            </div>
-            <input type="hidden" id="qc-ans-3" value="">
+    <div class="check-section">
+      <h3 style="margin-top:0;">In each row below, please click on the image that best represents a <strong>Rural</strong> (countryside) environment.</h3>
+      <div class="check-row" id="qc-row-1">
+        <div style="width:30px;font-weight:700;padding-top:12px;">1.</div>
+        <div class="check-pair">
+          <div class="check-img-wrap" data-qc-question="1" data-qc-answer="A"><div class="qc-image-holder" id="qc-holder-1-A"></div><div class="check-label">Image A</div></div>
+          <div class="check-img-wrap" data-qc-question="1" data-qc-answer="B"><div class="qc-image-holder" id="qc-holder-1-B"></div><div class="check-label">Image B</div></div>
         </div>
       </div>
-
-      <div class="check-section">
-        <h3 style="margin-top:0;">2. General Preference</h3>
-        <p style="font-size:16px; margin-bottom:16px;">In general, which type of environment do you prefer living in?</p>
-        <div style="display:flex; flex-direction:column; gap:12px;">
-           <label class="rating-option"><input type="radio" name="preference" value="urban"> <span style="font-weight:400">I prefer Urban (City)</span></label>
-           <label class="rating-option"><input type="radio" name="preference" value="rural"> <span style="font-weight:400">I prefer Rural (Countryside)</span></label>
-           <label class="rating-option"><input type="radio" name="preference" value="neutral"> <span style="font-weight:400">No preference / Neutral</span></label>
+      <div class="check-row" id="qc-row-2">
+        <div style="width:30px;font-weight:700;padding-top:12px;">2.</div>
+        <div class="check-pair">
+          <div class="check-img-wrap" data-qc-question="2" data-qc-answer="A"><div class="qc-image-holder" id="qc-holder-2-A"></div><div class="check-label">Image A</div></div>
+          <div class="check-img-wrap" data-qc-question="2" data-qc-answer="B"><div class="qc-image-holder" id="qc-holder-2-B"></div><div class="check-label">Image B</div></div>
         </div>
       </div>
-      <div class="buttons">
-        <button class="secondary" data-go="4" type="button">◀ Back</button>
-        <button id="btn-check-next" data-next="6" type="button">Next: Wealthy ▶</button>
-      </div>
-    </div>
-
-    <!-- Page 6: Wealthy -->
-    <div id="page-6" class="page" data-attr-index="3">
-      <h2>6. Wealthy — Pairwise comparison</h2>
-      <div class="definition-box"><strong>Wealthy:</strong> Affluent, high-status, and expensive neighborhood.</div>
-      <div class="images"><div class="img-wrapper"><img class="survey-img-1" src=""></div><div class="img-wrapper"><img class="survey-img-2" src=""></div></div>
-      <div class="rating-list" id="rating-Wealthy"></div>
-      <div class="buttons"><button class="secondary" data-go="5" type="button">◀ Back</button><button data-next="7" type="button">Next: Boring ▶</button></div>
-    </div>
-
-    <!-- Page 7: Boring -->
-    <div id="page-7" class="page" data-attr-index="4">
-      <h2>7. Boring — Pairwise comparison</h2>
-      <div class="definition-box"><strong>Boring:</strong> Dull, uninteresting, and monotonous.</div>
-      <div class="images"><div class="img-wrapper"><img class="survey-img-1" src=""></div><div class="img-wrapper"><img class="survey-img-2" src=""></div></div>
-      <div class="rating-list" id="rating-Boring"></div>
-      <div class="buttons"><button class="secondary" data-go="6" type="button">◀ Back</button><button data-next="8" type="button">Next: Depressing ▶</button></div>
-    </div>
-
-    <!-- Page 8: Depressing -->
-    <div id="page-8" class="page" data-attr-index="5">
-      <h2>8. Depressing — Pairwise comparison</h2>
-      <div class="definition-box"><strong>Depressing:</strong> Grim, bleak, and evoking sadness.</div>
-      <div class="images"><div class="img-wrapper"><img class="survey-img-1" src=""></div><div class="img-wrapper"><img class="survey-img-2" src=""></div></div>
-      <div class="rating-list" id="rating-Depressing"></div>
-      <div class="buttons"><button class="secondary" data-go="7" type="button">◀ Back</button><button data-next="9" type="button">Next: Review & Submit ▶</button></div>
-    </div>
-
-    <!-- Page 9: Review & Submit -->
-    <div id="page-9" class="page">
-      <h2>9. Review & Submit</h2>
-      <p style="margin-bottom:20px; font-size:16px;">Please review your responses before submitting.</p>
-      
-      <div id="summary-container"></div>
-      
-      <div class="buttons">
-        <button class="secondary" data-go="8" type="button">◀ Back</button>
-        <div>
-          <button id="finish" type="button">Finish and export ▶</button>
+      <div class="check-row" id="qc-row-3">
+        <div style="width:30px;font-weight:700;padding-top:12px;">3.</div>
+        <div class="check-pair">
+          <div class="check-img-wrap" data-qc-question="3" data-qc-answer="A"><div class="qc-image-holder" id="qc-holder-3-A"></div><div class="check-label">Image A</div></div>
+          <div class="check-img-wrap" data-qc-question="3" data-qc-answer="B"><div class="qc-image-holder" id="qc-holder-3-B"></div><div class="check-label">Image B</div></div>
         </div>
       </div>
-      
-      <div id="submission-receipt" style="display:none; margin-top:30px;">
-         <h3>Submission Successful</h3>
-         <div style="font-size:14px; margin-bottom:8px;">Thank you for your participation!</div>
-         <div id="receipt-content" style="font-family:monospace; color:#334155;"></div>
-      </div>
     </div>
 
+    <div class="check-section">
+      <h3 style="margin-top:0;">General Preference</h3>
+      <p style="font-size:16px;margin-bottom:16px;">In general, which type of environment do you prefer living in?</p>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <label class="rating-option"><input type="radio" name="preference" value="urban"> <span style="font-weight:400">I prefer Urban (City)</span></label>
+        <label class="rating-option"><input type="radio" name="preference" value="rural"> <span style="font-weight:400">I prefer Rural (Countryside)</span></label>
+        <label class="rating-option"><input type="radio" name="preference" value="neutral"> <span style="font-weight:400">No preference / Neutral</span></label>
+      </div>
+    </div>
+    <div class="buttons">
+      <button class="secondary" id="qc-back" type="button">◀ Back</button>
+      <button id="qc-next" type="button">Continue to Review ▶</button>
+    </div>
+  </div>
+
+  <div id="page-review" class="page">
+    <h2>Review & Submit</h2>
+    <p style="margin-bottom:20px;font-size:16px;">Please review the five image pairs and your responses before submitting.</p>
+    <div id="summary-container"></div>
+    <div class="buttons">
+      <button class="secondary" id="review-back" type="button">◀ Back</button>
+      <button id="finish" type="button">Finish and submit ▶</button>
+    </div>
+    <div id="submission-receipt" style="display:none;margin-top:30px;">
+      <h3>Submission Successful</h3>
+      <div style="font-size:14px;margin-bottom:8px;">Thank you for your participation!</div>
+      <div id="receipt-content" style="font-family:monospace;color:#334155;"></div>
+    </div>
+  </div>
 </div>
 
-<!-- Loading & Submitting Overlays -->
 <div id="submit-overlay">
-    <div class="card">
-      <div style="display:flex;align-items:center;justify-content:center;">
-        <div class="title" style="font-weight:700;font-size:18px;margin-bottom:8px;">Submitting…</div>
-        <div class="spinner" style="margin-left:12px; width:20px; height:20px; border:3px solid rgba(37,99,235,0.2); border-top-color:#2563eb; border-radius:50%; animation:spin 1s linear infinite;"></div>
-      </div>
-      <div class="message" id="submit-overlay-message" style="margin-bottom:16px;">Please wait...</div>
-      <div class="status-small" id="submit-overlay-status" style="font-size:13px; color:#64748b;"></div>
-      <button id="submit-overlay-confirm" style="margin-top:16px;display:none;background:#22c55e;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600;">OK</button>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:center;">
+      <div class="title" style="font-weight:700;font-size:18px;margin-bottom:8px;">Submitting…</div>
+      <div class="spinner" style="margin-left:12px;width:20px;height:20px;border:3px solid rgba(37,99,235,0.2);border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite;"></div>
     </div>
+    <div class="message" id="submit-overlay-message" style="margin-bottom:16px;">Please wait...</div>
+    <div class="status-small" id="submit-overlay-status" style="font-size:13px;color:#64748b;"></div>
+    <button id="submit-overlay-confirm" style="margin-top:16px;display:none;background:#22c55e;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600;">OK</button>
+  </div>
 </div>
 
 <script>
 (function() {
-    'use strict';
+  'use strict';
 
-    // *** Configuration ***
-    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxCc1OrTFsI9_5nC9de2Ru7VA12xjxCuP8uJZiaRLB2KUbvY3q-L500V-qtCf62eG0x/exec';
-    const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw6W2Y-QxBt6yaV0KEKVKQ7SklByzWMwImCfx0iGyDNBACxgI2dfNvlaAAb5y2d1sGp/exec';
+  const BATCH_SIZE = 5;
+  const QC_AFTER_PAIR_INDEX = BATCH_SIZE - 1; // after all five main image pairs
+  const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
+  const ATTRIBUTE_DEFINITIONS = {
+    Safe: 'Looks safe, secure, and not threatening.',
+    Lively: 'Bustling with activities, energetic, and vibrant.',
+    Beautiful: 'Aesthetically pleasing and nice to look at.',
+    Wealthy: 'Affluent, high-status, and expensive neighborhood.',
+    Boring: 'Dull, uninteresting, and monotonous.',
+    Depressing: 'Grim, bleak, and evoking sadness.'
+  };
 
-    const CHECK_IMAGE_IDS = {
-        "urban1": "1bFvVbyeq7hpJkwxENMVLIBGv-7ZImGCY",
-        "rural1": "1Sf1rEYMSqPyZIieJN0ePfymK2coRa-5j",
-        "urban2": "1FmTndr4hA19AMzwAjBtD8as2TLPsmYH7",
-        "rural2": "1p419SR7A2WyBogLYjyW7_9115bvZtXeN",
-        "urban3": "17YQrGfNb354lxHfFJg6vUJzWkamFgxCb",
-        "rural3": "1Qen32uNnoHxjYXPkJJOkjehEFdoyPcpI"
+  // Place these six fixed QC images in the same directory as this HTML file.
+  // Using ./ keeps the paths relative to the survey page both for local tests
+  // and for GitHub Pages project sites.
+  const QC_ASSETS = {
+    '1A': './rural1.jpeg',
+    '1B': './urban1.jpeg',
+    '2A': './urban2.jpeg',
+    '2B': './rural2.jpeg',
+    '3A': './urban3.jpeg',
+    '3B': './rural3.jpeg'
+  };
+  const QC_CORRECT = { q1: 'A', q2: 'B', q3: 'B' };
+
+  var assignedBatch = null;
+  var assignmentRequestInFlight = false;
+  var assignmentResumeHint = false;
+  var waitingForAssignmentAfterDemographics = false;
+  var pairAssets = [];
+  var pairLoadPromises = [];
+  var preloadTimers = [];
+  var qcAssetObjects = {};
+  var qcPreloadPromise = null;
+  var qcPreloadTimer = null;
+  var currentPairIndex = 0;
+  var currentAttrIndex = 0;
+  var savedBeforeAssignment = null;
+
+  function q(selector) { return document.querySelector(selector); }
+  function qa(selector) { return Array.from(document.querySelectorAll(selector)); }
+  function sleep(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
+  function randomBetween(min, max) { return Math.floor(min + Math.random() * (max - min + 1)); }
+  function getQueryParam(name) {
+    try { return new URL(window.location.href).searchParams.get(name); }
+    catch (e) { return null; }
+  }
+
+  function getProlificPid() {
+    var p = getQueryParam('PROLIFIC_PID') || getQueryParam('PROLIFICID') || getQueryParam('participant_id') || getQueryParam('worker_id');
+    if (p) return p.trim();
+    var s = localStorage.getItem('anon_worker_id');
+    if (!s) {
+      s = 'anon-' + Math.random().toString(36).slice(2);
+      localStorage.setItem('anon_worker_id', s);
+    }
+    return s;
+  }
+
+  function storageKey(name) {
+    return 'streetscape_batch5_' + name + '_' + getProlificPid();
+  }
+
+  function getOrCreateAssignmentRequestId() {
+    var key = storageKey('request_id');
+    var id = localStorage.getItem(key);
+    if (!id) {
+      id = 'req-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+      localStorage.setItem(key, id);
+    }
+    return id;
+  }
+
+  function getOrCreateSubmissionId() {
+    var key = storageKey('submission_id');
+    var id = localStorage.getItem(key);
+    if (!id) {
+      id = 'sub-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+      localStorage.setItem(key, id);
+    }
+    localStorage.setItem(storageKey('submission_pending'), '1');
+    return id;
+  }
+
+  function markAssignmentPending() {
+    localStorage.setItem(storageKey('assignment_pending'), '1');
+  }
+
+  function markAssignmentActive() {
+    localStorage.removeItem(storageKey('assignment_pending'));
+    localStorage.setItem(storageKey('assignment_active'), '1');
+  }
+
+  function clearClientState() {
+    ['request_id','assignment_pending','assignment_active','submission_id','submission_pending','progress'].forEach(function(name) {
+      try { localStorage.removeItem(storageKey(name)); } catch (e) {}
+    });
+  }
+
+  function emptyState() {
+    return {
+      batch_id: '',
+      demographics: {},
+      pair_responses: [],
+      quality_check: {
+        q1: '', q2: '', q3: '', preference: '',
+        failed_attempts: 0,
+        first_attempt: null,
+        passed: false
+      },
+      navigation: {
+        stage: 'demographics',
+        pairIndex: 0,
+        attrIndex: 0
+      }
+    };
+  }
+
+  var state = emptyState();
+
+  function loadSavedProgress() {
+    try {
+      var raw = localStorage.getItem(storageKey('progress'));
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      return parsed && parsed.state ? parsed : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveProgress() {
+    if (!assignedBatch) return;
+    try {
+      state.batch_id = assignedBatch.batch_id;
+      localStorage.setItem(storageKey('progress'), JSON.stringify({
+        batch_id: assignedBatch.batch_id,
+        request_id: assignedBatch.assignment_request_id || getOrCreateAssignmentRequestId(),
+        state: state
+      }));
+    } catch (e) {
+      console.warn('Could not save local progress:', e);
+    }
+  }
+
+  function batchPairIds(batch) {
+    return (batch && Array.isArray(batch.pairs)) ? batch.pairs.map(function(p) { return String(p.pair_id); }) : [];
+  }
+
+  function savedStateMatchesBatch(saved, batch) {
+    if (!saved || !saved.state || !batch || saved.batch_id !== batch.batch_id) return false;
+    var savedPairs = Array.isArray(saved.state.pair_responses) ? saved.state.pair_responses.map(function(p) { return String(p.pair_id); }) : [];
+    var currentPairs = batchPairIds(batch);
+    return savedPairs.length === currentPairs.length && savedPairs.every(function(id, i) { return id === currentPairs[i]; });
+  }
+
+  function initializeStateForBatch(batch) {
+    var saved = loadSavedProgress();
+    if (savedStateMatchesBatch(saved, batch)) {
+      state = saved.state;
+      if (!state.quality_check) state.quality_check = emptyState().quality_check;
+      if (!state.navigation) state.navigation = emptyState().navigation;
+      q('#resume-note').style.display = state.navigation.stage !== 'demographics' ? 'block' : 'none';
+    } else {
+      var previousDemo = state.demographics || {};
+      state = emptyState();
+      state.demographics = previousDemo;
+      state.batch_id = batch.batch_id;
+      state.pair_responses = batch.pairs.map(function(pair, index) {
+        return { pair_id: String(pair.pair_id), pair_order: index + 1, ratings: {} };
+      });
+      q('#resume-note').style.display = 'none';
+      try { localStorage.removeItem(storageKey('submission_id')); localStorage.removeItem(storageKey('submission_pending')); } catch (e) {}
+    }
+    hydrateDemographics();
+    saveProgress();
+  }
+
+  function hydrateDemographics() {
+    var d = state.demographics || {};
+    if (d.id && q('#user-id')) q('#user-id').value = d.id;
+    if (d.age && q('#age')) q('#age').value = d.age;
+    if (d.gender && q('#gender')) q('#gender').value = d.gender;
+    if (d.nationality && q('#nationality')) q('#nationality').value = d.nationality;
+    if (d.education && d.education !== 'Not specified' && q('#education')) q('#education').value = d.education;
+  }
+
+  function showPage(name) {
+    qa('.page').forEach(function(page) { page.classList.remove('active'); });
+    var page = q('#page-' + name);
+    if (page) page.classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  function showDialog(title, text, warning) {
+    var modal = q('#msg-modal');
+    var box = modal.querySelector('.msg-box');
+    var content = q('#msg-content');
+    box.classList.toggle('warning-theme', !!warning);
+    modal.querySelector('.msg-icon').textContent = warning ? '⚠️' : (title.indexOf('Error') >= 0 ? '⚠️' : '📝');
+    content.innerHTML = '<strong>' + title + '</strong><br><br>' + String(text).replace(/\n/g, '<br>');
+    modal.classList.add('show');
+  }
+
+  q('#msg-ok').addEventListener('click', function() {
+    q('#msg-modal').classList.remove('show');
+    q('#msg-modal .msg-box').classList.remove('warning-theme');
+  });
+
+  q('#loading-reload').addEventListener('click', function() { window.location.reload(); });
+
+  function showLoading(title) {
+    q('#loading-title').textContent = title || 'Loading Survey';
+    q('#loading-error').style.display = 'none';
+    q('#loading-error').textContent = '';
+    q('#loading-reload').style.display = 'none';
+    q('#loading-overlay').style.display = 'flex';
+  }
+
+  function hideLoading() {
+    q('#loading-overlay').style.display = 'none';
+  }
+
+  function showLoadingFailure(message) {
+    q('#loading-title').textContent = 'Loading problem';
+    q('#loading-error').textContent = message;
+    q('#loading-error').style.display = 'block';
+    q('#loading-reload').style.display = 'inline-block';
+    q('#loading-overlay').style.display = 'flex';
+  }
+
+  function jsonp(url, callback, retryCount) {
+    retryCount = retryCount || 0;
+    var MAX_RETRIES = 6;
+    var cbName = 'cb_' + Math.random().toString(36).slice(2);
+    var settled = false;
+    var scriptEl = null;
+
+    function cleanup() {
+      if (scriptEl && scriptEl.parentNode) scriptEl.parentNode.removeChild(scriptEl);
+      try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+    }
+
+    function retryOrFail(reason, serverDelay) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutTimer);
+      cleanup();
+      if (retryCount < MAX_RETRIES) {
+        var exponential = Math.min(800 * Math.pow(2, retryCount), 7000);
+        var requested = parseInt(serverDelay, 10);
+        var base = Number.isFinite(requested) && requested > 0 ? requested : exponential;
+        var delay = Math.min(base + randomBetween(250, 950), 9000);
+        setTimeout(function() { jsonp(url, callback, retryCount + 1); }, delay);
+      } else {
+        callback({ status: 'error', code: 'ASSIGN_RETRY_EXHAUSTED', error: 'The server is temporarily busy after several retries. Please refresh this page once.' });
+      }
+    }
+
+    var timeoutTimer = setTimeout(function() { retryOrFail('Timeout'); }, 15000);
+    window[cbName] = function(data) {
+      if (settled) return;
+      if (data && data.status === 'busy') {
+        retryOrFail(data.code || 'Server busy', data.retry_after_ms);
+        return;
+      }
+      settled = true;
+      clearTimeout(timeoutTimer);
+      cleanup();
+      callback(data);
     };
 
-    var state = { demographics: {}, pairwise: {}, quality_check: {} };
-    var assignedPairInfo = null;
-    var assignmentRequestInFlight = false;
-    var currentCheckImageIds = Object.assign({}, CHECK_IMAGE_IDS);
-    var resolvedPairImages = null;
-    var resolvedQCImages = {};
-    var qcImagePromises = {};
-    var qcBackgroundStarted = false;
-    var assignmentResumeHint = false;
-    window.imagesLoaded = false;
-
-    function q(s) { return document.querySelector(s); }
-    function qa(s) { return Array.from(document.querySelectorAll(s)); }
-    function getQueryParam(n) { try { return new URL(window.location.href).searchParams.get(n); } catch (e) { return null; } }
-    
-    function getProlificPid() {
-        var p = getQueryParam('PROLIFIC_PID') || getQueryParam('PROLIFICID') || getQueryParam('participant_id') || getQueryParam('worker_id');
-        if (p) return p.trim();
-        var s = localStorage.getItem('anon_worker_id');
-        if (!s) { s = 'anon-' + Math.random().toString(36).slice(2); localStorage.setItem('anon_worker_id', s); }
-        return s;
-    }
-
-    function getFastDriveUrl(fileId, width) {
-        width = width || 1600;
-        return 'https://lh3.googleusercontent.com/d/' + fileId + '=w' + width;
-    }
-
-    function assignmentStorageKey(name) {
-        return 'streetscape_' + name + '_' + getProlificPid();
-    }
-
-    function getOrCreateAssignmentRequestId() {
-        var key = assignmentStorageKey('request_id');
-        var requestId = localStorage.getItem(key);
-        if (!requestId) {
-            requestId = 'req-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
-            localStorage.setItem(key, requestId);
-        }
-        return requestId;
-    }
-
-    function markAssignmentPending() {
-        localStorage.setItem(assignmentStorageKey('pending'), '1');
-    }
-
-    function markAssignmentActive() {
-        localStorage.removeItem(assignmentStorageKey('pending'));
-        localStorage.setItem(assignmentStorageKey('active'), '1');
-    }
-
-    function submissionStorageKey(name) {
-        return 'streetscape_submission_' + name + '_' + getProlificPid();
-    }
-
-    function getOrCreateSubmissionId() {
-        var key = submissionStorageKey('id');
-        var submissionId = localStorage.getItem(key);
-        if (!submissionId) {
-            submissionId = 'sub-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
-            localStorage.setItem(key, submissionId);
-        }
-        localStorage.setItem(submissionStorageKey('pending'), '1');
-        return submissionId;
-    }
-
-    function clearSubmissionClientState() {
-        localStorage.removeItem(submissionStorageKey('id'));
-        localStorage.removeItem(submissionStorageKey('pending'));
-    }
-
-    function clearAssignmentClientState() {
-        localStorage.removeItem(assignmentStorageKey('pending'));
-        localStorage.removeItem(assignmentStorageKey('active'));
-        localStorage.removeItem(assignmentStorageKey('request_id'));
-        clearSubmissionClientState();
-    }
-
-    function showRecoveredSubmissionComplete() {
-        clearAssignmentClientState();
-        var loadingOverlay = q('#loading-overlay');
-        if (loadingOverlay) loadingOverlay.style.display = 'none';
-        var completionUrl = 'https://app.prolific.com/submissions/complete?cc=CLUCC7RR';
-        var container = document.getElementById('main-container');
-        if (!container) return;
-
-        container.innerHTML = `
-            <div style="text-align:center;padding:60px 20px;max-width:760px;margin:0 auto;">
-                <h2 style="color:#15803d;font-size:28px;">Submission Already Received</h2>
-                <p style="font-size:17px;color:#475569;line-height:1.6;">
-                    Your response has already been saved successfully. No additional survey response is required.
-                </p>
-                <a href="${completionUrl}" style="display:inline-block;margin-top:18px;background:#2563eb;color:#fff;padding:14px 26px;text-decoration:none;border-radius:8px;font-weight:700;">
-                    Return to Prolific
-                </a>
-            </div>`;
-    }
-
-    function showLoadingFailure(message, allowRefresh) {
-        var overlay = q('#loading-overlay');
-        var loadingError = q('#loading-error');
-        var reloadButton = q('#loading-reload');
-        if (overlay) overlay.style.display = 'flex';
-        if (loadingError) {
-            loadingError.style.display = 'block';
-            loadingError.textContent = message;
-        }
-        if (reloadButton) reloadButton.style.display = allowRefresh ? 'inline-block' : 'none';
-    }
-
-    function clearLoadingFailure() {
-        var loadingError = q('#loading-error');
-        var reloadButton = q('#loading-reload');
-        if (loadingError) {
-            loadingError.style.display = 'none';
-            loadingError.textContent = '';
-        }
-        if (reloadButton) reloadButton.style.display = 'none';
-    }
-
-    function sleep(ms) {
-        return new Promise(function(resolve) { setTimeout(resolve, ms); });
-    }
-
-    function randomBetween(min, max) {
-        return Math.floor(min + Math.random() * (max - min + 1));
-    }
-
-    function jsonp(url, callback, retryCount) {
-        retryCount = retryCount || 0;
-        var MAX_RETRIES = 6;
-        var cbName = 'cb_' + Math.random().toString(36).slice(2);
-        var settled = false;
-        var scriptEl = null;
-
-        function cleanup() {
-            if (scriptEl && scriptEl.parentNode) scriptEl.parentNode.removeChild(scriptEl);
-            try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
-        }
-
-        function isBusyResponse(data) {
-            if (!data) return false;
-            var msg = String(data.error || data.message || '');
-            return data.status === 'busy' ||
-                   data.code === 'LOCK_BUSY' ||
-                   data.code === 'ASSIGN_PERSIST_BUSY' ||
-                   data.code === 'ASSIGNMENTS_SHEET_BUSY' ||
-                   data.code === 'ASSIGN_RESTORE_BUSY' ||
-                   /锁超时|lock\s*timeout|another process.*lock/i.test(msg);
-        }
-
-        function retryOrFail(reason, serverDelay) {
-            if (settled) return;
-            settled = true;
-            clearTimeout(timeoutTimer);
-            cleanup();
-
-            if (retryCount < MAX_RETRIES) {
-                var exponential = Math.min(800 * Math.pow(2, retryCount), 7000);
-                var requestedDelay = parseInt(serverDelay, 10);
-                var baseDelay = Number.isFinite(requestedDelay) && requestedDelay > 0 ? requestedDelay : exponential;
-                var jitter = randomBetween(250, 950);
-                var delay = Math.min(baseDelay + jitter, 9000);
-
-                console.warn('Assignment retry ' + (retryCount + 1) + '/' + MAX_RETRIES +
-                             ' after ' + delay + ' ms (' + reason + ')');
-
-                setTimeout(function() {
-                    jsonp(url, callback, retryCount + 1);
-                }, delay);
-            } else {
-                callback({
-                    status: 'error',
-                    code: 'ASSIGN_RETRY_EXHAUSTED',
-                    error: 'The server is temporarily busy after several retries. Please refresh the page once and click “I Agree” again.'
-                });
-            }
-        }
-
-        var timeoutTimer = setTimeout(function() {
-            retryOrFail('Timeout');
-        }, 15000);
-
-        window[cbName] = function(data) {
-            if (settled) return;
-
-            if (isBusyResponse(data)) {
-                retryOrFail('Server busy', data && data.retry_after_ms);
-                return;
-            }
-
-            settled = true;
-            clearTimeout(timeoutTimer);
-            cleanup();
-            callback(data);
-        };
-
-        scriptEl = document.createElement('script');
-        var separator = url.includes('?') ? '&' : '?';
-        scriptEl.src = url + separator + 'callback=' + cbName + '&client_retry=' + retryCount;
-        scriptEl.id = 'sc-' + cbName;
-        scriptEl.onerror = function() {
-            retryOrFail('Network Error');
-        };
-        document.body.appendChild(scriptEl);
-    }
-
-    function requestAssignment() {
-        if (assignedPairInfo || assignmentRequestInFlight) return;
-
-        assignmentRequestInFlight = true;
-        clearLoadingFailure();
-
-        var workerId = getProlificPid();
-        var requestId = getOrCreateAssignmentRequestId();
-        var resumeFlag = assignmentResumeHint ? '1' : '0';
-
-        // Set this BEFORE the request. If the page is refreshed while a response
-        // is in flight, the next page load knows that it should attempt restore.
-        markAssignmentPending();
-
-        var url = APPS_SCRIPT_URL +
-            '?action=assign&worker_id=' + encodeURIComponent(workerId) +
-            '&request_id=' + encodeURIComponent(requestId) +
-            '&resume=' + resumeFlag;
-
-        jsonp(url, function(data) {
-            assignmentRequestInFlight = false;
-
-            if (data && data.status === 'finished') {
-                showRecoveredSubmissionComplete();
-                return;
-            }
-
-            if (data && (data.pair_id || data.file_id1)) {
-                if (data.type === 'new') clearSubmissionClientState();
-                assignedPairInfo = data;
-                markAssignmentActive();
-
-                if (data.check_images) {
-                    currentCheckImageIds = Object.assign({}, CHECK_IMAGE_IDS, data.check_images);
-                }
-
-                applyImages(data.file_id1, data.file_id2);
-                return;
-            }
-
-            showLoadingFailure(
-                'Server Error: ' + ((data && (data.error || data.message)) || 'No tasks available.') +
-                ' If this appears to be temporary, please refresh the page once and click “I Agree” again.',
-                true
-            );
-        });
-    }
-
-    function getDriveImageCandidates(fileId, kind) {
-        var width = kind === 'qc' ? 1000 : 1600;
-        return [
-            getFastDriveUrl(fileId, width),
-            'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w' + width,
-            'https://drive.google.com/uc?export=view&id=' + fileId
-        ];
-    }
-
-    function loadSingleImage(url, timeoutMs) {
-        return new Promise(function(resolve, reject) {
-            var probe = new Image();
-            var finished = false;
-
-            var timer = setTimeout(function() {
-                if (finished) return;
-                finished = true;
-                probe.onload = null;
-                probe.onerror = null;
-                reject(new Error('Image request timed out'));
-            }, timeoutMs || 10000);
-
-            probe.onload = function() {
-                if (finished) return;
-                finished = true;
-                clearTimeout(timer);
-                resolve(url);
-            };
-
-            probe.onerror = function() {
-                if (finished) return;
-                finished = true;
-                clearTimeout(timer);
-                reject(new Error('Image request failed'));
-            };
-
-            probe.src = url;
-        });
-    }
-
-    function loadDriveImage(fileId, kind, urgent, startIndex) {
-        var candidates = getDriveImageCandidates(fileId, kind);
-        startIndex = Math.max(0, parseInt(startIndex || 0, 10));
-
-        function retryDelay(index) {
-            if (index <= 0) return 0;
-            if (urgent) {
-                return index === 1 ? randomBetween(650, 1250) : randomBetween(1800, 3000);
-            }
-            return index === 1 ? randomBetween(1000, 2000) : randomBetween(3000, 5000);
-        }
-
-        function attempt(index) {
-            if (index >= candidates.length) {
-                return Promise.reject(new Error('All image URLs failed for file ' + fileId));
-            }
-
-            var delay = retryDelay(index);
-            return sleep(delay)
-                .then(function() {
-                    return loadSingleImage(candidates[index], kind === 'qc' ? 9000 : 11000);
-                })
-                .then(function() {
-                    return {
-                        fileId: fileId,
-                        url: candidates[index],
-                        retryIndex: index,
-                        kind: kind
-                    };
-                })
-                .catch(function() {
-                    return attempt(index + 1);
-                });
-        }
-
-        return attempt(startIndex);
-    }
-
-    function setSurveyImage(img, resolved) {
-        if (!img || !resolved) return;
-        img.dataset.fileId = resolved.fileId;
-        img.dataset.retry = String(resolved.retryIndex || 0);
-        img.dataset.imageKind = 'main';
-        img.dataset.recovering = '0';
-        img.alt = '';
-        img.style.border = '';
-        if (img.src !== resolved.url) img.src = resolved.url;
-    }
-
-    function applyPairImagesToPage(page) {
-        if (!page || !resolvedPairImages || !page.hasAttribute('data-attr-index')) return;
-        setSurveyImage(page.querySelector('.survey-img-1'), resolvedPairImages.left);
-        setSurveyImage(page.querySelector('.survey-img-2'), resolvedPairImages.right);
-    }
-
-    function getQCItems() {
-        var ci = currentCheckImageIds || CHECK_IMAGE_IDS;
-        return [
-            { key: 'q1A', selector: '#qc-img-1-A', fileId: ci.rural1 },
-            { key: 'q1B', selector: '#qc-img-1-B', fileId: ci.urban1 },
-            { key: 'q2A', selector: '#qc-img-2-A', fileId: ci.urban2 },
-            { key: 'q2B', selector: '#qc-img-2-B', fileId: ci.rural2 },
-            { key: 'q3A', selector: '#qc-img-3-A', fileId: ci.urban3 },
-            { key: 'q3B', selector: '#qc-img-3-B', fileId: ci.rural3 }
-        ];
-    }
-
-    function applyResolvedQCImage(item, resolved) {
-        var img = q(item.selector);
-        if (!img || !resolved) return;
-        img.dataset.fileId = resolved.fileId;
-        img.dataset.retry = String(resolved.retryIndex || 0);
-        img.dataset.imageKind = 'qc';
-        img.dataset.qcKey = item.key;
-        img.dataset.recovering = '0';
-        img.alt = '';
-        img.style.border = '';
-        if (img.src !== resolved.url) img.src = resolved.url;
-    }
-
-    function ensureQCImage(item, urgent) {
-        if (!item || !item.fileId) return Promise.reject(new Error('Missing QC image id'));
-        if (resolvedQCImages[item.key]) return Promise.resolve(resolvedQCImages[item.key]);
-        if (qcImagePromises[item.key]) return qcImagePromises[item.key];
-
-        qcImagePromises[item.key] = loadDriveImage(item.fileId, 'qc', !!urgent, 0)
-            .then(function(resolved) {
-                resolvedQCImages[item.key] = resolved;
-                var qcPage = q('#page-5');
-                if (qcPage && qcPage.classList.contains('active')) {
-                    applyResolvedQCImage(item, resolved);
-                }
-                return resolved;
-            })
-            .catch(function(err) {
-                delete qcImagePromises[item.key];
-                throw err;
-            });
-
-        return qcImagePromises[item.key];
-    }
-
-    function startQCBackgroundPreload() {
-        if (qcBackgroundStarted) return;
-        qcBackgroundStarted = true;
-
-        // Fixed QC images are the hottest Google Drive objects because every
-        // participant requests the same six files. Stagger the start per user,
-        // then load only two at a time with a small random gap between batches.
-        setTimeout(function() {
-            var items = getQCItems();
-
-            (async function() {
-                for (var i = 0; i < items.length; i += 2) {
-                    var batch = items.slice(i, i + 2);
-                    await Promise.allSettled(batch.map(function(item) {
-                        return ensureQCImage(item, false);
-                    }));
-
-                    if (i + 2 < items.length) {
-                        await sleep(randomBetween(450, 1000));
-                    }
-                }
-            })().catch(function(err) {
-                console.warn('Background QC preload ended with an error:', err);
-            });
-        }, randomBetween(1500, 3500));
-    }
-
-    function loadQCImagesOnce() {
-        var items = getQCItems();
-
-        // Use anything already prefetched. Any remaining images are promoted
-        // to urgent loading in pairs when the participant actually reaches QC.
-        items.forEach(function(item) {
-            if (resolvedQCImages[item.key]) {
-                applyResolvedQCImage(item, resolvedQCImages[item.key]);
-            }
-        });
-
-        (async function() {
-            for (var i = 0; i < items.length; i += 2) {
-                var batch = items.slice(i, i + 2);
-                await Promise.allSettled(batch.map(function(item) {
-                    return ensureQCImage(item, true);
-                }));
-                if (i + 2 < items.length) await sleep(200);
-            }
-        })();
-    }
-
-    function recoverRenderedImage(img) {
-        if (!img || img.dataset.recovering === '1') return;
-        var fileId = img.dataset.fileId;
-        if (!fileId) return;
-
-        img.dataset.recovering = '1';
-        var kind = img.dataset.imageKind === 'qc' ? 'qc' : 'main';
-        var nextIndex = parseInt(img.dataset.retry || '0', 10) + 1;
-
-        loadDriveImage(fileId, kind, true, nextIndex)
-            .then(function(resolved) {
-                img.dataset.recovering = '0';
-
-                if (kind === 'qc') {
-                    var qcKey = img.dataset.qcKey;
-                    if (qcKey) resolvedQCImages[qcKey] = resolved;
-                    img.dataset.retry = String(resolved.retryIndex);
-                    img.src = resolved.url;
-                    return;
-                }
-
-                if (img.classList.contains('survey-img-1')) resolvedPairImages.left = resolved;
-                if (img.classList.contains('survey-img-2')) resolvedPairImages.right = resolved;
-                img.dataset.retry = String(resolved.retryIndex);
-                img.src = resolved.url;
-            })
-            .catch(function() {
-                img.dataset.recovering = '0';
-                img.alt = 'Image failed to load.';
-                img.style.border = '2px solid red';
-
-                if (img.closest('.page.active')) {
-                    if (kind === 'main') window.imagesLoaded = false;
-                    showLoadingFailure(
-                        'A required image could not be loaded after several retry attempts. Please refresh the page once, click “I Agree” again, and continue. Your assigned image pair will be restored automatically; unsent answers may need to be entered again.',
-                        true
-                    );
-                }
-            });
-    }
-
-    document.addEventListener('error', function(e) {
-        var img = e.target;
-        if (!img || img.tagName !== 'IMG' || !img.dataset.fileId) return;
-        recoverRenderedImage(img);
-    }, true);
-
-    function applyImages(fid1, fid2) {
-        if (!fid1 || !fid2) return;
-
-        window.imagesLoaded = false;
-        resolvedPairImages = null;
-
-        if (assignedPairInfo) {
-            document.body.dataset.pairIds = assignedPairInfo.pair_id || ('pair_' + fid1.slice(-5));
-        }
-
-        // The two main survey images have highest priority and begin loading as
-        // soon as assignment succeeds, while the participant fills demographics.
-        Promise.all([
-            loadDriveImage(fid1, 'main', true, 0),
-            loadDriveImage(fid2, 'main', true, 0)
-        ]).then(function(results) {
-            resolvedPairImages = {
-                left: results[0],
-                right: results[1]
-            };
-            window.imagesLoaded = true;
-
-            applyPairImagesToPage(document.querySelector('.page.active'));
-            clearLoadingFailure();
-
-            var overlay = q('#loading-overlay');
-            if (overlay) overlay.style.display = 'none';
-
-            // Only after the important pair is safe do we start the fixed QC
-            // images. Their requests are deliberately staggered across users.
-            startQCBackgroundPreload();
+    scriptEl = document.createElement('script');
+    scriptEl.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'callback=' + cbName + '&client_retry=' + retryCount;
+    scriptEl.onerror = function() { retryOrFail('Network error'); };
+    document.body.appendChild(scriptEl);
+  }
+
+  function requestAssignment() {
+    if (assignedBatch || assignmentRequestInFlight) return;
+    assignmentRequestInFlight = true;
+    markAssignmentPending();
+
+    var workerId = getProlificPid();
+    var requestId = getOrCreateAssignmentRequestId();
+    var url = APPS_SCRIPT_URL + '?action=assign&worker_id=' + encodeURIComponent(workerId) + '&request_id=' + encodeURIComponent(requestId) + '&resume=' + (assignmentResumeHint ? '1' : '0');
+
+    jsonp(url, function(data) {
+      assignmentRequestInFlight = false;
+      if (data && data.status === 'finished') {
+        showRecoveredSubmissionComplete();
+        return;
+      }
+      if (data && data.status === 'ok' && Array.isArray(data.pairs) && data.pairs.length === BATCH_SIZE) {
+        assignedBatch = data;
+        document.body.dataset.batchId = data.batch_id || '';
+        markAssignmentActive();
+        initializeStateForBatch(data);
+        pairAssets = new Array(BATCH_SIZE);
+        pairLoadPromises = new Array(BATCH_SIZE);
+
+        // Highest priority: Pair 1 while demographics are being completed.
+        ensurePairLoaded(0, true).then(function() {
+          // Only one additional pair is prefetched during demographics, and its
+          // start is staggered to avoid turning 5 pairs into a 10-image burst.
+          schedulePairPreload(1, randomBetween(1500, 3000));
+          if (waitingForAssignmentAfterDemographics) {
+            waitingForAssignmentAfterDemographics = false;
+            hideLoading();
+            resumeAfterDemographics();
+          }
         }).catch(function(err) {
-            console.error(err);
-            window.imagesLoaded = false;
-            showLoadingFailure(
-                'The survey images could not be loaded after several retry attempts. Please refresh the page once, click “I Agree” again, and continue. Your assigned image pair will be restored automatically; unsent answers may need to be entered again.',
-                true
-            );
+          console.warn('Pair 1 preload failed:', err);
+          if (waitingForAssignmentAfterDemographics) {
+            showLoadingFailure('The first street-image pair could not be loaded. Please retry or refresh once; the same five-pair batch will be restored.');
+          }
         });
+        return;
+      }
+      showLoadingFailure('Server Error: ' + ((data && (data.error || data.message)) || 'No five-pair assignment is available.'));
+    });
+  }
+
+  function getDriveImageCandidates(fileId) {
+    var width = 1600;
+    return [
+      'https://lh3.googleusercontent.com/d/' + fileId + '=w' + width,
+      'https://drive.google.com/thumbnail?id=' + fileId + '&sz=w' + width,
+      'https://drive.google.com/uc?export=view&id=' + fileId
+    ];
+  }
+
+  function loadSingleImage(url, timeoutMs) {
+    return new Promise(function(resolve, reject) {
+      var probe = new Image();
+      probe.decoding = 'async';
+      var finished = false;
+      var timer = setTimeout(function() {
+        if (finished) return;
+        finished = true;
+        probe.onload = null;
+        probe.onerror = null;
+        reject(new Error('Image request timed out'));
+      }, timeoutMs || 11000);
+      probe.onload = function() {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        probe.onload = null;
+        probe.onerror = null;
+        resolve({ url: url, probe: probe });
+      };
+      probe.onerror = function() {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        reject(new Error('Image request failed'));
+      };
+      probe.src = url;
+    });
+  }
+
+  function loadDriveImage(fileId, urgent, startIndex) {
+    var candidates = getDriveImageCandidates(fileId);
+    startIndex = Math.max(0, parseInt(startIndex || '0', 10));
+    function retryDelay(index) {
+      if (index <= 0) return 0;
+      if (urgent) return index === 1 ? randomBetween(650, 1250) : randomBetween(1800, 3000);
+      return index === 1 ? randomBetween(1000, 2000) : randomBetween(3000, 5000);
     }
-
-
-    function addImageABLabels() {
-        qa('.page[data-attr-index]').forEach(function(page) {
-            var imageRow = page.querySelector('.images');
-            if (!imageRow || imageRow.querySelector('.image-slot')) return;
-
-            var wrappers = Array.from(imageRow.querySelectorAll(':scope > .img-wrapper'));
-            ['Image A', 'Image B'].forEach(function(labelText, index) {
-                var wrapper = wrappers[index];
-                if (!wrapper) return;
-
-                var slot = document.createElement('div');
-                slot.className = 'image-slot';
-                imageRow.insertBefore(slot, wrapper);
-                slot.appendChild(wrapper);
-
-                var label = document.createElement('div');
-                label.className = 'image-ab-label';
-                label.textContent = labelText;
-                slot.appendChild(label);
-            });
-        });
+    function attempt(index) {
+      if (index >= candidates.length) return Promise.reject(new Error('All image URLs failed for file ' + fileId));
+      return sleep(retryDelay(index)).then(function() {
+        return loadSingleImage(candidates[index], 11000);
+      }).then(function(result) {
+        return { fileId: fileId, url: result.url, retryIndex: index, probe: result.probe };
+      }).catch(function() { return attempt(index + 1); });
     }
+    return attempt(startIndex);
+  }
 
-    function ratingTextForValue(value) {
-        var numeric = Number(value);
-        if (numeric === 1) return 'Image A — much better';
-        if (numeric === 0.5) return 'Image A — slightly better';
-        if (numeric === 0) return 'Equal / Hard to tell';
-        if (numeric === -0.5) return 'Image B — slightly better';
-        return 'Image B — much better';
-    }
+  function ensurePairLoaded(index, urgent) {
+    if (!assignedBatch || !assignedBatch.pairs[index]) return Promise.reject(new Error('Missing assigned pair ' + index));
+    if (pairAssets[index]) return Promise.resolve(pairAssets[index]);
+    if (pairLoadPromises[index]) return pairLoadPromises[index];
+    var pair = assignedBatch.pairs[index];
+    pairLoadPromises[index] = Promise.all([
+      loadDriveImage(pair.file_id1, !!urgent, 0),
+      loadDriveImage(pair.file_id2, !!urgent, 0)
+    ]).then(function(results) {
+      pairAssets[index] = { left: results[0], right: results[1] };
+      return pairAssets[index];
+    }).catch(function(err) {
+      pairLoadPromises[index] = null;
+      throw err;
+    });
+    return pairLoadPromises[index];
+  }
 
-    function syncRatingMeter(container, value) {
-        if (!container) return;
-        container.querySelectorAll('.meter-point').forEach(function(point) {
-            var selected = Number(point.dataset.value) === Number(value);
-            point.classList.toggle('selected', selected);
-            point.setAttribute('aria-pressed', selected ? 'true' : 'false');
-        });
-    }
+  function schedulePairPreload(index, delay) {
+    if (index < 0 || index >= BATCH_SIZE || pairAssets[index] || pairLoadPromises[index]) return;
+    if (preloadTimers[index]) return;
+    preloadTimers[index] = setTimeout(function() {
+      preloadTimers[index] = null;
+      ensurePairLoaded(index, false).catch(function(err) {
+        console.warn('Background preload failed for pair ' + (index + 1) + ':', err);
+      });
+    }, delay || randomBetween(900, 1800));
+  }
 
-    function drawReviewThumbnail(sourceImg, canvas) {
-        if (!sourceImg || !canvas || !sourceImg.complete || !sourceImg.naturalWidth) return false;
+  function attachProbe(wrapper, resolved, className) {
+    if (!wrapper || !resolved || !resolved.probe) return;
+    var img = resolved.probe;
+    img.className = className || '';
+    img.alt = '';
+    img.dataset.fileId = resolved.fileId || '';
+    if (wrapper.firstChild === img && wrapper.childNodes.length === 1) return;
+    while (wrapper.firstChild) wrapper.removeChild(wrapper.firstChild);
+    wrapper.appendChild(img);
+  }
 
-        var width = 640, height = 360;
-        canvas.width = width;
-        canvas.height = height;
+  function attachCurrentPairImages(index) {
+    var assets = pairAssets[index];
+    if (!assets) return;
+    attachProbe(q('#main-image-A'), assets.left, 'survey-img-1');
+    attachProbe(q('#main-image-B'), assets.right, 'survey-img-2');
+  }
 
-        var ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, width, height);
-        ctx.fillStyle = '#e2e8f0';
-        ctx.fillRect(0, 0, width, height);
+  function ratingTextForValue(value) {
+    var n = Number(value);
+    if (n === 1) return 'Image A — much better';
+    if (n === 0.5) return 'Image A — slightly better';
+    if (n === 0) return 'Equal / Hard to tell';
+    if (n === -0.5) return 'Image B — slightly better';
+    return 'Image B — much better';
+  }
 
-        var scale = Math.min(width / sourceImg.naturalWidth, height / sourceImg.naturalHeight);
-        var drawWidth = sourceImg.naturalWidth * scale;
-        var drawHeight = sourceImg.naturalHeight * scale;
-        ctx.drawImage(sourceImg, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
-        return true;
-    }
+  function renderRatingControl(attr, selectedValue) {
+    var container = q('#dynamic-rating');
+    var levels = [1, 0.5, 0, -0.5, -1];
+    container.innerHTML = '';
+    var meter = document.createElement('div');
+    meter.className = 'five-point-meter';
+    meter.innerHTML = '<div class="five-point-track" role="group" aria-label="Five-point comparison scale for ' + attr + '">' +
+      levels.map(function(value) {
+        var selected = selectedValue !== undefined && Number(selectedValue) === value;
+        return '<button type="button" class="meter-point' + (selected ? ' selected' : '') + '" data-value="' + value + '" aria-label="' + ratingTextForValue(value) + '" aria-pressed="' + (selected ? 'true' : 'false') + '"></button>';
+      }).join('') + '</div>' +
+      '<div class="meter-captions" aria-hidden="true">' +
+      '<span><strong>Image A</strong>Much better</span><span><strong>Image A</strong>Slightly better</span><span><strong>Equal</strong>Hard to tell</span><span><strong>Image B</strong>Slightly better</span><span><strong>Image B</strong>Much better</span></div>';
+    container.appendChild(meter);
 
-    function renderReviewThumbnails() {
-        var canvasA = q('#review-canvas-A');
-        var canvasB = q('#review-canvas-B');
-        if (!canvasA || !canvasB) return;
-
-        var sourceA = qa('.survey-img-1').find(function(img) { return img.complete && img.naturalWidth > 0; });
-        var sourceB = qa('.survey-img-2').find(function(img) { return img.complete && img.naturalWidth > 0; });
-
-        var okA = drawReviewThumbnail(sourceA, canvasA);
-        var okB = drawReviewThumbnail(sourceB, canvasB);
-
-        var note = q('#review-thumb-note');
-        if (note && (!okA || !okB)) {
-            note.textContent = 'Preview unavailable. Please use Back to review the comparison pages.';
-        }
-    }
-
-    function buildRatingControls() {
-        const levels = [
-            { val: 1 },
-            { val: 0.5 },
-            { val: 0 },
-            { val: -0.5 },
-            { val: -1 }
-        ];
-
-        ATTRIBUTES.forEach(function(attr) {
-            var container = document.getElementById('rating-' + attr);
-            if (!container) return;
-            container.innerHTML = '';
-
-            var meter = document.createElement('div');
-            meter.className = 'five-point-meter';
-            meter.innerHTML = `
-                <div class="five-point-track" role="group" aria-label="Five-point comparison scale for ${attr}">
-                    ${levels.map(function(lvl) {
-                        return `<button type="button" class="meter-point" data-value="${lvl.val}"
-                            aria-label="${ratingTextForValue(lvl.val)}" aria-pressed="false"></button>`;
-                    }).join('')}
-                </div>
-                <div class="meter-captions" aria-hidden="true">
-                    <span><strong>Image A</strong>Much better</span>
-                    <span><strong>Image A</strong>Slightly better</span>
-                    <span><strong>Equal</strong>Hard to tell</span>
-                    <span><strong>Image B</strong>Slightly better</span>
-                    <span><strong>Image B</strong>Much better</span>
-                </div>
-            `;
-            container.appendChild(meter);
-
-            levels.forEach(function(lvl) {
-                var label = document.createElement('label');
-                label.className = 'rating-option';
-
-                var displayText;
-                if (lvl.val === 0) {
-                    displayText = 'Equal / Hard to tell';
-                } else if (lvl.val > 0) {
-                    displayText = lvl.val === 1
-                        ? `Image A fits <strong>${attr}</strong> much better`
-                        : `Image A fits <strong>${attr}</strong> slightly better`;
-                } else {
-                    displayText = lvl.val === -1
-                        ? `Image B fits <strong>${attr}</strong> much better`
-                        : `Image B fits <strong>${attr}</strong> slightly better`;
-                }
-
-                label.innerHTML = `
-                    <input type="radio" name="${attr}" value="${lvl.val}">
-                    <span>${displayText}</span>
-                `;
-
-                label.addEventListener('change', function() {
-                    container.querySelectorAll('.rating-option').forEach(function(option) {
-                        option.classList.remove('selected');
-                    });
-
-                    var radio = label.querySelector('input');
-                    if (radio.checked) {
-                        label.classList.add('selected');
-                        state.pairwise[attr] = lvl.val;
-                        syncRatingMeter(container, lvl.val);
-                    }
-                });
-
-                container.appendChild(label);
-            });
-
-            container.querySelectorAll('.meter-point').forEach(function(point) {
-                point.addEventListener('click', function() {
-                    var value = Number(point.dataset.value);
-                    var radio = container.querySelector(
-                        'input[name="' + attr + '"][value="' + String(value) + '"]'
-                    );
-                    if (!radio) return;
-                    radio.checked = true;
-                    radio.dispatchEvent(new Event('change', { bubbles: true }));
-                });
-            });
-        });
-    }
-
-    function showDialog(title, text) {
-        var modal = document.getElementById('msg-modal');
-        var content = document.getElementById('msg-content');
-        var icon = '👋';
-        if(title.includes('Missing') || title.includes('Required')) icon = '📝';
-        if(title.includes('Logic')) icon = '💡';
-        if(title.includes('Error')) icon = '⚠️';
-
-        modal.querySelector('.msg-icon').textContent = icon;
-        content.innerHTML = `<strong>${title}</strong><br><br>${text.replace(/\n/g, '<br/>')}`;
-        modal.classList.add('show');
-    }
-
-    function showFriendlyQCWarning() {
-        var modal = document.getElementById('msg-modal');
-        var box = modal.querySelector('.msg-box');
-        var content = document.getElementById('msg-content');
-        var btn = modal.querySelector('.msg-btn');
-
-        box.classList.add('warning-theme');
-        modal.querySelector('.msg-icon').textContent = '🛑';
-        content.innerHTML = `
-            <strong style="font-size:20px; color:#b91c1c; display:block; margin-bottom:12px; text-align:center;">Data Quality Check Failed</strong>
-            <p style="margin:0 0 12px 0;">We detected inconsistent answers in the <strong>Environment Classification</strong> section (Page 5).</p>
-            <div style="margin:0 0 16px 0; background:#fff1f2; padding:14px; border-radius:8px; border:1px solid #fecdd3; border-left:5px solid #e11d48; color:#881337;">
-                <strong style="display:block; margin-bottom:6px;">⚠️ Warning:</strong>
-                <p style="margin:0 0 8px 0; font-size:15px;">This suggests that your previous responses might also be rushed or careless.</p>
-                <p style="margin:0; font-weight:700; font-size:15px;">Please review your answers carefully. Submissions with random or careless responses will be REJECTED.</p>
-            </div>
-            <p style="margin:0; font-size:15px; color:#4b5563;">To proceed, please correct the classification errors.</p>
-        `;
-        btn.textContent = "I understand. Let me fix it.";
-        btn.onclick = function() {
-            modal.classList.remove('show');
-            box.classList.remove('warning-theme'); 
-            showPage('5'); 
-            btn.onclick = function() { document.getElementById('msg-modal').classList.remove('show'); };
-        };
-        modal.classList.add('show');
-    }
-
-    // --- Page Navigation ---
-    document.addEventListener('click', function(e) {
-        var btn = e.target.closest('button');
-        if (!btn) return;
-
-        // Consent Page Exit Logic
-        if (btn.id === 'btn-disagree') {
-            // [修正] 盲退保险 (Blind Abort): 应对受访者点同意后“刷新页面”导致前端丢失状态，又点不同意的极端情况
-            var workerId = getProlificPid();
-            if (workerId) {
-                var url = APPS_SCRIPT_URL + '?action=abort&worker_id=' + encodeURIComponent(workerId);
-                jsonp(url, function() { console.log("Cleaned up any potential ghost assignments."); });
-            }
-            clearAssignmentClientState();
-
-            document.getElementById('main-container').innerHTML = `
-                <div style="text-align:center; padding: 60px 20px;">
-                    <h2 style="color:#ef4444; font-size:28px;">Session Terminated</h2>
-                    <p style="font-size: 18px; color: #475569;">You have chosen not to participate. Thank you for your time. You may now close this window or return the submission on Prolific.</p>
-                </div>
-            `;
-            return;
-        }
-
-        if (btn.dataset.next) {
-            var curPage = document.querySelector('.page.active');
-            var nextId = btn.dataset.next;
-
-            // [新增] 延迟触发分配：仅当受访者点击“I Agree”进入第1页时，才向后端索要任务
-            if (curPage.id === 'page-0' && nextId === '1' && !assignedPairInfo) {
-                requestAssignment();
-            }
-
-            if (curPage.id === 'page-1') {
-                var missing = [];
-                if(!q('#user-id').value) missing.push('User ID');
-                if(!q('#age').value) missing.push('Age');
-                if(!q('#gender').value) missing.push('Gender');
-                if(!q('#nationality').value) missing.push('Nationality');
-                
-                if(missing.length) { 
-                    showDialog("Action Required: Missing Information", "Please fill in the following fields:\n\n• " + missing.join('\n• ')); 
-                    return; 
-                }
-                state.demographics = {
-                    id: q('#user-id').value,
-                    age: q('#age').value,
-                    gender: q('#gender').value,
-                    nationality: q('#nationality').value,
-                    education: q('#education').value || "Not specified"
-                };
-
-                // [新增] 拦截器：如果手速极快导致此时图片还没加载完，或者后端还没返回任务
-                if (!window.imagesLoaded || !assignedPairInfo) {
-                    // 弹出遮罩层。页面会继续切换到 Page 2，但受访者视野会被遮住，直到 checkDone() 将其隐藏。
-                    document.getElementById('loading-overlay').style.display = 'flex';
-                }
-            }
-
-            if (curPage.querySelector('.rating-list')) {
-                var attr = ATTRIBUTES[parseInt(curPage.dataset.attrIndex)];
-                if (state.pairwise[attr] === undefined) {
-                    showDialog("Action Required: Rating", "Please select one of the options to compare the images.");
-                    return;
-                }
-            }
-
-            if (curPage.id === 'page-5') {
-                var a1 = q('#qc-ans-1').value;
-                var a2 = q('#qc-ans-2').value;
-                var a3 = q('#qc-ans-3').value;
-                var pref = q('input[name="preference"]:checked');
-                var missingQC = [];
-                if(!a1) missingQC.push("Image Pair 1");
-                if(!a2) missingQC.push("Image Pair 2");
-                if(!a3) missingQC.push("Image Pair 3");
-                if(!pref) missingQC.push("General Preference");
-                if (missingQC.length > 0) {
-                    showDialog("Action Required: Incomplete Selection", "Please complete all the choices to proceed:\n\n• " + missingQC.join("\n• "));
-                    return;
-                }
-                state.quality_check = { q1: a1, q2: a2, q3: a3, preference: pref.value };
-            }
-
-            showPage(nextId);
-        }
-
-        if (btn.dataset.go) showPage(btn.dataset.go);
-
-        if (btn.id === 'finish') submitData();
+    levels.forEach(function(value) {
+      var label = document.createElement('label');
+      label.className = 'rating-option' + (selectedValue !== undefined && Number(selectedValue) === value ? ' selected' : '');
+      var display;
+      if (value === 0) display = 'Equal / Hard to tell';
+      else if (value > 0) display = 'Image A fits <strong>' + attr + '</strong> ' + (value === 1 ? 'much better' : 'slightly better');
+      else display = 'Image B fits <strong>' + attr + '</strong> ' + (value === -1 ? 'much better' : 'slightly better');
+      label.innerHTML = '<input type="radio" name="dynamic-rating-' + attr + '" value="' + value + '"' + (selectedValue !== undefined && Number(selectedValue) === value ? ' checked' : '') + '><span>' + display + '</span>';
+      label.addEventListener('change', function() { setCurrentRating(value); });
+      container.appendChild(label);
     });
 
-    window.selectQC = function(qIndex, answer) {
-        var row = document.getElementById('qc-row-' + qIndex);
-        row.querySelectorAll('.check-img-wrap').forEach(w => w.classList.remove('selected'));
-        var clickedImg = document.getElementById('qc-img-' + qIndex + '-' + answer);
-        if (clickedImg) clickedImg.parentElement.classList.add('selected');
-        document.getElementById('qc-ans-' + qIndex).value = answer;
+    container.querySelectorAll('.meter-point').forEach(function(point) {
+      point.addEventListener('click', function() { setCurrentRating(Number(point.dataset.value)); });
+    });
+  }
+
+  function setCurrentRating(value) {
+    var attr = ATTRIBUTES[currentAttrIndex];
+    state.pair_responses[currentPairIndex].ratings[attr] = value;
+    saveProgress();
+    q('#dynamic-rating').querySelectorAll('.rating-option').forEach(function(option) {
+      var radio = option.querySelector('input');
+      var selected = Number(radio.value) === Number(value);
+      radio.checked = selected;
+      option.classList.toggle('selected', selected);
+    });
+    q('#dynamic-rating').querySelectorAll('.meter-point').forEach(function(point) {
+      var selected = Number(point.dataset.value) === Number(value);
+      point.classList.toggle('selected', selected);
+      point.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+  }
+
+  function renderComparison(pairIndex, attrIndex) {
+    if (!assignedBatch) {
+      showLoading('Waiting for assignment');
+      return;
+    }
+    currentPairIndex = pairIndex;
+    currentAttrIndex = attrIndex;
+    state.navigation = { stage: 'comparison', pairIndex: pairIndex, attrIndex: attrIndex };
+    saveProgress();
+    showPage('comparison');
+
+    var attr = ATTRIBUTES[attrIndex];
+    q('#pair-progress-current').textContent = String(pairIndex + 1);
+    q('#attr-progress-current').textContent = String(attrIndex + 1);
+    q('#comparison-title').textContent = 'Image Pair ' + (pairIndex + 1) + ' of ' + BATCH_SIZE + ' — ' + attr;
+    q('#attribute-definition').innerHTML = '<strong>' + attr + ':</strong> ' + ATTRIBUTE_DEFINITIONS[attr];
+    q('#comparison-progress-bar').style.width = (((pairIndex * ATTRIBUTES.length + attrIndex) / (BATCH_SIZE * ATTRIBUTES.length)) * 100) + '%';
+    var selected = state.pair_responses[pairIndex].ratings[attr];
+    renderRatingControl(attr, selected);
+
+    var nextText = 'Next question ▶';
+    if (attrIndex === ATTRIBUTES.length - 1) {
+      if (pairIndex === QC_AFTER_PAIR_INDEX && !state.quality_check.passed) nextText = 'Next: Classification ▶';
+      else if (pairIndex === BATCH_SIZE - 1) nextText = 'Next: Review & Submit ▶';
+      else nextText = 'Next: Image Pair ' + (pairIndex + 2) + ' ▶';
+    }
+    q('#comparison-next').textContent = nextText;
+
+    if (pairAssets[pairIndex]) {
+      attachCurrentPairImages(pairIndex);
+      hideLoading();
+      schedulePairPreload(pairIndex + 1, randomBetween(900, 1800));
+    } else {
+      showLoading('Loading Image Pair ' + (pairIndex + 1) + ' of ' + BATCH_SIZE);
+      ensurePairLoaded(pairIndex, true).then(function() {
+        if (currentPairIndex === pairIndex && q('#page-comparison').classList.contains('active')) attachCurrentPairImages(pairIndex);
+        hideLoading();
+        schedulePairPreload(pairIndex + 1, randomBetween(900, 1800));
+      }).catch(function() {
+        showLoadingFailure('The required street images could not be loaded after several attempts. Please refresh once; the same five-pair assignment and your saved answers will be restored.');
+      });
+    }
+
+    // Warm the six fixed QC files during Pair 4. A short randomized delay
+    // spreads GitHub Pages requests across participants who started together.
+    if (pairIndex >= 3) scheduleQCPreload();
+  }
+
+  function comparisonNext() {
+    var attr = ATTRIBUTES[currentAttrIndex];
+    if (state.pair_responses[currentPairIndex].ratings[attr] === undefined) {
+      showDialog('Action Required: Rating', 'Please select one of the five options before continuing.');
+      return;
+    }
+    if (currentAttrIndex < ATTRIBUTES.length - 1) {
+      renderComparison(currentPairIndex, currentAttrIndex + 1);
+      return;
+    }
+    if (currentPairIndex === QC_AFTER_PAIR_INDEX && !state.quality_check.passed) {
+      showQCPage();
+      return;
+    }
+    if (currentPairIndex < BATCH_SIZE - 1) {
+      renderComparison(currentPairIndex + 1, 0);
+      return;
+    }
+    renderReview();
+  }
+
+  function comparisonBack() {
+    if (currentAttrIndex > 0) {
+      renderComparison(currentPairIndex, currentAttrIndex - 1);
+      return;
+    }
+    if (currentPairIndex === 0) {
+      state.navigation = { stage: 'demographics', pairIndex: 0, attrIndex: 0 };
+      saveProgress();
+      showPage('1');
+      return;
+    }
+    renderComparison(currentPairIndex - 1, ATTRIBUTES.length - 1);
+  }
+
+  function loadLocalImage(url, attempt) {
+    attempt = Math.max(0, parseInt(attempt || '0', 10));
+    var MAX_ATTEMPTS = 3;
+
+    return new Promise(function(resolve, reject) {
+      var img = new Image();
+      img.decoding = 'async';
+      var finished = false;
+      var timer = setTimeout(function() {
+        if (finished) return;
+        finished = true;
+        img.onload = null;
+        img.onerror = null;
+        reject(new Error('Timeout loading ' + url));
+      }, 10000);
+
+      img.onload = function() {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        img.onload = null;
+        img.onerror = null;
+        resolve(img);
+      };
+
+      img.onerror = function() {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        img.onload = null;
+        img.onerror = null;
+        reject(new Error('Could not load ' + url));
+      };
+
+      img.src = new URL(url, document.baseURI).href;
+    }).catch(function(err) {
+      if (attempt + 1 >= MAX_ATTEMPTS) throw err;
+      var delay = attempt === 0
+        ? randomBetween(600, 1200)
+        : randomBetween(1600, 2800);
+      return sleep(delay).then(function() {
+        return loadLocalImage(url, attempt + 1);
+      });
+    });
+  }
+
+  function preloadQCAssets() {
+    if (qcPreloadPromise) return qcPreloadPromise;
+
+    var missingKeys = Object.keys(QC_ASSETS).filter(function(key) {
+      return !qcAssetObjects[key];
+    });
+    if (!missingKeys.length) return Promise.resolve(qcAssetObjects);
+
+    qcPreloadPromise = Promise.all(missingKeys.map(function(key) {
+      return loadLocalImage(QC_ASSETS[key], 0).then(function(img) {
+        qcAssetObjects[key] = img;
+      });
+    })).then(function() {
+      qcPreloadPromise = null;
+      return qcAssetObjects;
+    }).catch(function(err) {
+      // Do not keep a permanently rejected Promise. Images that already loaded
+      // stay in qcAssetObjects; a later QC-page attempt retries only missing ones.
+      qcPreloadPromise = null;
+      throw err;
+    });
+
+    return qcPreloadPromise;
+  }
+
+  function scheduleQCPreload() {
+    if (qcPreloadTimer || qcPreloadPromise) return;
+    if (Object.keys(QC_ASSETS).every(function(key) { return !!qcAssetObjects[key]; })) return;
+
+    qcPreloadTimer = setTimeout(function() {
+      qcPreloadTimer = null;
+      preloadQCAssets().catch(function(err) {
+        // Background preload failure is non-fatal. The QC page will retry the
+        // missing image(s) with the same bounded retry/backoff policy.
+        console.warn('Background QC preload did not finish:', err);
+      });
+    }, randomBetween(800, 3000));
+  }
+
+  function attachQCAssets() {
+    Object.keys(QC_ASSETS).forEach(function(key) {
+      var holder = q('#qc-holder-' + key.charAt(0) + '-' + key.charAt(1));
+      var img = qcAssetObjects[key];
+      if (!holder || !img) return;
+      if (holder.firstChild === img && holder.childNodes.length === 1) return;
+      while (holder.firstChild) holder.removeChild(holder.firstChild);
+      holder.appendChild(img);
+    });
+  }
+
+  function syncQCSelections() {
+    qa('.check-img-wrap').forEach(function(wrap) {
+      var qn = wrap.dataset.qcQuestion;
+      var answer = wrap.dataset.qcAnswer;
+      wrap.classList.toggle('selected', state.quality_check['q' + qn] === answer);
+    });
+    qa('input[name="preference"]').forEach(function(radio) {
+      radio.checked = radio.value === state.quality_check.preference;
+      radio.closest('.rating-option').classList.toggle('selected', radio.checked);
+    });
+  }
+
+  function showQCPage() {
+    state.navigation = { stage: 'qc', pairIndex: QC_AFTER_PAIR_INDEX, attrIndex: ATTRIBUTES.length - 1 };
+    saveProgress();
+    showPage('qc');
+    syncQCSelections();
+    showLoading('Loading classification images');
+    preloadQCAssets().then(function() {
+      attachQCAssets();
+      hideLoading();
+    }).catch(function() {
+      showLoadingFailure('One or more quality-control images could not be loaded after several attempts. Please check your connection or refresh once; the same five-pair assignment and saved answers will be kept.');
+    });
+  }
+
+  function validateQCAndContinue() {
+    var qc = state.quality_check;
+    if (!qc.q1 || !qc.q2 || !qc.q3 || !qc.preference) {
+      showDialog('Action Required: Incomplete Selection', 'Please complete all three classification rows and the general preference question.');
+      return;
+    }
+    if (!qc.first_attempt) qc.first_attempt = { q1: qc.q1, q2: qc.q2, q3: qc.q3 };
+    var correct = qc.q1 === QC_CORRECT.q1 && qc.q2 === QC_CORRECT.q2 && qc.q3 === QC_CORRECT.q3;
+    if (!correct) {
+      qc.failed_attempts = Number(qc.failed_attempts || 0) + 1;
+      qc.passed = false;
+      saveProgress();
+      showDialog('Please review the classification section', 'One or more of the three classifications do not match the intended categories. Please look at the images again and revise your selections before continuing.', true);
+      return;
+    }
+    qc.passed = true;
+    saveProgress();
+    renderReview();
+  }
+
+  function allPairRatingsComplete() {
+    if (!state.pair_responses || state.pair_responses.length !== BATCH_SIZE) return false;
+    return state.pair_responses.every(function(pair) {
+      return ATTRIBUTES.every(function(attr) { return pair.ratings && pair.ratings[attr] !== undefined; });
+    });
+  }
+
+  function drawReviewThumbnail(sourceImg, canvas) {
+    if (!sourceImg || !canvas || !sourceImg.complete || !sourceImg.naturalWidth) return false;
+    var width = 480, height = 270;
+    canvas.width = width; canvas.height = height;
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#e2e8f0'; ctx.fillRect(0, 0, width, height);
+    var scale = Math.min(width / sourceImg.naturalWidth, height / sourceImg.naturalHeight);
+    var dw = sourceImg.naturalWidth * scale, dh = sourceImg.naturalHeight * scale;
+    ctx.drawImage(sourceImg, (width - dw) / 2, (height - dh) / 2, dw, dh);
+    return true;
+  }
+
+  function ensureAllPairsForReview() {
+    var chain = Promise.resolve();
+    for (var i = 0; i < BATCH_SIZE; i++) {
+      (function(index) {
+        chain = chain.then(function() {
+          if (pairAssets[index]) return null;
+          // Restore one missing pair at a time after a browser refresh. This
+          // avoids a ten-image burst while still rebuilding the final review.
+          return ensurePairLoaded(index, true);
+        });
+      })(i);
+    }
+    return chain;
+  }
+
+  function renderReviewContent() {
+    showPage('review');
+    var c = q('#summary-container');
+    var d = state.demographics;
+    var qc = state.quality_check;
+    var html = '<div style="padding:20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:22px;font-size:15px;">' +
+      '<h3 style="margin-top:0">Participant Profile</h3>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
+      '<div><strong>ID:</strong> ' + escapeHtml(d.id) + '</div>' +
+      '<div><strong>Age/Gender:</strong> ' + escapeHtml(d.age) + ' / ' + escapeHtml(d.gender) + '</div>' +
+      '<div><strong>Nationality:</strong> ' + escapeHtml(d.nationality) + '</div>' +
+      '<div><strong>Education:</strong> ' + escapeHtml(d.education) + '</div></div></div>';
+
+    state.pair_responses.forEach(function(pair, index) {
+      html += '<div class="review-pair-card"><h3>Image Pair ' + (index + 1) + ' of ' + BATCH_SIZE + '</h3>' +
+        '<div class="review-pair-images">' +
+        '<div><div class="review-pair-label">Image A</div><canvas id="review-A-' + index + '"></canvas></div>' +
+        '<div><div class="review-pair-label">Image B</div><canvas id="review-B-' + index + '"></canvas></div></div>' +
+        '<table class="summary-table"><thead><tr><th>Attribute</th><th>Your selection</th></tr></thead><tbody>' +
+        ATTRIBUTES.map(function(attr) { return '<tr><td>' + attr + '</td><td><strong>' + ratingTextForValue(pair.ratings[attr]) + '</strong></td></tr>'; }).join('') +
+        '</tbody></table></div>';
+    });
+
+    html += '<div style="padding:18px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:20px;font-size:15px;">' +
+      '<h3 style="margin-top:0">Environment Classification</h3>' +
+      '<div><strong>General Preference:</strong> ' + escapeHtml(qc.preference || '-') + '</div></div>';
+    c.innerHTML = html;
+
+    requestAnimationFrame(function() {
+      for (var i = 0; i < BATCH_SIZE; i++) {
+        if (!pairAssets[i]) continue;
+        drawReviewThumbnail(pairAssets[i].left.probe, q('#review-A-' + i));
+        drawReviewThumbnail(pairAssets[i].right.probe, q('#review-B-' + i));
+      }
+    });
+  }
+
+  function renderReview() {
+    if (!allPairRatingsComplete()) {
+      showDialog('Review Error', 'One or more pair ratings are incomplete. Please return to the comparison pages.');
+      return;
+    }
+    if (!state.quality_check.passed) {
+      showQCPage();
+      return;
+    }
+    state.navigation = { stage: 'review', pairIndex: BATCH_SIZE - 1, attrIndex: ATTRIBUTES.length - 1 };
+    saveProgress();
+
+    var missing = pairAssets.some(function(asset) { return !asset; });
+    if (!missing) {
+      renderReviewContent();
+      return;
+    }
+
+    showLoading('Restoring street images for review');
+    ensureAllPairsForReview().then(function() {
+      hideLoading();
+      renderReviewContent();
+    }).catch(function(err) {
+      console.warn('Review image restoration failed:', err);
+      showLoadingFailure('Some review images could not be restored. Please retry or refresh once; your saved answers and the same five-pair batch will be kept.');
+    });
+  }
+
+  function escapeHtml(value) {
+    return String(value === undefined || value === null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  }
+
+  function saveDemographicsFromForm() {
+    var missing = [];
+    if (!q('#user-id').value) missing.push('User ID');
+    if (!q('#age').value) missing.push('Age');
+    if (!q('#gender').value) missing.push('Gender');
+    if (!q('#nationality').value) missing.push('Nationality');
+    if (missing.length) {
+      showDialog('Action Required: Missing Information', 'Please fill in the following fields:\n\n• ' + missing.join('\n• '));
+      return false;
+    }
+    state.demographics = {
+      id: q('#user-id').value,
+      age: q('#age').value,
+      gender: q('#gender').value,
+      nationality: q('#nationality').value,
+      education: q('#education').value || 'Not specified'
+    };
+    saveProgress();
+    return true;
+  }
+
+  function resumeAfterDemographics() {
+    var nav = state.navigation || {};
+    if (nav.stage === 'comparison') {
+      renderComparison(Math.max(0, Math.min(BATCH_SIZE - 1, Number(nav.pairIndex) || 0)), Math.max(0, Math.min(ATTRIBUTES.length - 1, Number(nav.attrIndex) || 0)));
+    } else if (nav.stage === 'qc') {
+      showQCPage();
+    } else if (nav.stage === 'review') {
+      renderReview();
+    } else {
+      renderComparison(0, 0);
+    }
+    q('#resume-note').style.display = 'none';
+  }
+
+  function postSubmissionWithRetry(payload, callback, retryCount) {
+    retryCount = retryCount || 0;
+    var MAX_RETRIES = 5;
+    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timeoutId = setTimeout(function() { if (controller) controller.abort(); }, 25000);
+    var formData = new URLSearchParams();
+    formData.append('payload', JSON.stringify(payload));
+
+    function retry(reason, serverDelay) {
+      clearTimeout(timeoutId);
+      if (retryCount >= MAX_RETRIES) {
+        callback({ status: 'error', code: 'SUBMIT_RETRY_EXHAUSTED', message: 'The submission could not be confirmed after several retries. Please click Retry Submit. The same submission ID will be reused.', retryable: false, network_error: true });
+        return;
+      }
+      var exponential = Math.min(900 * Math.pow(2, retryCount), 7000);
+      var requested = parseInt(serverDelay, 10);
+      var base = Number.isFinite(requested) && requested > 0 ? requested : exponential;
+      var delay = Math.min(base + randomBetween(250, 900), 9000);
+      q('#submit-overlay-message').textContent = 'Saving response...';
+      q('#submit-overlay-status').textContent = 'Temporary server delay. Retrying automatically...';
+      setTimeout(function() { postSubmissionWithRetry(payload, callback, retryCount + 1); }, delay);
+    }
+
+    fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData, signal: controller ? controller.signal : undefined })
+      .then(function(response) { if (!response.ok) throw new Error('HTTP ' + response.status); return response.json(); })
+      .then(function(data) {
+        clearTimeout(timeoutId);
+        if (data && (data.status === 'busy' || data.retryable === true)) { retry(data.code || 'Server busy', data.retry_after_ms); return; }
+        callback(data);
+      })
+      .catch(function(err) { retry(err && err.name === 'AbortError' ? 'Timeout' : 'Network error'); });
+  }
+
+  function completeSubmissionUI(btn, overlay) {
+    clearClientState();
+    q('#submit-overlay-message').textContent = 'Submission Complete!';
+    q('#submit-overlay-status').textContent = 'Redirecting to Prolific automatically...';
+    q('.spinner').style.display = 'none';
+    var completionUrl = 'https://app.prolific.com/submissions/complete?cc=CLUCC7RR';
+    var redirectTimer = setTimeout(function() { window.location.href = completionUrl; }, 2500);
+    q('#submit-overlay-confirm').style.display = 'inline-block';
+    q('#submit-overlay-confirm').textContent = 'Go to Prolific Now';
+    q('#submit-overlay-confirm').onclick = function() { clearTimeout(redirectTimer); window.location.href = completionUrl; };
+    overlay.classList.remove('show');
+    q('#submission-receipt').style.display = 'block';
+    q('#receipt-content').innerHTML = '<div style="color:#166534;font-weight:bold;font-size:18px;margin-bottom:16px;">Data Saved Successfully!</div>' +
+      '<div style="margin-bottom:20px;color:#475569;">All five pair responses and the batch receipt have been confirmed.</div>' +
+      '<a href="' + completionUrl + '" style="display:inline-block;background:#2563eb;color:#fff;padding:16px 32px;text-decoration:none;border-radius:8px;font-weight:bold;">Return to Prolific</a>';
+    btn.textContent = 'Data Submitted';
+    btn.disabled = true;
+    window.scrollTo(0, document.body.scrollHeight);
+  }
+
+  function submitData() {
+    if (!assignedBatch || !assignedBatch.batch_id || !allPairRatingsComplete() || !state.quality_check.passed) {
+      showDialog('Submission Error', 'The five-pair assignment or one of the required answers is incomplete.');
+      return;
+    }
+    var btn = q('#finish');
+    btn.disabled = true;
+    var overlay = q('#submit-overlay');
+    overlay.classList.add('show');
+    q('#submit-overlay-message').textContent = 'Saving response...';
+    q('#submit-overlay-status').textContent = 'Please keep this page open until the submission is confirmed.';
+    q('.spinner').style.display = '';
+
+    var payload = {
+      demographics: state.demographics,
+      pair_responses: state.pair_responses,
+      quality_check: state.quality_check,
+      meta: {
+        timestamp: new Date().toISOString(),
+        submissionId: getOrCreateSubmissionId(),
+        assignmentRequestId: assignedBatch.assignment_request_id || getOrCreateAssignmentRequestId(),
+        batchId: assignedBatch.batch_id,
+        batchSize: BATCH_SIZE
+      }
     };
 
-    function showPage(idSuffix) {
-        qa('.page').forEach(p => p.classList.remove('active'));
-        var next = document.getElementById('page-' + idSuffix);
-        if(next) {
-            next.classList.add('active');
-            window.scrollTo(0,0);
-
-            if (next.hasAttribute('data-attr-index')) {
-                if (window.imagesLoaded && resolvedPairImages) {
-                    applyPairImagesToPage(next);
-                } else {
-                    var overlay = q('#loading-overlay');
-                    if (overlay) overlay.style.display = 'flex';
-                }
-            }
-
-            if (String(idSuffix) === '5') {
-                loadQCImagesOnce();
-            }
-
-            if (String(idSuffix) === '9') renderSummary();
-        }
-    }
-
-    function renderSummary() {
-        var c = q('#summary-container');
-        var d = state.demographics;
-        var qc = state.quality_check;
-        
-        var html = `
-        <div style="padding:24px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:24px; font-size:15px;">
-            <h3 style="margin-top:0">Participant Profile</h3>
-            <div style="display:grid;grid-template-columns:1fr 1fr; gap:12px;">
-                <div><strong>ID:</strong> ${d.id}</div>
-                <div><strong>Age/Gender:</strong> ${d.age} / ${d.gender}</div>
-                <div><strong>Nationality:</strong> ${d.nationality}</div>
-                <div><strong>Education:</strong> ${d.education}</div>
-            </div>
-        </div>
-        
-        <div style="padding:24px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:24px; font-size:15px;">
-            <h3 style="margin-top:0">Environment Classification</h3>
-            <div><strong>Image Sorting Choices:</strong> ${qc.q1}, ${qc.q2}, ${qc.q3}</div>
-            <div><strong>General Preference:</strong> ${qc.preference || '-'}</div>
-        </div>`;
-
-        html += `
-        <div class="review-image-panel">
-            <h3 style="margin-top:0; margin-bottom:14px;">Street Images</h3>
-            <div class="review-image-grid">
-                <div>
-                    <div class="review-thumb-title">Image A</div>
-                    <canvas id="review-canvas-A" class="review-thumb-canvas"></canvas>
-                </div>
-                <div>
-                    <div class="review-thumb-title">Image B</div>
-                    <canvas id="review-canvas-B" class="review-thumb-canvas"></canvas>
-                </div>
-            </div>
-            <p id="review-thumb-note" class="review-thumb-note">Please check that the ratings below match the two street images shown above.</p>
-        </div>`;
-
-        html += '<h3 style="margin-bottom:12px;">Perception Ratings</h3><table class="summary-table"><thead><tr><th>Attribute</th><th>Your selection</th></tr></thead><tbody>';
-        
-        ATTRIBUTES.forEach(attr => {
-            var val = state.pairwise[attr];
-            var rText = ratingTextForValue(val);
-            html += `<tr><td>${attr}</td><td><strong>${rText}</strong></td></tr>`;
-        });
-        html += '</tbody></table>';
-        c.innerHTML = html;
-
-        // Draw from already-loaded survey images. No new image URL is assigned here.
-        requestAnimationFrame(renderReviewThumbnails);
-    }
-
-    function postSubmissionWithRetry(payload, callback, retryCount) {
-        retryCount = retryCount || 0;
-        var MAX_RETRIES = 5;
-        var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        var timeoutId = setTimeout(function() {
-            if (controller) controller.abort();
-        }, 25000);
-
-        var formData = new URLSearchParams();
-        formData.append('payload', JSON.stringify(payload));
-
-        function scheduleRetry(reason, serverDelay) {
-            clearTimeout(timeoutId);
-
-            if (retryCount >= MAX_RETRIES) {
-                callback({
-                    status: 'error',
-                    code: 'SUBMIT_RETRY_EXHAUSTED',
-                    message: 'The submission could not be confirmed after several retries. Please click Retry Submit. Your submission ID has been kept, so retrying will not create a duplicate.',
-                    retryable: false,
-                    network_error: true
-                });
-                return;
-            }
-
-            var exponential = Math.min(900 * Math.pow(2, retryCount), 7000);
-            var requested = parseInt(serverDelay, 10);
-            var base = Number.isFinite(requested) && requested > 0 ? requested : exponential;
-            var delay = Math.min(base + randomBetween(250, 900), 9000);
-
-            q('#submit-overlay-message').textContent = 'Saving response...';
-            q('#submit-overlay-status').textContent = 'Temporary server delay. Retrying automatically...';
-
-            console.warn('Submission retry ' + (retryCount + 1) + '/' + MAX_RETRIES +
-                         ' after ' + delay + ' ms (' + reason + ')');
-
-            setTimeout(function() {
-                postSubmissionWithRetry(payload, callback, retryCount + 1);
-            }, delay);
-        }
-
-        fetch(APPS_SCRIPT_URL, {
-            method: 'POST',
-            body: formData,
-            signal: controller ? controller.signal : undefined
-        })
-        .then(function(response) {
-            if (!response.ok) throw new Error('HTTP ' + response.status);
-            return response.json();
-        })
-        .then(function(data) {
-            clearTimeout(timeoutId);
-
-            if (data && (data.status === 'busy' || data.retryable === true)) {
-                scheduleRetry(data.code || 'Server busy', data.retry_after_ms);
-                return;
-            }
-
-            callback(data);
-        })
-        .catch(function(err) {
-            scheduleRetry(err && err.name === 'AbortError' ? 'Timeout' : 'Network error');
-        });
-    }
-
-    function completeSubmissionUI(btn, overlay) {
-        clearAssignmentClientState();
-        q('#submit-overlay-message').textContent = 'Submission Complete!';
-        q('#submit-overlay-status').textContent = 'Redirecting to Prolific automatically...';
-        q('.spinner').style.display = 'none';
-
-        var completionUrl = 'https://app.prolific.com/submissions/complete?cc=CLUCC7RR';
-        var redirectTimer = setTimeout(function() { window.location.href = completionUrl; }, 2500);
-
-        q('#submit-overlay-confirm').style.display = 'inline-block';
-        q('#submit-overlay-confirm').textContent = 'Go to Prolific Now';
-        q('#submit-overlay-confirm').onclick = function() {
-            clearTimeout(redirectTimer);
-            window.location.href = completionUrl;
-        };
-
+    postSubmissionWithRetry(payload, function(data) {
+      if (data && data.status === 'ok' && data.json_saved === true && data.assignment_finished === true) {
+        if (data.sheet_synced === false) console.warn('JSON and batch receipt are safe; Responses_Batch5 can be repaired later.');
+        completeSubmissionUI(btn, overlay);
+        return;
+      }
+      if (data && data.status === 'qc_fail') {
         overlay.classList.remove('show');
-        q('#submission-receipt').style.display = 'block';
-        q('#receipt-content').innerHTML = `
-            <div style="color:#166534;font-weight:bold;font-size:18px;margin-bottom:16px;">Data Saved Successfully!</div>
-            <div style="margin-bottom:20px;color:#475569;">Your response and assignment receipt have both been confirmed. You are being redirected to Prolific...</div>
-            <a href="${completionUrl}" style="display:inline-block;background:#2563eb;color:#fff;padding:16px 32px;text-decoration:none;border-radius:8px;font-weight:bold;">Return to Prolific</a>
-        `;
-        btn.textContent = 'Data Submitted';
-        btn.disabled = true;
-        window.scrollTo(0, document.body.scrollHeight);
+        btn.disabled = false;
+        showQCPage();
+        showDialog('Please review the classification section', 'The final quality-control answers could not be confirmed. Please review them before submitting.', true);
+        return;
+      }
+      q('#submit-overlay-message').textContent = 'Submission not confirmed';
+      q('#submit-overlay-status').textContent = (data && (data.message || data.error)) || 'Please click Retry Submit.';
+      q('.spinner').style.display = 'none';
+      btn.disabled = false;
+      btn.textContent = 'Retry Submit';
+    }, 0);
+  }
+
+  function showRecoveredSubmissionComplete() {
+    clearClientState();
+    hideLoading();
+    var completionUrl = 'https://app.prolific.com/submissions/complete?cc=CLUCC7RR';
+    q('#main-container').innerHTML = '<div style="text-align:center;padding:60px 20px;max-width:760px;margin:0 auto;">' +
+      '<h2 style="color:#15803d;font-size:28px;">Submission Already Received</h2>' +
+      '<p style="font-size:17px;color:#475569;line-height:1.6;">Your five-pair response has already been saved successfully. No additional response is required.</p>' +
+      '<a href="' + completionUrl + '" style="display:inline-block;margin-top:18px;background:#2563eb;color:#fff;padding:14px 26px;text-decoration:none;border-radius:8px;font-weight:700;">Return to Prolific</a></div>';
+  }
+
+  q('#btn-agree').addEventListener('click', function() {
+    showPage('1');
+    requestAssignment();
+  });
+
+  q('#btn-disagree').addEventListener('click', function() {
+    var saved = loadSavedProgress();
+    var batchId = assignedBatch ? assignedBatch.batch_id : (saved ? saved.batch_id : '');
+    var url = APPS_SCRIPT_URL + '?action=abort&worker_id=' + encodeURIComponent(getProlificPid()) + (batchId ? '&batch_id=' + encodeURIComponent(batchId) : '');
+    jsonp(url, function() {});
+    clearClientState();
+    q('#main-container').innerHTML = '<div style="text-align:center;padding:60px 20px;"><h2 style="color:#ef4444;font-size:28px;">Session Terminated</h2><p style="font-size:18px;color:#475569;">You have chosen not to participate. You may now close this window or return the submission on Prolific.</p></div>';
+  });
+
+  q('#demographics-next').addEventListener('click', function() {
+    if (!saveDemographicsFromForm()) return;
+    if (!assignedBatch) {
+      waitingForAssignmentAfterDemographics = true;
+      showLoading('Waiting for your five image pairs');
+      return;
     }
+    waitingForAssignmentAfterDemographics = false;
+    resumeAfterDemographics();
+  });
 
-    function submitData() {
-        var qc = state.quality_check;
-        if (qc.q1 !== 'A' || qc.q2 !== 'B' || qc.q3 !== 'B') {
-            showFriendlyQCWarning();
-            return;
-        }
+  q('#comparison-next').addEventListener('click', comparisonNext);
+  q('#comparison-back').addEventListener('click', comparisonBack);
+  q('#qc-back').addEventListener('click', function() { renderComparison(QC_AFTER_PAIR_INDEX, ATTRIBUTES.length - 1); });
+  q('#qc-next').addEventListener('click', validateQCAndContinue);
+  q('#review-back').addEventListener('click', function() { showQCPage(); });
+  q('#finish').addEventListener('click', submitData);
 
-        if (!assignedPairInfo || !assignedPairInfo.pair_id) {
-            showDialog('Submission Error', 'The original image assignment is missing. Please refresh the page and restore your assignment before submitting.');
-            return;
-        }
-
-        var btn = q('#finish');
-        btn.disabled = true;
-
-        var overlay = q('#submit-overlay');
-        overlay.classList.add('show');
-        q('#submit-overlay-message').textContent = 'Saving response...';
-        q('#submit-overlay-status').textContent = 'Please keep this page open until the submission is confirmed.';
-        q('.spinner').style.display = '';
-        q('.spinner').style.borderTopColor = '';
-
-        var submissionId = getOrCreateSubmissionId();
-        var assignmentRequestId = assignedPairInfo.assignment_request_id || getOrCreateAssignmentRequestId();
-
-        var payload = {
-            demographics: state.demographics,
-            pairwise: state.pairwise,
-            quality_check: state.quality_check,
-            pair_ids: [assignedPairInfo.pair_id],
-            meta: {
-                timestamp: new Date().toISOString(),
-                submissionId: submissionId,
-                assignmentRequestId: assignmentRequestId
-            }
-        };
-
-        postSubmissionWithRetry(payload, function(data) {
-            if (data && data.status === 'qc_fail') {
-                overlay.classList.remove('show');
-                showFriendlyQCWarning();
-                btn.disabled = false;
-                return;
-            }
-
-            // V4 only reports success after BOTH the durable JSON and the exact
-            // Assignments ledger row have been confirmed as finished.
-            if (data && data.status === 'ok' && data.json_saved === true && data.assignment_finished === true) {
-                if (data.sheet_synced === false) {
-                    console.warn('Response JSON and assignment receipt are safe; Responses sheet will be repaired by syncMissingResponses().');
-                }
-                completeSubmissionUI(btn, overlay);
-                return;
-            }
-
-            q('#submit-overlay-message').textContent = 'Submission not confirmed';
-            q('#submit-overlay-status').textContent =
-                (data && (data.message || data.error)) ||
-                'The server could not confirm the submission. Please click Retry Submit.';
-            q('.spinner').style.display = 'none';
-            btn.disabled = false;
-            btn.textContent = 'Retry Submit';
-
-            // Keep the stable submissionId in localStorage. A manual retry will
-            // therefore continue the same submission instead of creating a duplicate.
-            if (data && data.network_error) {
-                try {
-                    var a = document.createElement('a');
-                    a.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'}));
-                    a.download = state.demographics.id + '_backup.json';
-                    a.click();
-                } catch (backupErr) {}
-            }
-        }, 0);
-    }
-
-    window.addEventListener('DOMContentLoaded' , () => {
-        buildRatingControls();
-        addImageABLabels();
-
-        // Consent is a guaranteed-light page: no study images are requested here.
-        // If this page was reached by a refresh after an assignment attempt,
-        // requestAssignment() will ask the backend to restore the durable row.
-        assignmentResumeHint =
-            localStorage.getItem(assignmentStorageKey('pending')) === '1' ||
-            localStorage.getItem(assignmentStorageKey('active')) === '1';
-
-        var pid = getProlificPid();
-        if(pid) {
-            q('#user-id').value = pid;
-            q('#user-id').readOnly = true;
-            q('#user-id').style.background = '#e2e8f0';
-        }
-
-        // Assignment is intentionally delayed until the participant clicks I Agree; main-image preload begins immediately after assignment succeeds.
+  qa('.check-img-wrap').forEach(function(wrap) {
+    wrap.addEventListener('click', function() {
+      var key = 'q' + wrap.dataset.qcQuestion;
+      state.quality_check[key] = wrap.dataset.qcAnswer;
+      state.quality_check.passed = false;
+      syncQCSelections();
+      saveProgress();
     });
+  });
+  qa('input[name="preference"]').forEach(function(radio) {
+    radio.addEventListener('change', function() {
+      if (radio.checked) {
+        state.quality_check.preference = radio.value;
+        syncQCSelections();
+        saveProgress();
+      }
+    });
+  });
 
+  window.addEventListener('DOMContentLoaded', function() {
+    assignmentResumeHint = localStorage.getItem(storageKey('assignment_pending')) === '1' || localStorage.getItem(storageKey('assignment_active')) === '1';
+    savedBeforeAssignment = loadSavedProgress();
+    if (savedBeforeAssignment && savedBeforeAssignment.state) {
+      state = savedBeforeAssignment.state;
+      hydrateDemographics();
+    }
+    var pid = getProlificPid();
+    if (pid) {
+      q('#user-id').value = pid;
+      q('#user-id').readOnly = true;
+      q('#user-id').style.background = '#e2e8f0';
+    }
+  });
 })();
 </script>
+
 </body>
 </html>
