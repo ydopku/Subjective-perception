@@ -395,7 +395,7 @@
 (function() {
   'use strict';
 
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw6W2Y-QxBt6yaV0KEKVKQ7SklByzWMwImCfx0iGyDNBACxgI2dfNvlaAAb5y2d1sGp/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw_MN4gm610IawohH05H1NlFS2wWzmlqMtNIA63mywYm1n2wmSdlqC-_xiAhkj9b-vL/exec';
   const BATCH_SIZE = 5;
   const QC_AFTER_PAIR_INDEX = BATCH_SIZE - 1; // after all five main image pairs
   const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
@@ -1099,7 +1099,7 @@
       qc.failed_attempts = Number(qc.failed_attempts || 0) + 1;
       qc.passed = false;
       saveProgress();
-      showDialog('Please review the classification section', 'One or more of the three classifications do not match the intended categories. Please look at the images again and revise your selections before continuing.', true);
+      showDialog('Data Quality Check Failed', 'One or more answers in the Environment Classification section do not match the intended categories. This may have been accidental, but please review the images and answer carefully.\n\nWarning: Please also make sure that all of your survey responses reflect your genuine judgments. Submissions showing clear random or careless responding may be rejected in accordance with Prolific submission guidelines.\n\nTo proceed, please correct the classification errors.', true);
       return;
     }
     qc.passed = true;
@@ -1335,7 +1335,7 @@
         overlay.classList.remove('show');
         btn.disabled = false;
         showQCPage();
-        showDialog('Please review the classification section', 'The final quality-control answers could not be confirmed. Please review them before submitting.', true);
+        showDialog('Data Quality Check Failed', 'The final quality-control answers could not be confirmed. Please review the classification section again.\n\nWarning: Please also make sure that all of your survey responses reflect your genuine judgments. Submissions showing clear random or careless responding may be rejected in accordance with Prolific submission guidelines.\n\nTo proceed, please correct the classification errors.', true);
         return;
       }
       q('#submit-overlay-message').textContent = 'Submission not confirmed';
