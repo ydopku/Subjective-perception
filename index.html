@@ -249,7 +249,7 @@
         <li style="margin-bottom:8px;"><strong>Voluntary Participation:</strong> Your participation is completely voluntary. You may withdraw from the study at any time without penalty.</li>
         <li style="margin-bottom:8px;"><strong>Anonymity & Privacy:</strong> All data collected will be strictly anonymous. Your personal identity will not be linked to your responses or published in any academic papers.</li>
         <li style="margin-bottom:8px;"><strong>Task Description:</strong> You will compare five pairs of street-level images and choose which image better represents several attributes (e.g., safety, beauty). Please make your judgments as if you were a pedestrian walking through the scene.</li>
-        <li><strong>Duration:</strong> The survey is expected to take approximately 7 minutes.</li>
+        <li><strong>Duration:</strong> The survey is expected to take approximately 7–8 minutes.</li>
       </ul>
     </div>
     <p style="font-weight:600;color:#0f172a;text-align:center;">By clicking "I Agree" below, you confirm that you have read and understood the information provided and consent to participate in this study.</p>
@@ -395,7 +395,7 @@
 (function() {
   'use strict';
 
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw_MN4gm610IawohH05H1NlFS2wWzmlqMtNIA63mywYm1n2wmSdlqC-_xiAhkj9b-vL/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwGzUtEjJL-6LhdMm3NKfqIjqsqXiDQZgB0O1xkLEuunYQp_d3YCO_xLXlE8GRhQK3A/exec';
   const BATCH_SIZE = 5;
   const QC_AFTER_PAIR_INDEX = BATCH_SIZE - 1; // after all five main image pairs
   const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
@@ -681,7 +681,7 @@
 
     var workerId = getProlificPid();
     var requestId = getOrCreateAssignmentRequestId();
-    var url = APPS_SCRIPT_URL + '?action=assign&worker_id=' + encodeURIComponent(workerId) + '&request_id=' + encodeURIComponent(requestId) + '&resume=' + (assignmentResumeHint ? '1' : '0');
+    var url = APPS_SCRIPT_URL + '?action=assign&worker_id=' + encodeURIComponent(workerId) + '&request_id=' + encodeURIComponent(requestId) + '&resume=' + (assignmentResumeHint ? '1' : '0') + '&group_id=' + encodeURIComponent(getQueryParam('group_id') || 'G1');
 
     jsonp(url, function(data) {
       assignmentRequestInFlight = false;
@@ -1321,7 +1321,10 @@
         submissionId: getOrCreateSubmissionId(),
         assignmentRequestId: assignedBatch.assignment_request_id || getOrCreateAssignmentRequestId(),
         batchId: assignedBatch.batch_id,
-        batchSize: BATCH_SIZE
+        batchSize: BATCH_SIZE,
+        groupId: assignedBatch.group_id || getQueryParam('group_id') || 'G1',
+        studyId: getQueryParam('STUDY_ID') || '',
+        sessionId: getQueryParam('SESSION_ID') || ''
       }
     };
 
