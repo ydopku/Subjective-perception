@@ -395,7 +395,7 @@
 (function() {
   'use strict';
 
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwGzUtEjJL-6LhdMm3NKfqIjqsqXiDQZgB0O1xkLEuunYQp_d3YCO_xLXlE8GRhQK3A/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxnEodOM9EE8IjWOF05ygUKPSs4z46dl43jOnlrLMxNp39IhAYp75JTX-JLL_CKnAbf/exec';
   const BATCH_SIZE = 5;
   const QC_AFTER_PAIR_INDEX = BATCH_SIZE - 1; // after all five main image pairs
   const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
@@ -490,7 +490,7 @@
   }
 
   function clearClientState() {
-    ['request_id','assignment_pending','assignment_active','submission_id','submission_pending','progress'].forEach(function(name) {
+    ['request_id','assignment_pending','assignment_active','submission_id','submission_pending','progress','demographics_draft','pending_payload'].forEach(function(name) {
       try { localStorage.removeItem(storageKey(name)); } catch (e) {}
     });
   }
@@ -541,6 +541,30 @@
     }
   }
 
+  // Save participant information even before the server assigns a batch.
+  function loadDemographicsDraft() {
+    try {
+      var raw = localStorage.getItem(storageKey('demographics_draft'));
+      var draft = raw ? JSON.parse(raw) : null;
+      return draft && draft.request_id === getOrCreateAssignmentRequestId() ? draft.demographics : null;
+    } catch (e) { return null; }
+  }
+
+  function saveDemographicsDraft() {
+    try {
+      var demographics = {
+        id: q('#user-id').value,
+        age: q('#age').value,
+        gender: q('#gender').value,
+        nationality: q('#nationality').value,
+        education: q('#education').value || 'Not specified'
+      };
+      localStorage.setItem(storageKey('demographics_draft'), JSON.stringify({
+        request_id: getOrCreateAssignmentRequestId(), demographics: demographics
+      }));
+    } catch (e) { console.warn('Could not save participant information:', e); }
+  }
+
   function batchPairIds(batch) {
     return (batch && Array.isArray(batch.pairs)) ? batch.pairs.map(function(p) { return String(p.pair_id); }) : [];
   }
@@ -570,17 +594,20 @@
       q('#resume-note').style.display = 'none';
       try { localStorage.removeItem(storageKey('submission_id')); localStorage.removeItem(storageKey('submission_pending')); } catch (e) {}
     }
+    var draft = loadDemographicsDraft();
+    if (draft) state.demographics = draft;
     hydrateDemographics();
     saveProgress();
   }
 
   function hydrateDemographics() {
     var d = state.demographics || {};
-    if (d.id && q('#user-id')) q('#user-id').value = d.id;
-    if (d.age && q('#age')) q('#age').value = d.age;
-    if (d.gender && q('#gender')) q('#gender').value = d.gender;
-    if (d.nationality && q('#nationality')) q('#nationality').value = d.nationality;
-    if (d.education && d.education !== 'Not specified' && q('#education')) q('#education').value = d.education;
+    ['id', 'age', 'gender', 'nationality', 'education'].forEach(function(name) {
+      var field = q(name === 'id' ? '#user-id' : '#' + name);
+      if (field && d[name] !== undefined) {
+        field.value = name === 'education' && d[name] === 'Not specified' ? '' : d[name];
+      }
+    });
   }
 
   function showPage(name) {
@@ -605,7 +632,20 @@
     q('#msg-modal .msg-box').classList.remove('warning-theme');
   });
 
-  q('#loading-reload').addEventListener('click', function() { window.location.reload(); });
+  q('#loading-reload').textContent = 'Retry';
+  q('#loading-reload').addEventListener('click', function() {
+    saveDemographicsDraft();
+    if (!assignedBatch) {
+      if (assignmentRequestInFlight) return;
+      showLoading('Waiting for your five image pairs');
+      requestAssignment();
+      return;
+    }
+    // Retry the current stage without reloading or discarding entered answers.
+    hideLoading();
+    waitingForAssignmentAfterDemographics = false;
+    resumeAfterDemographics();
+  });
 
   function showLoading(title) {
     q('#loading-title').textContent = title || 'Loading Survey';
@@ -627,9 +667,12 @@
     q('#loading-overlay').style.display = 'flex';
   }
 
-  function jsonp(url, callback, retryCount) {
+  function jsonp(url, callback, retryCount, options) {
     retryCount = retryCount || 0;
-    var MAX_RETRIES = 6;
+    options = options || {};
+    var MAX_RETRIES = options.maxRetries === undefined ? 3 : options.maxRetries;
+    if (!options.deadline) options.deadline = Date.now() + 45000;
+    if (Date.now() >= options.deadline) { callback({status:'error',code:'CONNECTION_WAIT_LIMIT',error:'The connection could not be confirmed within the automatic retry window. Your answers are kept in this browser. Please retry later.'}); return; }
     var cbName = 'cb_' + Math.random().toString(36).slice(2);
     var settled = false;
     var scriptEl = null;
@@ -644,21 +687,26 @@
       settled = true;
       clearTimeout(timeoutTimer);
       cleanup();
-      if (retryCount < MAX_RETRIES) {
-        var exponential = Math.min(800 * Math.pow(2, retryCount), 7000);
+      if (retryCount < MAX_RETRIES && Date.now() < options.deadline) {
+        var exponential = Math.min(1500 * Math.pow(2, retryCount), 8000);
         var requested = parseInt(serverDelay, 10);
-        var base = Number.isFinite(requested) && requested > 0 ? requested : exponential;
-        var delay = Math.min(base + randomBetween(250, 950), 9000);
-        setTimeout(function() { jsonp(url, callback, retryCount + 1); }, delay);
+        var base = Math.max(exponential, Number.isFinite(requested) && requested > 0 ? requested : 0);
+        var delay = Math.min(base, 30000) + randomBetween(1000, 4000);
+        if (url.indexOf('action=assign') >= 0) {
+          q('#loading-title').textContent = 'Waiting for an available connection';
+          q('#loading-error').textContent = 'The server is busy. Retrying automatically in ' + Math.ceil(delay / 1000) + ' seconds. Please keep this page open.';
+          q('#loading-error').style.display = 'block';
+        }
+        setTimeout(function() { jsonp(url, callback, retryCount + 1, options); }, Math.min(delay, Math.max(0, options.deadline - Date.now())));
       } else {
-        callback({ status: 'error', code: 'ASSIGN_RETRY_EXHAUSTED', error: 'The server is temporarily busy after several retries. Please refresh this page once.' });
+        callback({ status: 'error', code: 'ASSIGN_RETRY_EXHAUSTED', error: 'A server connection could not be established after several retries. Please wait briefly and click Retry. Your entered participant information is kept in this browser.' });
       }
     }
 
-    var timeoutTimer = setTimeout(function() { retryOrFail('Timeout'); }, 15000);
+    var timeoutTimer = setTimeout(function() { retryOrFail('Timeout'); }, Math.max(1, Math.min(options.timeout || 15000, options.deadline - Date.now())));
     window[cbName] = function(data) {
       if (settled) return;
-      if (data && data.status === 'busy') {
+      if (!options.passBusy && data && (data.status === 'busy' || data.retryable === true)) {
         retryOrFail(data.code || 'Server busy', data.retry_after_ms);
         return;
       }
@@ -696,6 +744,7 @@
         initializeStateForBatch(data);
         pairAssets = new Array(BATCH_SIZE);
         pairLoadPromises = new Array(BATCH_SIZE);
+        if (!waitingForAssignmentAfterDemographics) hideLoading();
 
         // Highest priority: Pair 1 while demographics are being completed.
         ensurePairLoaded(0, true).then(function() {
@@ -715,7 +764,7 @@
         });
         return;
       }
-      showLoadingFailure('Server Error: ' + ((data && (data.error || data.message)) || 'No five-pair assignment is available.'));
+      showLoadingFailure('Server Error' + (data && data.code ? ' [' + data.code + ']' : '') + ': ' + ((data && (data.error || data.message)) || 'No five-pair assignment is available.'));
     });
   }
 
@@ -1228,6 +1277,7 @@
       nationality: q('#nationality').value,
       education: q('#education').value || 'Not specified'
     };
+    saveDemographicsDraft();
     saveProgress();
     return true;
   }
@@ -1246,27 +1296,59 @@
     q('#resume-note').style.display = 'none';
   }
 
-  function postSubmissionWithRetry(payload, callback, retryCount) {
+  function checkSubmissionReceipt(payload, callback, deadline) {
+    var meta = payload.meta || {};
+    var url = APPS_SCRIPT_URL + '?action=submission_status&accept_verified_receipt=1' +
+      '&worker_id=' + encodeURIComponent(payload.demographics.id) +
+      '&batch_id=' + encodeURIComponent(meta.batchId) +
+      '&request_id=' + encodeURIComponent(meta.assignmentRequestId) +
+      '&submission_id=' + encodeURIComponent(meta.submissionId);
+    // One check per retry interval: avoid nested retry loops.
+    jsonp(url, callback, 0, { maxRetries: 0, timeout: 8000, passBusy: true, deadline: deadline || Date.now() + 8000 });
+  }
+
+  function submissionConfirmed(data) {
+    return !!(data && data.status === 'ok' && data.json_saved === true && (data.receipt_verified === true || data.assignment_finished === true));
+  }
+
+  function postSubmissionWithRetry(payload, callback, retryCount, deadline) {
     retryCount = retryCount || 0;
-    var MAX_RETRIES = 5;
+    deadline = deadline || Date.now() + 60000;
+    var MAX_RETRIES = 2;
+    if (Date.now() >= deadline) { callback({status:'error',code:'SUBMIT_WAIT_LIMIT',message:'Submission is still unconfirmed. Your answers are kept in this browser. Please retry later.'}); return; }
     var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timeoutId = setTimeout(function() { if (controller) controller.abort(); }, 25000);
+    var timeoutId = setTimeout(function() { if (controller) controller.abort(); }, Math.max(1, Math.min(20000, deadline - Date.now())));
     var formData = new URLSearchParams();
     formData.append('payload', JSON.stringify(payload));
 
     function retry(reason, serverDelay) {
       clearTimeout(timeoutId);
-      if (retryCount >= MAX_RETRIES) {
-        callback({ status: 'error', code: 'SUBMIT_RETRY_EXHAUSTED', message: 'The submission could not be confirmed after several retries. Please click Retry Submit. The same submission ID will be reused.', retryable: false, network_error: true });
-        return;
-      }
-      var exponential = Math.min(900 * Math.pow(2, retryCount), 7000);
+      var exponential = Math.min(2000 * Math.pow(2, retryCount), 8000);
       var requested = parseInt(serverDelay, 10);
-      var base = Number.isFinite(requested) && requested > 0 ? requested : exponential;
-      var delay = Math.min(base + randomBetween(250, 900), 9000);
-      q('#submit-overlay-message').textContent = 'Saving response...';
-      q('#submit-overlay-status').textContent = 'Temporary server delay. Retrying automatically...';
-      setTimeout(function() { postSubmissionWithRetry(payload, callback, retryCount + 1); }, delay);
+      var base = Math.max(exponential, Number.isFinite(requested) && requested > 0 ? requested : 0);
+      var delay = Math.min(base, 30000) + randomBetween(1000, 4000);
+      q('#submit-overlay-message').textContent = 'Checking submission...';
+      q('#submit-overlay-status').textContent = 'A busy or interrupted connection does not tell us whether your response was saved. Checking again in ' + Math.ceil(delay / 1000) + ' seconds. Please keep this page open.';
+      setTimeout(function() {
+        checkSubmissionReceipt(payload, function(receipt) {
+          if (submissionConfirmed(receipt)) { callback(receipt); return; }
+          if (receipt && receipt.status === 'error' && /^RECEIPT_(IDENTITY|FILE|STATE)/.test(receipt.code || '')) {
+            callback(receipt); return;
+          }
+          if (retryCount >= MAX_RETRIES || Date.now() >= deadline) {
+            callback({ status: 'error', code: 'SUBMIT_RETRY_EXHAUSTED',
+              message: 'Submission status is still unconfirmed. Your answers are kept in this browser. Click Retry Submit below, or contact the researcher with your Prolific ID. Please keep this page open.', network_error: true });
+            return;
+          }
+          if (receipt && receipt.json_saved === true) {
+            // Continue checking the saved file; do not post the answers again.
+            retry(receipt.code || 'Completion pending', receipt.retry_after_ms);
+            retryCount++;
+            return;
+          }
+          postSubmissionWithRetry(payload, callback, retryCount + 1, deadline);
+        }, deadline);
+      }, Math.min(delay, Math.max(0, deadline - Date.now())));
     }
 
     fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData, signal: controller ? controller.signal : undefined })
@@ -1292,7 +1374,7 @@
     overlay.classList.remove('show');
     q('#submission-receipt').style.display = 'block';
     q('#receipt-content').innerHTML = '<div style="color:#166534;font-weight:bold;font-size:18px;margin-bottom:16px;">Data Saved Successfully!</div>' +
-      '<div style="margin-bottom:20px;color:#475569;">All five pair responses and the batch receipt have been confirmed.</div>' +
+      '<div style="margin-bottom:20px;color:#475569;">All five pair responses have been saved and verified.</div>' +
       '<a href="' + completionUrl + '" style="display:inline-block;background:#2563eb;color:#fff;padding:16px 32px;text-decoration:none;border-radius:8px;font-weight:bold;">Return to Prolific</a>';
     btn.textContent = 'Data Submitted';
     btn.disabled = true;
@@ -1304,6 +1386,7 @@
       showDialog('Submission Error', 'The five-pair assignment or one of the required answers is incomplete.');
       return;
     }
+    saveProgress();
     var btn = q('#finish');
     btn.disabled = true;
     var overlay = q('#submit-overlay');
@@ -1311,6 +1394,8 @@
     q('#submit-overlay-message').textContent = 'Saving response...';
     q('#submit-overlay-status').textContent = 'Please keep this page open until the submission is confirmed.';
     q('.spinner').style.display = '';
+    q('#submit-overlay-confirm').style.display = 'none';
+    q('#submit-overlay-confirm').onclick = null;
 
     var payload = {
       demographics: state.demographics,
@@ -1322,14 +1407,30 @@
         assignmentRequestId: assignedBatch.assignment_request_id || getOrCreateAssignmentRequestId(),
         batchId: assignedBatch.batch_id,
         batchSize: BATCH_SIZE,
+        storageProtocol: 'v5-durable-json-1',
         groupId: assignedBatch.group_id || getQueryParam('group_id') || 'G1',
         studyId: getQueryParam('STUDY_ID') || '',
         sessionId: getQueryParam('SESSION_ID') || ''
       }
     };
 
+    // Freeze the original payload so retries reuse the same answers and identity.
+    try {
+      var pending = JSON.parse(localStorage.getItem(storageKey('pending_payload')) || 'null');
+      if (pending && pending.meta && pending.demographics &&
+          pending.meta.batchId === payload.meta.batchId &&
+          pending.meta.assignmentRequestId === payload.meta.assignmentRequestId &&
+          pending.meta.submissionId === payload.meta.submissionId &&
+          pending.demographics.id === payload.demographics.id &&
+          JSON.stringify(pending.pair_responses) === JSON.stringify(payload.pair_responses) &&
+          JSON.stringify(pending.quality_check) === JSON.stringify(payload.quality_check) &&
+          JSON.stringify(pending.demographics) === JSON.stringify(payload.demographics)) payload = pending;
+      payload.meta.storageProtocol = 'v5-durable-json-1';
+      localStorage.setItem(storageKey('pending_payload'), JSON.stringify(payload));
+    } catch (e) { console.warn('Could not save pending submission:', e); }
+
     postSubmissionWithRetry(payload, function(data) {
-      if (data && data.status === 'ok' && data.json_saved === true && data.assignment_finished === true) {
+      if (submissionConfirmed(data)) {
         if (data.sheet_synced === false) console.warn('JSON and batch receipt are safe; Responses_Batch5 can be repaired later.');
         completeSubmissionUI(btn, overlay);
         return;
@@ -1342,10 +1443,13 @@
         return;
       }
       q('#submit-overlay-message').textContent = 'Submission not confirmed';
-      q('#submit-overlay-status').textContent = (data && (data.message || data.error)) || 'Please click Retry Submit.';
+      q('#submit-overlay-status').textContent = ((data && (data.message || data.error)) || 'Please click Retry Submit.') + (data && data.code ? ' [' + data.code + ']' : '');
       q('.spinner').style.display = 'none';
       btn.disabled = false;
       btn.textContent = 'Retry Submit';
+      q('#submit-overlay-confirm').style.display = 'inline-block';
+      q('#submit-overlay-confirm').textContent = 'Retry Submit';
+      q('#submit-overlay-confirm').onclick = submitData;
     }, 0);
   }
 
@@ -1359,9 +1463,31 @@
       '<a href="' + completionUrl + '" style="display:inline-block;margin-top:18px;background:#2563eb;color:#fff;padding:14px 26px;text-decoration:none;border-radius:8px;font-weight:700;">Return to Prolific</a></div>';
   }
 
+  function resumePendingSubmission() {
+    var pending=null;
+    try {
+      pending=JSON.parse(localStorage.getItem(storageKey('pending_payload'))||'null');
+      if(!pending && localStorage.getItem(storageKey('submission_pending'))==='1') {
+        var saved=loadSavedProgress(),id=localStorage.getItem(storageKey('submission_id'));
+        if(saved&&saved.state&&id)pending={demographics:saved.state.demographics,pair_responses:saved.state.pair_responses,
+          quality_check:saved.state.quality_check,meta:{batchId:saved.batch_id,assignmentRequestId:saved.request_id,submissionId:id}};
+      }
+    } catch(e){return false;}
+    if(!pending||!pending.meta||!pending.demographics||pending.demographics.id!==getProlificPid()||
+       pending.meta.assignmentRequestId!==getOrCreateAssignmentRequestId()||!pending.meta.batchId||!pending.meta.submissionId||
+       !Array.isArray(pending.pair_responses)||pending.pair_responses.length!==BATCH_SIZE||
+       !pending.quality_check||!pending.quality_check.passed)return false;
+    state.demographics=pending.demographics;state.pair_responses=pending.pair_responses;state.quality_check=pending.quality_check;
+    if(!allPairRatingsComplete())return false;
+    assignedBatch={batch_id:pending.meta.batchId,assignment_request_id:pending.meta.assignmentRequestId,
+      group_id:pending.meta.groupId||getQueryParam('group_id')||'G1',pairs:pending.pair_responses.map(function(p){return {pair_id:p.pair_id,pair_order:p.pair_order};})};
+    state.navigation={stage:'review',pairIndex:BATCH_SIZE-1,attrIndex:ATTRIBUTES.length-1};
+    submitData();return true;
+  }
+
   q('#btn-agree').addEventListener('click', function() {
     showPage('1');
-    requestAssignment();
+    if (!resumePendingSubmission()) requestAssignment();
   });
 
   q('#btn-disagree').addEventListener('click', function() {
@@ -1378,6 +1504,7 @@
     if (!assignedBatch) {
       waitingForAssignmentAfterDemographics = true;
       showLoading('Waiting for your five image pairs');
+      requestAssignment();
       return;
     }
     waitingForAssignmentAfterDemographics = false;
@@ -1410,6 +1537,12 @@
     });
   });
 
+  ['user-id', 'age', 'gender', 'nationality', 'education'].forEach(function(id) {
+    var field = q('#' + id);
+    field.addEventListener('input', saveDemographicsDraft);
+    field.addEventListener('change', saveDemographicsDraft);
+  });
+
   window.addEventListener('DOMContentLoaded', function() {
     assignmentResumeHint = localStorage.getItem(storageKey('assignment_pending')) === '1' || localStorage.getItem(storageKey('assignment_active')) === '1';
     savedBeforeAssignment = loadSavedProgress();
@@ -1417,6 +1550,8 @@
       state = savedBeforeAssignment.state;
       hydrateDemographics();
     }
+    var draft = loadDemographicsDraft();
+    if (draft) { state.demographics = draft; hydrateDemographics(); }
     var pid = getProlificPid();
     if (pid) {
       q('#user-id').value = pid;
