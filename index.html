@@ -231,7 +231,7 @@
 
 <div id="loading-overlay" style="position:fixed;inset:0;background:#fff;z-index:10000;display:none;flex-direction:column;align-items:center;justify-content:center;">
   <div id="loading-title" style="font-size:1.5rem;font-weight:700;color:#1e293b;margin-bottom:10px;">Loading Survey</div>
-  <div style="width:40px;height:40px;border:5px solid rgba(37,99,235,0.2);border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite;"></div>
+  <div id="loading-spinner" style="width:40px;height:40px;border:5px solid rgba(37,99,235,0.2);border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite;"></div>
   <div id="loading-error" style="display:none;margin-top:20px;color:#ef4444;font-weight:600;max-width:760px;text-align:center;padding:0 24px;"></div>
   <button id="loading-reload" type="button" style="display:none;margin-top:18px;padding:12px 22px;">Refresh survey</button>
 </div>
@@ -395,7 +395,7 @@
 (function() {
   'use strict';
 
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxnEodOM9EE8IjWOF05ygUKPSs4z46dl43jOnlrLMxNp39IhAYp75JTX-JLL_CKnAbf/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxepzK-F1T0padYY02xdp0vzPhzZmKQ8k9WL2tgGgIKD4HmSxCLGo5aK18f64esM-Rb/exec';
   const BATCH_SIZE = 5;
   const QC_AFTER_PAIR_INDEX = BATCH_SIZE - 1; // after all five main image pairs
   const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
@@ -423,6 +423,7 @@
 
   var assignedBatch = null;
   var assignmentRequestInFlight = false;
+  var assignmentPoolFull = false;
   var assignmentResumeHint = false;
   var waitingForAssignmentAfterDemographics = false;
   var pairAssets = [];
@@ -634,6 +635,10 @@
 
   q('#loading-reload').textContent = 'Retry';
   q('#loading-reload').addEventListener('click', function() {
+    if (assignmentPoolFull) {
+      window.location.href = 'https://app.prolific.com/studies';
+      return;
+    }
     saveDemographicsDraft();
     if (!assignedBatch) {
       if (assignmentRequestInFlight) return;
@@ -648,6 +653,9 @@
   });
 
   function showLoading(title) {
+    q('#loading-spinner').style.display = 'block';
+    q('#loading-error').style.color = '#ef4444';
+    q('#loading-reload').textContent = 'Retry';
     q('#loading-title').textContent = title || 'Loading Survey';
     q('#loading-error').style.display = 'none';
     q('#loading-error').textContent = '';
@@ -722,8 +730,21 @@
     document.body.appendChild(scriptEl);
   }
 
+  function showStudyFull() {
+    assignmentPoolFull = true;
+    waitingForAssignmentAfterDemographics = false;
+    q('#loading-title').textContent = 'Study currently full';
+    q('#loading-spinner').style.display = 'none';
+    q('#loading-error').textContent = 'All available places in this study are currently filled or reserved by other participants. You cannot start the survey at this time. Please return this submission on Prolific. Do not mark it as completed.';
+    q('#loading-error').style.color = '#475569';
+    q('#loading-error').style.display = 'block';
+    q('#loading-reload').textContent = 'Go to Prolific';
+    q('#loading-reload').style.display = 'inline-block';
+    q('#loading-overlay').style.display = 'flex';
+  }
+
   function requestAssignment() {
-    if (assignedBatch || assignmentRequestInFlight) return;
+    if (assignmentPoolFull || assignedBatch || assignmentRequestInFlight) return;
     assignmentRequestInFlight = true;
     markAssignmentPending();
 
@@ -733,6 +754,10 @@
 
     jsonp(url, function(data) {
       assignmentRequestInFlight = false;
+      if (data && data.code === 'NO_TASKS') {
+        showStudyFull();
+        return;
+      }
       if (data && data.status === 'finished') {
         showRecoveredSubmissionComplete();
         return;
@@ -1487,7 +1512,10 @@
 
   q('#btn-agree').addEventListener('click', function() {
     showPage('1');
-    if (!resumePendingSubmission()) requestAssignment();
+    if (!resumePendingSubmission()) {
+      showLoading('Checking study availability');
+      requestAssignment();
+    }
   });
 
   q('#btn-disagree').addEventListener('click', function() {
