@@ -395,7 +395,7 @@
 (function() {
   'use strict';
 
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxepzK-F1T0padYY02xdp0vzPhzZmKQ8k9WL2tgGgIKD4HmSxCLGo5aK18f64esM-Rb/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw6eTFvv2ihHeg3ij_9E7ShqEgjHquxVmqfPyIZJfgMBqD8Dgm4w3FekFXfq8XM-l1S/exec';
   const BATCH_SIZE = 5;
   const QC_AFTER_PAIR_INDEX = BATCH_SIZE - 1; // after all five main image pairs
   const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
@@ -491,7 +491,7 @@
   }
 
   function clearClientState() {
-    ['request_id','assignment_pending','assignment_active','submission_id','submission_pending','progress','demographics_draft','pending_payload'].forEach(function(name) {
+    ['request_id','assignment_pending','assignment_active','submission_id','submission_pending','progress','demographics_draft','pending_payload','submission_diagnostic','submission_post_started'].forEach(function(name) {
       try { localStorage.removeItem(storageKey(name)); } catch (e) {}
     });
   }
@@ -1321,6 +1321,8 @@
     q('#resume-note').style.display = 'none';
   }
 
+  var activeSubmissionTransport = false;
+
   function checkSubmissionReceipt(payload, callback, deadline) {
     var meta = payload.meta || {};
     var url = APPS_SCRIPT_URL + '?action=submission_status&accept_verified_receipt=1' +
@@ -1328,62 +1330,110 @@
       '&batch_id=' + encodeURIComponent(meta.batchId) +
       '&request_id=' + encodeURIComponent(meta.assignmentRequestId) +
       '&submission_id=' + encodeURIComponent(meta.submissionId);
-    // One check per retry interval: avoid nested retry loops.
-    jsonp(url, callback, 0, { maxRetries: 0, timeout: 8000, passBusy: true, deadline: deadline || Date.now() + 8000 });
+    jsonp(url, callback, 0, {maxRetries:0,timeout:15000,passBusy:true,deadline:deadline||Date.now()+15000});
   }
 
   function submissionConfirmed(data) {
-    return !!(data && data.status === 'ok' && data.json_saved === true && (data.receipt_verified === true || data.assignment_finished === true));
+    return !!(data && data.status === 'ok' && data.json_saved === true &&
+      (data.receipt_verified === true || data.assignment_finished === true));
   }
 
   function postSubmissionWithRetry(payload, callback, retryCount, deadline) {
-    retryCount = retryCount || 0;
-    deadline = deadline || Date.now() + 60000;
-    var MAX_RETRIES = 2;
-    if (Date.now() >= deadline) { callback({status:'error',code:'SUBMIT_WAIT_LIMIT',message:'Submission is still unconfirmed. Your answers are kept in this browser. Please retry later.'}); return; }
-    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timeoutId = setTimeout(function() { if (controller) controller.abort(); }, Math.max(1, Math.min(20000, deadline - Date.now())));
-    var formData = new URLSearchParams();
-    formData.append('payload', JSON.stringify(payload));
+    // A button click, automatic retry and refresh all use the same frozen IDs.
+    // Only one transport loop may run in this page at a time.
+    if (activeSubmissionTransport) return;
+    activeSubmissionTransport = true;
+    deadline = deadline || Date.now() + 120000;
+    var done=false, posts=0, received=false, lastCode='', lastPhase='receipt';
+    var alreadyAttempted=true;
+    try {
+      alreadyAttempted=localStorage.getItem(storageKey('submission_post_started'))===String(payload.meta.submissionId);
+      var previousDiagnostic=JSON.parse(localStorage.getItem(storageKey('submission_diagnostic'))||'null');
+      received=!!(previousDiagnostic && previousDiagnostic.submissionId===String(payload.meta.submissionId) && previousDiagnostic.payload_received);
+    }catch(ignore){}
 
-    function retry(reason, serverDelay) {
-      clearTimeout(timeoutId);
-      var exponential = Math.min(2000 * Math.pow(2, retryCount), 8000);
-      var requested = parseInt(serverDelay, 10);
-      var base = Math.max(exponential, Number.isFinite(requested) && requested > 0 ? requested : 0);
-      var delay = Math.min(base, 30000) + randomBetween(1000, 4000);
-      q('#submit-overlay-message').textContent = 'Checking submission...';
-      q('#submit-overlay-status').textContent = 'A busy or interrupted connection does not tell us whether your response was saved. Checking again in ' + Math.ceil(delay / 1000) + ' seconds. Please keep this page open.';
-      setTimeout(function() {
-        checkSubmissionReceipt(payload, function(receipt) {
-          if (submissionConfirmed(receipt)) { callback(receipt); return; }
-          if (receipt && receipt.status === 'error' && /^RECEIPT_(IDENTITY|FILE|STATE)/.test(receipt.code || '')) {
-            callback(receipt); return;
-          }
-          if (retryCount >= MAX_RETRIES || Date.now() >= deadline) {
-            callback({ status: 'error', code: 'SUBMIT_RETRY_EXHAUSTED',
-              message: 'Submission status is still unconfirmed. Your answers are kept in this browser. Click Retry Submit below, or contact the researcher with your Prolific ID. Please keep this page open.', network_error: true });
-            return;
-          }
-          if (receipt && receipt.json_saved === true) {
-            // Continue checking the saved file; do not post the answers again.
-            retry(receipt.code || 'Completion pending', receipt.retry_after_ms);
-            retryCount++;
-            return;
-          }
-          postSubmissionWithRetry(payload, callback, retryCount + 1, deadline);
-        }, deadline);
-      }, Math.min(delay, Math.max(0, deadline - Date.now())));
+    function finish(data) {
+      if(done)return;
+      done=true;activeSubmissionTransport=false;
+      callback(data);
     }
-
-    fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData, signal: controller ? controller.signal : undefined })
-      .then(function(response) { if (!response.ok) throw new Error('HTTP ' + response.status); return response.json(); })
-      .then(function(data) {
-        clearTimeout(timeoutId);
-        if (data && (data.status === 'busy' || data.retryable === true)) { retry(data.code || 'Server busy', data.retry_after_ms); return; }
-        callback(data);
-      })
-      .catch(function(err) { retry(err && err.name === 'AbortError' ? 'Timeout' : 'Network error'); });
+    function remember(data,phase) {
+      lastPhase=phase;
+      if(data && data.code)lastCode=data.code;
+      if(data && data.payload_received===true)received=true;
+      try {localStorage.setItem(storageKey('submission_diagnostic'),JSON.stringify({
+        submissionId:String(payload.meta.submissionId),phase:phase,code:lastCode,payload_received:received,at:new Date().toISOString()}));}catch(ignore){}
+    }
+    function exhausted() {
+      finish({status:'error',code:'SUBMISSION_CONFIRMATION_PENDING',payload_received:received,
+        last_server_code:lastCode,phase:lastPhase,
+        message:received?
+          'Your complete answers have reached our server, but the saved JSON is not yet confirmed. Click Check Submission to check again. Please keep this page open; do not restart the survey or mark it as completed yet.':
+          'We have not yet confirmed that your answers reached the server. Your answers are kept in this browser. Click Retry Submit. Please do not mark the study as completed yet.'});
+    }
+    function terminal(data) {
+      return data && data.status==='error' &&
+        /^(RECEIPT_(IDENTITY|FILE|STATE)|BATCH_(IDENTITY|CLOSED)|INVALID_PAIR|MISSING_SUBMISSION|SUBMISSION_PAYLOAD_MISMATCH|FINISHED_FILE_MISSING)/.test(data.code||'');
+    }
+    function schedule(data) {
+      if(done)return;
+      if(Date.now()>=deadline){exhausted();return;}
+      var requested=Number(data && data.retry_after_ms)||6000;
+      var delay=Math.max(4000,Math.min(requested,12000))+randomBetween(500,2000);
+      q('#submit-overlay-message').textContent=received?'Answers received — confirming save':'Checking submission...';
+      q('#submit-overlay-status').textContent=received?
+        'Your answers have reached the server. We are checking the saved JSON. Please keep this page open.':
+        'Checking whether the server received your answers. Your answers remain in this browser.';
+      setTimeout(check,Math.min(delay,Math.max(0,deadline-Date.now())));
+    }
+    function check() {
+      if(done)return;
+      if(Date.now()>=deadline){exhausted();return;}
+      checkSubmissionReceipt(payload,function(data) {
+        if(done)return;
+        remember(data,'receipt');
+        if(submissionConfirmed(data)){finish(data);return;}
+        if(terminal(data)){finish(data);return;}
+        var next=data && data.next_action;
+        // A failed status query is not proof that an earlier POST failed.
+        // After the first POST, resend only when the server explicitly permits it.
+        var mayPost=next==='post'||next==='resume'||
+          (posts===0 && !received && next!=='poll');
+        if(mayPost && posts<3){send();return;}
+        schedule(data);
+      },deadline);
+    }
+    function send() {
+      if(done)return;
+      if(Date.now()>=deadline){exhausted();return;}
+      posts++;
+      try {localStorage.setItem(storageKey('submission_post_started'),String(payload.meta.submissionId));}catch(ignore){}
+      var controller=typeof AbortController!=='undefined'?new AbortController():null;
+      var settled=false;
+      var timeoutId=setTimeout(function() {
+        if(settled||done)return;
+        settled=true;
+        if(controller)controller.abort();
+        remember({code:'POST_RESPONSE_TIMEOUT'},'post');schedule();
+      },Math.max(1,Math.min(45000,deadline-Date.now())));
+      var body=new URLSearchParams();body.append('payload',JSON.stringify(payload));
+      q('#submit-overlay-message').textContent='Saving response...';
+      fetch(APPS_SCRIPT_URL,{method:'POST',body:body,signal:controller?controller.signal:undefined})
+        .then(function(response){if(!response.ok)throw new Error('HTTP '+response.status);return response.json();})
+        .then(function(data) {
+          if(settled||done)return;
+          settled=true;clearTimeout(timeoutId);remember(data,'post');
+          if(submissionConfirmed(data)||terminal(data)||(data&&data.status==='qc_fail')){finish(data);return;}
+          schedule(data);
+        })
+        .catch(function(err) {
+          if(settled||done)return;
+          settled=true;clearTimeout(timeoutId);remember({code:'POST_NETWORK_ERROR'},'post');schedule();
+        });
+    }
+    // The first attempt posts directly; manual retries and refresh recoveries
+    // check the receipt first, avoiding an extra request for normal completion.
+    if(alreadyAttempted)check();else send();
   }
 
   function completeSubmissionUI(btn, overlay) {
@@ -1432,7 +1482,7 @@
         assignmentRequestId: assignedBatch.assignment_request_id || getOrCreateAssignmentRequestId(),
         batchId: assignedBatch.batch_id,
         batchSize: BATCH_SIZE,
-        storageProtocol: 'v5-durable-json-1',
+        storageProtocol: 'v5-durable-json-2',
         groupId: assignedBatch.group_id || getQueryParam('group_id') || 'G1',
         studyId: getQueryParam('STUDY_ID') || '',
         sessionId: getQueryParam('SESSION_ID') || ''
@@ -1450,7 +1500,7 @@
           JSON.stringify(pending.pair_responses) === JSON.stringify(payload.pair_responses) &&
           JSON.stringify(pending.quality_check) === JSON.stringify(payload.quality_check) &&
           JSON.stringify(pending.demographics) === JSON.stringify(payload.demographics)) payload = pending;
-      payload.meta.storageProtocol = 'v5-durable-json-1';
+      payload.meta.storageProtocol = 'v5-durable-json-2';
       localStorage.setItem(storageKey('pending_payload'), JSON.stringify(payload));
     } catch (e) { console.warn('Could not save pending submission:', e); }
 
@@ -1467,13 +1517,13 @@
         showDialog('Data Quality Check Failed', 'The final quality-control answers could not be confirmed. Please review the classification section again.\n\nWarning: Please also make sure that all of your survey responses reflect your genuine judgments. Submissions showing clear random or careless responding may be rejected in accordance with Prolific submission guidelines.\n\nTo proceed, please correct the classification errors.', true);
         return;
       }
-      q('#submit-overlay-message').textContent = 'Submission not confirmed';
+      q('#submit-overlay-message').textContent = data && data.payload_received ? 'Answers received; confirmation pending' : 'Submission not confirmed';
       q('#submit-overlay-status').textContent = ((data && (data.message || data.error)) || 'Please click Retry Submit.') + (data && data.code ? ' [' + data.code + ']' : '');
       q('.spinner').style.display = 'none';
       btn.disabled = false;
-      btn.textContent = 'Retry Submit';
+      btn.textContent = data && data.payload_received ? 'Check Submission' : 'Retry Submit';
       q('#submit-overlay-confirm').style.display = 'inline-block';
-      q('#submit-overlay-confirm').textContent = 'Retry Submit';
+      q('#submit-overlay-confirm').textContent = data && data.payload_received ? 'Check Submission' : 'Retry Submit';
       q('#submit-overlay-confirm').onclick = submitData;
     }, 0);
   }
@@ -1507,6 +1557,7 @@
     assignedBatch={batch_id:pending.meta.batchId,assignment_request_id:pending.meta.assignmentRequestId,
       group_id:pending.meta.groupId||getQueryParam('group_id')||'G1',pairs:pending.pair_responses.map(function(p){return {pair_id:p.pair_id,pair_order:p.pair_order};})};
     state.navigation={stage:'review',pairIndex:BATCH_SIZE-1,attrIndex:ATTRIBUTES.length-1};
+    try {localStorage.setItem(storageKey('submission_post_started'),String(pending.meta.submissionId));}catch(ignore){}
     submitData();return true;
   }
 
