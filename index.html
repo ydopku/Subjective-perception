@@ -153,8 +153,6 @@
     #submit-overlay { position: fixed; inset: 0; background: rgba(11,17,32,0.8); z-index: 9999; display: none; align-items: center; justify-content: center; }
     #submit-overlay.show { display: flex; }
     .card { background: #fff; padding: 36px; border-radius: 16px; width: 400px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
-    #submission-receipt { background: #f0fdf4; border: 2px solid #bbf7d0; border-radius: 12px; padding: 24px; text-align: center; color: #14532d; }
-    #submission-receipt h3 { color: #15803d; margin-bottom: 12px; }
 
     /* Responsive */
     .mobile-text { display: none; }
@@ -371,11 +369,6 @@
       <button class="secondary" id="review-back" type="button">◀ Back</button>
       <button id="finish" type="button">Finish and submit ▶</button>
     </div>
-    <div id="submission-receipt" style="display:none;margin-top:30px;">
-      <h3>Submission Successful</h3>
-      <div style="font-size:14px;margin-bottom:8px;">Thank you for your participation!</div>
-      <div id="receipt-content" style="font-family:monospace;color:#334155;"></div>
-    </div>
   </div>
 </div>
 
@@ -395,7 +388,7 @@
 (function() {
   'use strict';
 
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw6eTFvv2ihHeg3ij_9E7ShqEgjHquxVmqfPyIZJfgMBqD8Dgm4w3FekFXfq8XM-l1S/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx8UM0Ap70C0w1bkeyPUHd_PTh9GD0jyLjN1dQ12ozLfyM9UwtVBcCitpG3-B8Q_EoU/exec';
   const BATCH_SIZE = 5;
   const QC_AFTER_PAIR_INDEX = BATCH_SIZE - 1; // after all five main image pairs
   const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
@@ -750,15 +743,19 @@
 
     var workerId = getProlificPid();
     var requestId = getOrCreateAssignmentRequestId();
-    var url = APPS_SCRIPT_URL + '?action=assign&worker_id=' + encodeURIComponent(workerId) + '&request_id=' + encodeURIComponent(requestId) + '&resume=' + (assignmentResumeHint ? '1' : '0') + '&group_id=' + encodeURIComponent(getQueryParam('group_id') || 'G1');
+    var url = APPS_SCRIPT_URL + '?action=assign&worker_id=' + encodeURIComponent(workerId) + '&request_id=' + encodeURIComponent(requestId) + '&resume=' + (assignmentResumeHint ? '1' : '0') + '&group_id=' + encodeURIComponent(getQueryParam('group_id') || 'G1') + '&study_id=' + encodeURIComponent(getQueryParam('STUDY_ID') || '') + '&session_id=' + encodeURIComponent(getQueryParam('SESSION_ID') || '');
 
     jsonp(url, function(data) {
       assignmentRequestInFlight = false;
+      if (data && data.code === 'PREVIOUS_PARTICIPATION') {
+        showPreviousParticipation();
+        return;
+      }
       if (data && data.code === 'NO_TASKS') {
         showStudyFull();
         return;
       }
-      if (data && data.status === 'finished') {
+      if (data && data.status === 'finished' && data.json_saved === true && data.receipt_verified === true) {
         showRecoveredSubmissionComplete();
         return;
       }
@@ -1321,141 +1318,6 @@
     q('#resume-note').style.display = 'none';
   }
 
-  var activeSubmissionTransport = false;
-
-  function checkSubmissionReceipt(payload, callback, deadline) {
-    var meta = payload.meta || {};
-    var url = APPS_SCRIPT_URL + '?action=submission_status&accept_verified_receipt=1' +
-      '&worker_id=' + encodeURIComponent(payload.demographics.id) +
-      '&batch_id=' + encodeURIComponent(meta.batchId) +
-      '&request_id=' + encodeURIComponent(meta.assignmentRequestId) +
-      '&submission_id=' + encodeURIComponent(meta.submissionId);
-    jsonp(url, callback, 0, {maxRetries:0,timeout:15000,passBusy:true,deadline:deadline||Date.now()+15000});
-  }
-
-  function submissionConfirmed(data) {
-    return !!(data && data.status === 'ok' && data.json_saved === true &&
-      (data.receipt_verified === true || data.assignment_finished === true));
-  }
-
-  function postSubmissionWithRetry(payload, callback, retryCount, deadline) {
-    // A button click, automatic retry and refresh all use the same frozen IDs.
-    // Only one transport loop may run in this page at a time.
-    if (activeSubmissionTransport) return;
-    activeSubmissionTransport = true;
-    deadline = deadline || Date.now() + 120000;
-    var done=false, posts=0, received=false, lastCode='', lastPhase='receipt';
-    var alreadyAttempted=true;
-    try {
-      alreadyAttempted=localStorage.getItem(storageKey('submission_post_started'))===String(payload.meta.submissionId);
-      var previousDiagnostic=JSON.parse(localStorage.getItem(storageKey('submission_diagnostic'))||'null');
-      received=!!(previousDiagnostic && previousDiagnostic.submissionId===String(payload.meta.submissionId) && previousDiagnostic.payload_received);
-    }catch(ignore){}
-
-    function finish(data) {
-      if(done)return;
-      done=true;activeSubmissionTransport=false;
-      callback(data);
-    }
-    function remember(data,phase) {
-      lastPhase=phase;
-      if(data && data.code)lastCode=data.code;
-      if(data && data.payload_received===true)received=true;
-      try {localStorage.setItem(storageKey('submission_diagnostic'),JSON.stringify({
-        submissionId:String(payload.meta.submissionId),phase:phase,code:lastCode,payload_received:received,at:new Date().toISOString()}));}catch(ignore){}
-    }
-    function exhausted() {
-      finish({status:'error',code:'SUBMISSION_CONFIRMATION_PENDING',payload_received:received,
-        last_server_code:lastCode,phase:lastPhase,
-        message:received?
-          'Your complete answers have reached our server, but the saved JSON is not yet confirmed. Click Check Submission to check again. Please keep this page open; do not restart the survey or mark it as completed yet.':
-          'We have not yet confirmed that your answers reached the server. Your answers are kept in this browser. Click Retry Submit. Please do not mark the study as completed yet.'});
-    }
-    function terminal(data) {
-      return data && data.status==='error' &&
-        /^(RECEIPT_(IDENTITY|FILE|STATE)|BATCH_(IDENTITY|CLOSED)|INVALID_PAIR|MISSING_SUBMISSION|SUBMISSION_PAYLOAD_MISMATCH|FINISHED_FILE_MISSING)/.test(data.code||'');
-    }
-    function schedule(data) {
-      if(done)return;
-      if(Date.now()>=deadline){exhausted();return;}
-      var requested=Number(data && data.retry_after_ms)||6000;
-      var delay=Math.max(4000,Math.min(requested,12000))+randomBetween(500,2000);
-      q('#submit-overlay-message').textContent=received?'Answers received — confirming save':'Checking submission...';
-      q('#submit-overlay-status').textContent=received?
-        'Your answers have reached the server. We are checking the saved JSON. Please keep this page open.':
-        'Checking whether the server received your answers. Your answers remain in this browser.';
-      setTimeout(check,Math.min(delay,Math.max(0,deadline-Date.now())));
-    }
-    function check() {
-      if(done)return;
-      if(Date.now()>=deadline){exhausted();return;}
-      checkSubmissionReceipt(payload,function(data) {
-        if(done)return;
-        remember(data,'receipt');
-        if(submissionConfirmed(data)){finish(data);return;}
-        if(terminal(data)){finish(data);return;}
-        var next=data && data.next_action;
-        // A failed status query is not proof that an earlier POST failed.
-        // After the first POST, resend only when the server explicitly permits it.
-        var mayPost=next==='post'||next==='resume'||
-          (posts===0 && !received && next!=='poll');
-        if(mayPost && posts<3){send();return;}
-        schedule(data);
-      },deadline);
-    }
-    function send() {
-      if(done)return;
-      if(Date.now()>=deadline){exhausted();return;}
-      posts++;
-      try {localStorage.setItem(storageKey('submission_post_started'),String(payload.meta.submissionId));}catch(ignore){}
-      var controller=typeof AbortController!=='undefined'?new AbortController():null;
-      var settled=false;
-      var timeoutId=setTimeout(function() {
-        if(settled||done)return;
-        settled=true;
-        if(controller)controller.abort();
-        remember({code:'POST_RESPONSE_TIMEOUT'},'post');schedule();
-      },Math.max(1,Math.min(45000,deadline-Date.now())));
-      var body=new URLSearchParams();body.append('payload',JSON.stringify(payload));
-      q('#submit-overlay-message').textContent='Saving response...';
-      fetch(APPS_SCRIPT_URL,{method:'POST',body:body,signal:controller?controller.signal:undefined})
-        .then(function(response){if(!response.ok)throw new Error('HTTP '+response.status);return response.json();})
-        .then(function(data) {
-          if(settled||done)return;
-          settled=true;clearTimeout(timeoutId);remember(data,'post');
-          if(submissionConfirmed(data)||terminal(data)||(data&&data.status==='qc_fail')){finish(data);return;}
-          schedule(data);
-        })
-        .catch(function(err) {
-          if(settled||done)return;
-          settled=true;clearTimeout(timeoutId);remember({code:'POST_NETWORK_ERROR'},'post');schedule();
-        });
-    }
-    // The first attempt posts directly; manual retries and refresh recoveries
-    // check the receipt first, avoiding an extra request for normal completion.
-    if(alreadyAttempted)check();else send();
-  }
-
-  function completeSubmissionUI(btn, overlay) {
-    clearClientState();
-    q('#submit-overlay-message').textContent = 'Submission Complete!';
-    q('#submit-overlay-status').textContent = 'Redirecting to Prolific automatically...';
-    q('.spinner').style.display = 'none';
-    var completionUrl = 'https://app.prolific.com/submissions/complete?cc=CLUCC7RR';
-    var redirectTimer = setTimeout(function() { window.location.href = completionUrl; }, 2500);
-    q('#submit-overlay-confirm').style.display = 'inline-block';
-    q('#submit-overlay-confirm').textContent = 'Go to Prolific Now';
-    q('#submit-overlay-confirm').onclick = function() { clearTimeout(redirectTimer); window.location.href = completionUrl; };
-    overlay.classList.remove('show');
-    q('#submission-receipt').style.display = 'block';
-    q('#receipt-content').innerHTML = '<div style="color:#166534;font-weight:bold;font-size:18px;margin-bottom:16px;">Data Saved Successfully!</div>' +
-      '<div style="margin-bottom:20px;color:#475569;">All five pair responses have been saved and verified.</div>' +
-      '<a href="' + completionUrl + '" style="display:inline-block;background:#2563eb;color:#fff;padding:16px 32px;text-decoration:none;border-radius:8px;font-weight:bold;">Return to Prolific</a>';
-    btn.textContent = 'Data Submitted';
-    btn.disabled = true;
-    window.scrollTo(0, document.body.scrollHeight);
-  }
-
   function submitData() {
     if (!assignedBatch || !assignedBatch.batch_id || !allPairRatingsComplete() || !state.quality_check.passed) {
       showDialog('Submission Error', 'The five-pair assignment or one of the required answers is incomplete.');
@@ -1501,31 +1363,43 @@
           JSON.stringify(pending.quality_check) === JSON.stringify(payload.quality_check) &&
           JSON.stringify(pending.demographics) === JSON.stringify(payload.demographics)) payload = pending;
       payload.meta.storageProtocol = 'v5-durable-json-2';
+      payload.meta.completionTransport = 'server-result-page-1';
       localStorage.setItem(storageKey('pending_payload'), JSON.stringify(payload));
     } catch (e) { console.warn('Could not save pending submission:', e); }
 
-    postSubmissionWithRetry(payload, function(data) {
-      if (submissionConfirmed(data)) {
-        if (data.sheet_synced === false) console.warn('JSON and batch receipt are safe; Responses_Batch5 can be repaired later.');
-        completeSubmissionUI(btn, overlay);
-        return;
-      }
-      if (data && data.status === 'qc_fail') {
-        overlay.classList.remove('show');
-        btn.disabled = false;
-        showQCPage();
-        showDialog('Data Quality Check Failed', 'The final quality-control answers could not be confirmed. Please review the classification section again.\n\nWarning: Please also make sure that all of your survey responses reflect your genuine judgments. Submissions showing clear random or careless responding may be rejected in accordance with Prolific submission guidelines.\n\nTo proceed, please correct the classification errors.', true);
-        return;
-      }
-      q('#submit-overlay-message').textContent = data && data.payload_received ? 'Answers received; confirmation pending' : 'Submission not confirmed';
-      q('#submit-overlay-status').textContent = ((data && (data.message || data.error)) || 'Please click Retry Submit.') + (data && data.code ? ' [' + data.code + ']' : '');
-      q('.spinner').style.display = 'none';
-      btn.disabled = false;
-      btn.textContent = data && data.payload_received ? 'Check Submission' : 'Retry Submit';
-      q('#submit-overlay-confirm').style.display = 'inline-block';
-      q('#submit-overlay-confirm').textContent = data && data.payload_received ? 'Check Submission' : 'Retry Submit';
-      q('#submit-overlay-confirm').onclick = submitData;
-    }, 0);
+    submitViaResultPage(payload);
+  }
+
+  function submitViaResultPage(payload) {
+    // A normal browser navigation receives the server's result directly.
+    // The original page retains its frozen answers in localStorage.
+    var form = document.createElement('form');
+    form.method = 'POST'; form.action = APPS_SCRIPT_URL; form.target = '_self';
+    form.style.display = 'none';
+    [['transport','result_page'],['payload',JSON.stringify(payload)]].forEach(function(item) {
+      var field = document.createElement('textarea');
+      field.name = item[0]; field.value = item[1]; form.appendChild(field);
+    });
+    document.body.appendChild(form);
+    try { HTMLFormElement.prototype.submit.call(form); }
+    catch(error) {
+      form.remove();
+      q('#submit-overlay-message').textContent = 'Could not open the submission page';
+      q('#submit-overlay-status').textContent = 'Your answers remain in this browser. Click Retry Submit.';
+      var button = q('#submit-overlay-confirm');
+      button.textContent = 'Retry Submit'; button.style.display = 'inline-block';
+      button.onclick = function(){submitViaResultPage(payload);};
+      q('#finish').disabled = false;
+    }
+  }
+
+  function showPreviousParticipation() {
+    hideLoading();
+    q('#main-container').innerHTML = '<div style="max-width:720px;margin:60px auto;text-align:center">' +
+      '<h2>You have already participated in this research</h2>' +
+      '<p>Your earlier response belongs to a different study or session. You cannot complete this study again.</p>' +
+      '<p>Please return the current submission on Prolific. Do not mark it as completed.</p>' +
+      '<a href="https://app.prolific.com/studies">Go to Prolific</a></div>';
   }
 
   function showRecoveredSubmissionComplete() {
@@ -1548,6 +1422,9 @@
           quality_check:saved.state.quality_check,meta:{batchId:saved.batch_id,assignmentRequestId:saved.request_id,submissionId:id}};
       }
     } catch(e){return false;}
+    if(pending && pending.meta && (String(pending.meta.studyId||'')!==String(getQueryParam('STUDY_ID')||'') ||
+       String(pending.meta.sessionId||'')!==String(getQueryParam('SESSION_ID')||'') ||
+       String(pending.meta.groupId||'G1')!==String(getQueryParam('group_id')||'G1'))) return false;
     if(!pending||!pending.meta||!pending.demographics||pending.demographics.id!==getProlificPid()||
        pending.meta.assignmentRequestId!==getOrCreateAssignmentRequestId()||!pending.meta.batchId||!pending.meta.submissionId||
        !Array.isArray(pending.pair_responses)||pending.pair_responses.length!==BATCH_SIZE||
@@ -1557,7 +1434,6 @@
     assignedBatch={batch_id:pending.meta.batchId,assignment_request_id:pending.meta.assignmentRequestId,
       group_id:pending.meta.groupId||getQueryParam('group_id')||'G1',pairs:pending.pair_responses.map(function(p){return {pair_id:p.pair_id,pair_order:p.pair_order};})};
     state.navigation={stage:'review',pairIndex:BATCH_SIZE-1,attrIndex:ATTRIBUTES.length-1};
-    try {localStorage.setItem(storageKey('submission_post_started'),String(pending.meta.submissionId));}catch(ignore){}
     submitData();return true;
   }
 
