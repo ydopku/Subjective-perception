@@ -671,16 +671,13 @@
   function jsonp(url, callback, retryCount, options) {
     retryCount = retryCount || 0;
     options = options || {};
-    var MAX_RETRIES = options.maxRetries === undefined ? 3 : options.maxRetries;
-    if (!options.deadline) options.deadline = Date.now() + 45000;
-    if (Date.now() >= options.deadline) { callback({status:'error',code:'CONNECTION_WAIT_LIMIT',error:'The connection could not be confirmed within the automatic retry window. Your answers are kept in this browser. Please retry later.'}); return; }
     var cbName = 'cb_' + Math.random().toString(36).slice(2);
     var settled = false;
     var scriptEl = null;
 
     function cleanup() {
       if (scriptEl && scriptEl.parentNode) scriptEl.parentNode.removeChild(scriptEl);
-      try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+      window[cbName] = function() {};
     }
 
     function retryOrFail(reason, serverDelay) {
@@ -688,23 +685,21 @@
       settled = true;
       clearTimeout(timeoutTimer);
       cleanup();
-      if (retryCount < MAX_RETRIES && Date.now() < options.deadline) {
-        var exponential = Math.min(1500 * Math.pow(2, retryCount), 8000);
+      {
+        var exponential = Math.min(500 * Math.pow(1.4, Math.min(retryCount,10)), 3000);
         var requested = parseInt(serverDelay, 10);
         var base = Math.max(exponential, Number.isFinite(requested) && requested > 0 ? requested : 0);
-        var delay = Math.min(base, 30000) + randomBetween(1000, 4000);
+        var delay = Math.min(base, 8000) + randomBetween(300, 1800);
         if (url.indexOf('action=assign') >= 0) {
           q('#loading-title').textContent = 'Waiting for an available connection';
           q('#loading-error').textContent = 'The server is busy. Retrying automatically in ' + Math.ceil(delay / 1000) + ' seconds. Please keep this page open.';
           q('#loading-error').style.display = 'block';
         }
-        setTimeout(function() { jsonp(url, callback, retryCount + 1, options); }, Math.min(delay, Math.max(0, options.deadline - Date.now())));
-      } else {
-        callback({ status: 'error', code: 'ASSIGN_RETRY_EXHAUSTED', error: 'A server connection could not be established after several retries. Please wait briefly and click Retry. Your entered participant information is kept in this browser.' });
+        setTimeout(function() { jsonp(url, callback, retryCount + 1, options); }, delay);
       }
     }
 
-    var timeoutTimer = setTimeout(function() { retryOrFail('Timeout'); }, Math.max(1, Math.min(options.timeout || 15000, options.deadline - Date.now())));
+    var timeoutTimer = setTimeout(function() { retryOrFail('Timeout'); }, options.timeout || 15000);
     window[cbName] = function(data) {
       if (settled) return;
       if (!options.passBusy && data && (data.status === 'busy' || data.retryable === true)) {
