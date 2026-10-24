@@ -388,7 +388,7 @@
 (function() {
   'use strict';
 
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyB5DQmFyRZluaTZYNKAcgVbQs3V-2oQVfU4-3E4btZhhHZYgh6NkMola8Vl_A3EBCS/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx8UM0Ap70C0w1bkeyPUHd_PTh9GD0jyLjN1dQ12ozLfyM9UwtVBcCitpG3-B8Q_EoU/exec';
   const BATCH_SIZE = 5;
   const QC_AFTER_PAIR_INDEX = BATCH_SIZE - 1; // after all five main image pairs
   const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
@@ -648,6 +648,7 @@
   function showLoading(title) {
     q('#loading-spinner').style.display = 'block';
     q('#loading-error').style.color = '#ef4444';
+    q('#loading-error').style.whiteSpace = '';
     q('#loading-reload').textContent = 'Retry';
     q('#loading-title').textContent = title || 'Loading Survey';
     q('#loading-error').style.display = 'none';
@@ -721,12 +722,13 @@
   function showStudyFull() {
     assignmentPoolFull = true;
     waitingForAssignmentAfterDemographics = false;
-    q('#loading-title').textContent = 'Study currently full';
+    q('#loading-title').textContent = 'No places available right now';
     q('#loading-spinner').style.display = 'none';
-    q('#loading-error').textContent = 'All available places in this study are currently filled or reserved by other participants. You cannot start the survey at this time. Please return this submission on Prolific. Do not mark it as completed.';
+    q('#loading-error').textContent = 'All questionnaire places are currently filled or reserved by other participants.\n\nYou can go back to Prolific and select Return for this study. You do not need to wait here.';
     q('#loading-error').style.color = '#475569';
+    q('#loading-error').style.whiteSpace = 'pre-line';
     q('#loading-error').style.display = 'block';
-    q('#loading-reload').textContent = 'Go to Prolific';
+    q('#loading-reload').textContent = 'Back to Prolific';
     q('#loading-reload').style.display = 'inline-block';
     q('#loading-overlay').style.display = 'flex';
   }
@@ -751,7 +753,7 @@
         return;
       }
       if (data && data.status === 'finished' && data.json_saved === true && data.receipt_verified === true) {
-        showRecoveredSubmissionComplete();
+        showRecoveredSubmissionComplete(data);
         return;
       }
       if (data && data.status === 'ok' && Array.isArray(data.pairs) && data.pairs.length === BATCH_SIZE) {
@@ -1365,27 +1367,123 @@
     submitViaResultPage(payload);
   }
 
-  function submitViaResultPage(payload) {
-    // A normal browser navigation receives the server's result directly.
-    // The original page retains its frozen answers in localStorage.
-    var form = document.createElement('form');
-    form.method = 'POST'; form.action = APPS_SCRIPT_URL; form.target = '_self';
-    form.style.display = 'none';
-    [['transport','result_page'],['payload',JSON.stringify(payload)]].forEach(function(item) {
-      var field = document.createElement('textarea');
-      field.name = item[0]; field.value = item[1]; form.appendChild(field);
+// Shared verbatim by the formal questionnaire and its internal test worker.
+function runSubmissionController(config) {
+  var payload=config.payload,m=payload.meta,worker=payload.demographics.id;
+  var stopped=false,statusBusy=false,frameReady=false,pollTimer=null,requestTimer=null;
+  var activeScript=null,frame=null,lastPost=0,lastProgress=Date.now(),failures=0,callbackName='';
+  var bytes=new Uint32Array(4);window.crypto.getRandomValues(bytes);
+  var nonce=Array.prototype.map.call(bytes,function(v){return ('00000000'+v.toString(16)).slice(-8);}).join('-');
+  var stats={startedAt:Date.now(),posts:0,statusRequests:0,rpcReports:0,firstPageReadyAt:null,jsonVerifiedAt:null,completedAt:null,lastCode:''};
+  var endpointOrigin=new URL(config.endpoint,window.location.href).origin;
+  var parentOrigin=window.location.protocol==='file:'?'null':window.location.origin;
+  function emit(stage,result) {
+    stats.lastCode=(result&&result.code)||stage;
+    if(config.onState)config.onState(stage,result||{},Object.assign({},stats));
+  }
+  function cleanupRequest() {
+    clearTimeout(requestTimer);if(activeScript)activeScript.remove();activeScript=null;
+    if(callbackName)window[callbackName]=function(){};statusBusy=false;
+  }
+  function stop() {
+    if(stopped)return;stopped=true;clearTimeout(pollTimer);cleanupRequest();
+    window.removeEventListener('message',message);if(frame)frame.remove();
+  }
+  function verified(r) {
+    return r&&r.status==='ok'&&r.json_saved===true&&r.receipt_verified===true&&
+      r.batch_id===m.batchId&&r.submissionId===m.submissionId;
+  }
+  function accept(r) {
+    if(stopped)return;
+    if(verified(r)) {
+      stats.jsonVerifiedAt=Date.now();stats.completedAt=stats.jsonVerifiedAt;
+      var resultStats=Object.assign({},stats);stop();
+      if(config.onComplete)config.onComplete(r,resultStats);return;
+    }
+    if(r&&(r.status==='qc_fail'||(r.status==='error'&&!r.retryable))) {
+      var errorStats=Object.assign({},stats);stop();
+      if(config.onTerminal)config.onTerminal(r,errorStats);return;
+    }
+    emit('confirming',r);
+  }
+  function permittedOrigin(origin) {
+    return origin===endpointOrigin||/^https:\/\/([a-z0-9-]+\.)?googleusercontent\.com$/.test(origin);
+  }
+  function message(event) {
+    var d=event.data;
+    if(stopped||!d||d.type!=='survey-save'||d.nonce!==nonce||
+       d.batch_id!==m.batchId||d.submission_id!==m.submissionId||!permittedOrigin(event.origin))return;
+    frameReady=true;lastProgress=Date.now();
+    if(!stats.firstPageReadyAt)stats.firstPageReadyAt=lastProgress;
+    if(d.stage==='result'){stats.rpcReports++;accept(d.result);}else emit('connected',d.result);
+  }
+  function post() {
+    if(stopped)return;
+    lastPost=Date.now();lastProgress=lastPost;frameReady=false;stats.posts++;
+    if(frame)frame.remove();
+    frame=document.createElement('iframe');frame.name='save_'+nonce+'_'+stats.posts;
+    frame.title='Saving survey response';frame.style.display='none';
+    frame.setAttribute('sandbox','allow-scripts allow-forms allow-same-origin');
+    (config.host||document.body).appendChild(frame);
+    var form=document.createElement('form');form.method='POST';form.action=config.endpoint;form.target=frame.name;form.style.display='none';
+    [['transport','embedded_result'],['payload',JSON.stringify(payload)],['bridge_nonce',nonce],['bridge_origin',parentOrigin]].forEach(function(item){
+      var field=document.createElement('textarea');field.name=item[0];field.value=item[1];form.appendChild(field);
     });
     document.body.appendChild(form);
-    try { HTMLFormElement.prototype.submit.call(form); }
-    catch(error) {
-      form.remove();
-      q('#submit-overlay-message').textContent = 'Could not open the submission page';
-      q('#submit-overlay-status').textContent = 'Your answers remain in this browser. Click Retry Submit.';
-      var button = q('#submit-overlay-confirm');
-      button.textContent = 'Retry Submit'; button.style.display = 'inline-block';
-      button.onclick = function(){submitViaResultPage(payload);};
-      q('#finish').disabled = false;
+    try{HTMLFormElement.prototype.submit.call(form);}catch(error){emit('reconnecting',{code:'POST_RECONNECTING'});}
+    form.remove();emit('saving');
+  }
+  function schedule(delay) {
+    if(!stopped)pollTimer=setTimeout(poll,delay);
+  }
+  function poll() {
+    if(stopped||statusBusy)return;
+    statusBusy=true;stats.statusRequests++;var settled=false;
+    callbackName='receipt_'+nonce.replace(/-/g,'_')+'_'+stats.statusRequests;
+    function finish(r) {
+      if(settled||stopped)return;settled=true;cleanupRequest();
+      if(r&&r.code!=='STATUS_CONNECTION_PENDING')failures=0;else failures++;
+      accept(r);if(stopped)return;
+      // A failed page load is cheap to retry: embedded_result only renders HTML.
+      // JSON creation starts inside the live iframe, after its ready handshake.
+      var canResume=r&&(r.next_action==='post'||r.next_action==='resume');
+      var age=Date.now()-lastPost;
+      if(canResume&&((!frameReady&&age>=12000)||(frameReady&&Date.now()-lastProgress>=7*60000)))post();
+      schedule(Math.min(30000,3500*Math.pow(1.7,Math.min(failures,5)))+Math.random()*1500);
     }
+    window[callbackName]=finish;
+    activeScript=document.createElement('script');
+    activeScript.onerror=function(){finish({status:'busy',code:'STATUS_CONNECTION_PENDING',retryable:true});};
+    var params={action:'submission_status',worker_id:worker,batch_id:m.batchId,request_id:m.assignmentRequestId,
+      submission_id:m.submissionId,group_id:m.groupId||'G1',study_id:m.studyId||'',session_id:m.sessionId||'',accept_verified_receipt:'1',callback:callbackName};
+    activeScript.src=config.endpoint+'?'+Object.keys(params).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);}).join('&');
+    requestTimer=setTimeout(function(){finish({status:'busy',code:'STATUS_CONNECTION_PENDING',retryable:true});},30000);
+    document.body.appendChild(activeScript);
+  }
+  window.addEventListener('message',message);post();schedule(4000+Math.random()*1000);
+  return {stop:stop,metrics:function(){return Object.assign({},stats);}};
+}
+
+  var activeSubmissionController=null;
+  function submitViaResultPage(payload) {
+    if(activeSubmissionController)return;
+    activeSubmissionController=runSubmissionController({endpoint:APPS_SCRIPT_URL,payload:payload,
+      onState:function(stage,result){
+        q('#submit-overlay').classList.add('show');
+        q('#submit-overlay-message').textContent='Saving your answers';
+        q('#submit-overlay-status').textContent='Please keep this page open. Your answers are retained while we confirm the save.';
+      },
+      onComplete:function(receipt,metrics){
+        activeSubmissionController=null;
+        q('#submit-overlay').classList.remove('show');
+        showRecoveredSubmissionComplete(receipt);
+      },
+      onTerminal:function(result){
+        activeSubmissionController=null;
+        q('#submit-overlay-message').textContent='Please check your submission';
+        q('#submit-overlay-status').textContent=(result.message||result.error||result.code)+' Your answers remain in this browser.';
+      }
+    });
   }
 
   function showPreviousParticipation() {
@@ -1397,14 +1495,26 @@
       '<a href="https://app.prolific.com/studies">Go to Prolific</a></div>';
   }
 
-  function showRecoveredSubmissionComplete() {
+  function showRecoveredSubmissionComplete(receipt) {
+    if(!receipt || (receipt.status!=='ok'&&receipt.status!=='finished') || receipt.json_saved!==true || receipt.receipt_verified!==true)return;
+    var internal=/^(anon-|MANUAL_TEST_|STRESS_TAB_|LOCAL_TAB_)/.test(getProlificPid());
+    if(!internal) {
+      try {
+        var completion=new URL(receipt.completion_url);
+        if(completion.origin!=='https://app.prolific.com'||completion.pathname!=='/submissions/complete'||!completion.searchParams.get('cc'))return;
+      } catch(invalidCompletion){return;}
+    }
     clearClientState();
     hideLoading();
-    var completionUrl = 'https://app.prolific.com/submissions/complete?cc=CLUCC7RR';
+    if(internal) {
+      q('#main-container').innerHTML='<div style="text-align:center;padding:60px 20px;"><h2>Internal test saved</h2><p>Your five-pair response has been saved and verified. No Prolific submission is needed.</p></div>';
+      return;
+    }
     q('#main-container').innerHTML = '<div style="text-align:center;padding:60px 20px;max-width:760px;margin:0 auto;">' +
-      '<h2 style="color:#15803d;font-size:28px;">Submission Already Received</h2>' +
-      '<p style="font-size:17px;color:#475569;line-height:1.6;">Your five-pair response has already been saved successfully. No additional response is required.</p>' +
-      '<a href="' + completionUrl + '" style="display:inline-block;margin-top:18px;background:#2563eb;color:#fff;padding:14px 26px;text-decoration:none;border-radius:8px;font-weight:700;">Return to Prolific</a></div>';
+      '<h2 style="color:#15803d;font-size:28px;">Answers saved</h2>' +
+      '<p style="font-size:17px;color:#475569;line-height:1.6;">Your five-pair response has been saved and verified. Please complete your submission on Prolific.</p>' +
+      '<a id="verified-completion" style="display:inline-block;margin-top:18px;background:#2563eb;color:#fff;padding:14px 26px;text-decoration:none;border-radius:8px;font-weight:700;">Complete on Prolific</a></div>';
+    q('#verified-completion').href=completion.href;
   }
 
   function resumePendingSubmission() {
