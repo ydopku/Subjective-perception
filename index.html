@@ -269,7 +269,7 @@
         </div>
         <div>
           <label for="age">Age (required)</label>
-          <input id="age" type="number" min="10" max="120" />
+          <input id="age" type="number" min="18" max="120" step="1" />
         </div>
         <div>
           <label for="gender">Gender (required)</label>
@@ -388,7 +388,8 @@
 (function() {
   'use strict';
 
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzCsuF7YZ5wWPFUliFou8UIc2h4VpD9CDmEhP1HRdO0P7ydsRztwLmTOUZ4eXUB-rVM/exec';
+  const SURVEY_BUILD='v5-20261028-flow-7';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwTTXafNhtGRDZ59V33DZswKCTpFkHeiKO2sZ76FdOXl7qGkeSd3KREQdzDR6sttsjT/exec';
   const BATCH_SIZE = 5;
   const QC_AFTER_PAIR_INDEX = BATCH_SIZE - 1; // after all five main image pairs
   const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
@@ -438,54 +439,85 @@
     catch (e) { return null; }
   }
 
+  // Use a second browser store when one is blocked or full. Memory keeps the
+  // same identity during the current page even if both stores reject writes.
+  var clientStorage=(function(){
+    var memory=Object.create(null),revision=0;
+    function stores(){var a=[];try{a.push(window.localStorage);}catch(e){}try{a.push(window.sessionStorage);}catch(e){}return a;}
+    function decode(v){try{var r=JSON.parse(v);if(r&&r.__survey_store===1&&typeof r.value==='string'&&Number.isFinite(r.revision))return r;}catch(e){}return {revision:0,value:v};}
+    function newest(k){var best=memory[k]||null;stores().forEach(function(s){try{var v=s.getItem(k);if(v!==null){var r=decode(v);if(!best||r.revision>best.revision)best=r;}}catch(e){}});if(best){memory[k]=best;revision=Math.max(revision,best.revision);}return best;}
+    return {
+      available:function(){var a=stores(),k='__survey_storage_probe__';for(var i=0;i<a.length;i++){try{a[i].setItem(k,k);var ok=a[i].getItem(k)===k;a[i].removeItem(k);if(ok)return true;}catch(e){}}return false;},
+      getItem:function(k){var r=newest(k);return r?r.value:null;},
+      setItem:function(k,v){newest(k);revision=Math.max(Date.now(),revision+1);var r={__survey_store:1,revision:revision,value:String(v)};memory[k]=r;var raw=JSON.stringify(r);stores().forEach(function(s){try{s.setItem(k,raw);}catch(e){}});},
+      removeItem:function(k){delete memory[k];stores().forEach(function(s){try{s.removeItem(k);}catch(e){}});}
+    };
+  })();
+
   function getProlificPid() {
     var p = getQueryParam('PROLIFIC_PID') || getQueryParam('PROLIFICID') || getQueryParam('participant_id') || getQueryParam('worker_id');
     if (p) return p.trim();
-    var s = localStorage.getItem('anon_worker_id');
+    var s = clientStorage.getItem('anon_worker_id');
     if (!s) {
       s = 'anon-' + Math.random().toString(36).slice(2);
-      localStorage.setItem('anon_worker_id', s);
+      clientStorage.setItem('anon_worker_id', s);
     }
     return s;
   }
 
+  function legacyStorageKey(name) {return 'streetscape_batch5_'+name+'_'+getProlificPid();}
   function storageKey(name) {
-    return 'streetscape_batch5_' + name + '_' + getProlificPid();
+    return legacyStorageKey(name)+'_'+encodeURIComponent(getQueryParam('STUDY_ID')||'local')+'_'+
+      encodeURIComponent(getQueryParam('SESSION_ID')||'local')+'_'+encodeURIComponent(getQueryParam('group_id')||'G1');
+  }
+  function migrateLegacyProgress() {
+    if(clientStorage.getItem(storageKey('request_id')))return;
+    var pending=null;
+    try{pending=JSON.parse(clientStorage.getItem(legacyStorageKey('pending_payload'))||'null');}catch(e){}
+    if(pending&&pending.meta&&(String(pending.meta.studyId||'')!==String(getQueryParam('STUDY_ID')||'') ||
+       String(pending.meta.sessionId||'')!==String(getQueryParam('SESSION_ID')||'') ||
+       String(pending.meta.groupId||'G1')!==String(getQueryParam('group_id')||'G1')))return;
+    // Legacy progress without scope is tentative: the backend must restore its
+    // exact batch before initializeStateForBatch can reuse those answers.
+    ['request_id','assignment_pending','assignment_active','submission_id','submission_pending','progress','demographics_draft','pending_payload'].forEach(function(k){
+      var value=clientStorage.getItem(legacyStorageKey(k));if(value!==null)clientStorage.setItem(storageKey(k),value);
+    });
   }
 
   function getOrCreateAssignmentRequestId() {
     var key = storageKey('request_id');
-    var id = localStorage.getItem(key);
+    var id = clientStorage.getItem(key);
     if (!id) {
       id = 'req-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
-      localStorage.setItem(key, id);
+      clientStorage.setItem(key, id);
     }
     return id;
   }
 
   function getOrCreateSubmissionId() {
     var key = storageKey('submission_id');
-    var id = localStorage.getItem(key);
+    var id = (assignedBatch&&assignedBatch.submission_id)||clientStorage.getItem(key);
     if (!id) {
       id = 'sub-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
-      localStorage.setItem(key, id);
     }
-    localStorage.setItem(storageKey('submission_pending'), '1');
+    clientStorage.setItem(key,id);
+    clientStorage.setItem(storageKey('submission_pending'), '1');
     return id;
   }
 
   function markAssignmentPending() {
-    localStorage.setItem(storageKey('assignment_pending'), '1');
+    clientStorage.setItem(storageKey('assignment_pending'), '1');
   }
 
-  function markAssignmentActive() {
-    localStorage.removeItem(storageKey('assignment_pending'));
-    localStorage.setItem(storageKey('assignment_active'), '1');
+  function markAssignmentActive(requestId) {
+    if(requestId)clientStorage.setItem(storageKey('request_id'),requestId);
+    clientStorage.removeItem(storageKey('assignment_pending'));
+    clientStorage.setItem(storageKey('assignment_active'), '1');
   }
 
   function clearClientState() {
     ['request_id','assignment_pending','assignment_active','submission_id','submission_pending','progress','demographics_draft','pending_payload','submission_diagnostic','submission_post_started'].forEach(function(name) {
-      try { localStorage.removeItem(storageKey(name)); } catch (e) {}
+      try { clientStorage.removeItem(storageKey(name)); } catch (e) {}
     });
   }
 
@@ -512,7 +544,7 @@
 
   function loadSavedProgress() {
     try {
-      var raw = localStorage.getItem(storageKey('progress'));
+      var raw = clientStorage.getItem(storageKey('progress'));
       if (!raw) return null;
       var parsed = JSON.parse(raw);
       return parsed && parsed.state ? parsed : null;
@@ -525,9 +557,10 @@
     if (!assignedBatch) return;
     try {
       state.batch_id = assignedBatch.batch_id;
-      localStorage.setItem(storageKey('progress'), JSON.stringify({
+      clientStorage.setItem(storageKey('progress'), JSON.stringify({
         batch_id: assignedBatch.batch_id,
         request_id: assignedBatch.assignment_request_id || getOrCreateAssignmentRequestId(),
+        scope:{study:getQueryParam('STUDY_ID')||'',session:getQueryParam('SESSION_ID')||'',group:getQueryParam('group_id')||'G1'},
         state: state
       }));
     } catch (e) {
@@ -538,7 +571,7 @@
   // Save participant information even before the server assigns a batch.
   function loadDemographicsDraft() {
     try {
-      var raw = localStorage.getItem(storageKey('demographics_draft'));
+      var raw = clientStorage.getItem(storageKey('demographics_draft'));
       var draft = raw ? JSON.parse(raw) : null;
       return draft && draft.request_id === getOrCreateAssignmentRequestId() ? draft.demographics : null;
     } catch (e) { return null; }
@@ -553,7 +586,7 @@
         nationality: q('#nationality').value,
         education: q('#education').value || 'Not specified'
       };
-      localStorage.setItem(storageKey('demographics_draft'), JSON.stringify({
+      clientStorage.setItem(storageKey('demographics_draft'), JSON.stringify({
         request_id: getOrCreateAssignmentRequestId(), demographics: demographics
       }));
     } catch (e) { console.warn('Could not save participant information:', e); }
@@ -586,7 +619,7 @@
         return { pair_id: String(pair.pair_id), pair_order: index + 1, ratings: {} };
       });
       q('#resume-note').style.display = 'none';
-      try { localStorage.removeItem(storageKey('submission_id')); localStorage.removeItem(storageKey('submission_pending')); } catch (e) {}
+      try { clientStorage.removeItem(storageKey('submission_id')); clientStorage.removeItem(storageKey('submission_pending')); } catch (e) {}
     }
     var draft = loadDemographicsDraft();
     if (draft) state.demographics = draft;
@@ -692,6 +725,7 @@
         var base = Math.max(exponential, Number.isFinite(requested) && requested > 0 ? requested : 0);
         var delay = Math.min(base, 8000) + randomBetween(300, 1800);
         if (url.indexOf('action=assign') >= 0) {
+          diag('assign_retry',{code:reason,attempt:retryCount+1});
           q('#loading-title').textContent = 'Waiting for an available connection';
           q('#loading-error').textContent = 'The server is busy. Retrying automatically in ' + Math.ceil(delay / 1000) + ' seconds. Please keep this page open.';
           q('#loading-error').style.display = 'block';
@@ -735,19 +769,25 @@
 
   function requestAssignment() {
     if (assignmentPoolFull || assignedBatch || assignmentRequestInFlight) return;
+    if(!clientStorage.available()){showLoadingFailure('Your browser cannot save survey progress. Please enable site storage or use another browser before starting.');return;}
     assignmentRequestInFlight = true;
     markAssignmentPending();
+    diag('assign_start');
 
     var workerId = getProlificPid();
     var requestId = getOrCreateAssignmentRequestId();
-    var url = APPS_SCRIPT_URL + '?action=assign&worker_id=' + encodeURIComponent(workerId) + '&request_id=' + encodeURIComponent(requestId) + '&resume=' + (assignmentResumeHint ? '1' : '0') + '&group_id=' + encodeURIComponent(getQueryParam('group_id') || 'G1') + '&study_id=' + encodeURIComponent(getQueryParam('STUDY_ID') || '') + '&session_id=' + encodeURIComponent(getQueryParam('SESSION_ID') || '');
+    var url = APPS_SCRIPT_URL + '?action=assign&worker_id=' + encodeURIComponent(workerId) + '&request_id=' + encodeURIComponent(requestId) + '&resume=' + (assignmentResumeHint ? '1' : '0') + '&frontend_build='+encodeURIComponent(SURVEY_BUILD)+'&group_id=' + encodeURIComponent(getQueryParam('group_id') || 'G1') + '&study_id=' + encodeURIComponent(getQueryParam('STUDY_ID') || '') + '&session_id=' + encodeURIComponent(getQueryParam('SESSION_ID') || '');
 
     jsonp(url, function(data) {
       assignmentRequestInFlight = false;
+      if(surveyDiagnostics){surveyDiagnostics.setIdentity({batch:data&&data.batch_id||'',request:data&&data.assignment_request_id||requestId});}
+      diag('assign_result',Object.assign({},data&&data.diagnostic_server||{},{code:data&&data.code||data&&data.status||'EMPTY_REPLY'}));
       if (data && data.code === 'PREVIOUS_PARTICIPATION') {
         showPreviousParticipation();
         return;
       }
+      if(data&&data.code==='CLIENT_UPDATE_REQUIRED'){showLoadingFailure(data.message);q('#loading-reload').onclick=function(){window.location.reload();};return;}
+      if(data&&data.code==='STUDY_NOT_READY'){assignmentPoolFull=true;showLoadingFailure('This study is being updated. Please go back to Prolific and select Return.');q('#loading-reload').textContent='Back to Prolific';return;}
       if (data && data.code === 'NO_TASKS') {
         showStudyFull();
         return;
@@ -759,7 +799,7 @@
       if (data && data.status === 'ok' && Array.isArray(data.pairs) && data.pairs.length === BATCH_SIZE) {
         assignedBatch = data;
         document.body.dataset.batchId = data.batch_id || '';
-        markAssignmentActive();
+        markAssignmentActive(data.assignment_request_id);
         initializeStateForBatch(data);
         pairAssets = new Array(BATCH_SIZE);
         pairLoadPromises = new Array(BATCH_SIZE);
@@ -826,7 +866,10 @@
     });
   }
 
+  var loadedStreetImages=Object.create(null),loadingStreetImages=Object.create(null);
   function loadDriveImage(fileId, urgent, startIndex) {
+    if(loadedStreetImages[fileId])return Promise.resolve(loadedStreetImages[fileId]);
+    if(loadingStreetImages[fileId])return loadingStreetImages[fileId];
     var candidates = getDriveImageCandidates(fileId);
     startIndex = Math.max(0, parseInt(startIndex || '0', 10));
     function retryDelay(index) {
@@ -842,7 +885,10 @@
         return { fileId: fileId, url: result.url, retryIndex: index, probe: result.probe };
       }).catch(function() { return attempt(index + 1); });
     }
-    return attempt(startIndex);
+    loadingStreetImages[fileId]=attempt(startIndex).then(function(result){
+      loadedStreetImages[fileId]=result;delete loadingStreetImages[fileId];return result;
+    }).catch(function(error){delete loadingStreetImages[fileId];throw error;});
+    return loadingStreetImages[fileId];
   }
 
   function ensurePairLoaded(index, urgent) {
@@ -1264,14 +1310,18 @@
       return;
     }
 
-    showLoading('Restoring street images for review');
+    // Answers and QC are already complete. Restoring optional review previews
+    // must not block the final submission or send participants back to loading.
+    renderReviewContent();
     ensureAllPairsForReview().then(function() {
-      hideLoading();
-      renderReviewContent();
-    }).catch(function(err) {
-      console.warn('Review image restoration failed:', err);
-      showLoadingFailure('Some review images could not be restored. Please retry or refresh once; your saved answers and the same five-pair batch will be kept.');
-    });
+      if(!q('#summary-container'))return;
+      requestAnimationFrame(function(){
+        for(var i=0;i<BATCH_SIZE;i++)if(pairAssets[i]){
+          drawReviewThumbnail(pairAssets[i].left.probe,q('#review-A-'+i));
+          drawReviewThumbnail(pairAssets[i].right.probe,q('#review-B-'+i));
+        }
+      });
+    }).catch(function(err){console.warn('Review preview unavailable:',err);});
   }
 
   function escapeHtml(value) {
@@ -1289,6 +1339,8 @@
       showDialog('Action Required: Missing Information', 'Please fill in the following fields:\n\n• ' + missing.join('\n• '));
       return false;
     }
+    var age=Number(q('#age').value);
+    if(!Number.isInteger(age)||age<18||age>120){showDialog('Please check your age','Please enter your age as a whole number between 18 and 120.');return false;}
     state.demographics = {
       id: q('#user-id').value,
       age: q('#age').value,
@@ -1321,6 +1373,7 @@
       return;
     }
     saveProgress();
+    diag('submit_start');
     var btn = q('#finish');
     btn.disabled = true;
     var overlay = q('#submit-overlay');
@@ -1337,11 +1390,12 @@
       quality_check: state.quality_check,
       meta: {
         timestamp: new Date().toISOString(),
+        frontendBuild:SURVEY_BUILD,
         submissionId: getOrCreateSubmissionId(),
         assignmentRequestId: assignedBatch.assignment_request_id || getOrCreateAssignmentRequestId(),
         batchId: assignedBatch.batch_id,
         batchSize: BATCH_SIZE,
-        storageProtocol: 'v5-durable-json-2',
+        storageProtocol: 'v5-fixed-json-3',
         groupId: assignedBatch.group_id || getQueryParam('group_id') || 'G1',
         studyId: getQueryParam('STUDY_ID') || '',
         sessionId: getQueryParam('SESSION_ID') || ''
@@ -1350,7 +1404,7 @@
 
     // Freeze the original payload so retries reuse the same answers and identity.
     try {
-      var pending = JSON.parse(localStorage.getItem(storageKey('pending_payload')) || 'null');
+      var pending = JSON.parse(clientStorage.getItem(storageKey('pending_payload')) || 'null');
       if (pending && pending.meta && pending.demographics &&
           pending.meta.batchId === payload.meta.batchId &&
           pending.meta.assignmentRequestId === payload.meta.assignmentRequestId &&
@@ -1359,52 +1413,114 @@
           JSON.stringify(pending.pair_responses) === JSON.stringify(payload.pair_responses) &&
           JSON.stringify(pending.quality_check) === JSON.stringify(payload.quality_check) &&
           JSON.stringify(pending.demographics) === JSON.stringify(payload.demographics)) payload = pending;
-      payload.meta.storageProtocol = 'v5-durable-json-2';
-      payload.meta.completionTransport = 'server-result-page-1';
-      localStorage.setItem(storageKey('pending_payload'), JSON.stringify(payload));
+      payload.meta.storageProtocol = 'v5-fixed-json-3';
+      payload.meta.completionTransport = 'retained-auto-complete-1';
+      payload.meta.frontendBuild = SURVEY_BUILD;
+      clientStorage.setItem(storageKey('pending_payload'), JSON.stringify(payload));
     } catch (e) { console.warn('Could not save pending submission:', e); }
 
     submitViaResultPage(payload);
   }
 
+// Bounded, separate technical events. No answers, completion codes or URLs.
+function createSurveyDiagnostics(config) {
+  var events=[],seq=0,dropped=0,timer=null,lastSent='',lastFlush=0,stage='entry';
+  var run=Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10),started=performance.now();
+  var identity=Object.assign({},config.identity),key=config.key,lastEvent='',lastAt=0;
+  var fields=['posts','directPosts','statusRequests','rpcReports','attempt','duration_ms','server_elapsed_ms','line','column'];
+  function text(v){return String(v==null?'':v).replace(/[^A-Za-z0-9_.:-]/g,'').slice(0,160);}
+  function persist(){try{if(config.store)config.store.setItem(key,JSON.stringify({events:events,dropped:dropped}));}catch(ignore){}}
+  try{var old=JSON.parse(config.store&&config.store.getItem(key)||'null');if(old&&Array.isArray(old.events)){events=old.events.slice(-40);dropped=Number(old.dropped)||0;}}catch(ignore){}
+  function event(name,data){try{
+    data=data||{};var stamp=Date.now(),signature=name+'|'+(data.code||'');
+    // Collapse a burst of identical reports; counters on later events remain exact.
+    if(signature===lastEvent&&stamp-lastAt<5000)return;
+    lastEvent=signature;lastAt=stamp;
+    var row={id:run+':'+(++seq),event:text(name),client_at:stamp,elapsed_ms:Math.round(performance.now()-started),stage:stage};
+    if(data.code)row.code=text(data.code);
+    if(data.server_at)row.server_at=text(data.server_at);
+    if(data.server_build)row.server_build=text(data.server_build);
+    fields.forEach(function(k){if(typeof data[k]==='number'&&isFinite(data[k]))row[k]=Math.max(0,Math.round(data[k]));});
+    events.push(row);if(events.length>40){events.shift();dropped++;}persist();
+  }catch(ignore){}}
+  function flush(urgent){try{
+    if(!events.length)return;
+    var tail=events[events.length-1].id;
+    if(tail===lastSent || (!urgent&&Date.now()-lastFlush<60000))return;
+    // All retained events are sent again after a page reload, preserving stable
+    // event IDs. Analysis deduplicates these IDs; opaque HTTP is not an ACK.
+    var envelope={schema:'survey-diagnostics-1',frontend_build:config.build,identity:identity,events:events,dropped:dropped};
+    var body=new URLSearchParams({transport:'diagnostic_batch',diagnostics:JSON.stringify(envelope)}),queued=false;
+    if(navigator.sendBeacon)queued=navigator.sendBeacon(config.endpoint,body);
+    if(!queued&&window.fetch){window.fetch(config.endpoint,{method:'POST',mode:'no-cors',credentials:'omit',keepalive:true,body:body}).catch(function(){});queued=true;}
+    if(queued){lastSent=tail;lastFlush=Date.now();}
+  }catch(ignore){}}
+  var api={event:event,flush:flush,setIdentity:function(p){try{Object.keys(identity).forEach(function(k){if(p[k]!=null)identity[k]=text(p[k]);});}catch(ignore){}},
+    setStage:function(value){stage=text(value);},stop:function(){clearInterval(timer);}};
+  window.addEventListener('pagehide',function(e){event('page_hidden',{code:e.persisted?'BFCACHE':'PAGEHIDE'});flush(true);});
+  document.addEventListener('visibilitychange',function(){if(document.hidden){event('visibility_hidden');flush(false);}});
+  window.addEventListener('offline',function(){event('network_offline');});
+  window.addEventListener('online',function(){event('network_online');flush(false);});
+  window.addEventListener('pageshow',function(e){if(e.persisted){event('bfcache_restored');flush(false);}});
+  // Never send raw exception text: it can contain URLs, IDs or answer content.
+  window.addEventListener('error',function(e){if(e.error)event('script_error',{code:'UNCAUGHT_SCRIPT_ERROR',line:e.lineno,column:e.colno});});
+  window.addEventListener('unhandledrejection',function(){event('script_error',{code:'UNHANDLED_REJECTION'});});
+  timer=setInterval(function(){if(stage==='saving')event('save_waiting');flush(false);},60000+Math.random()*15000);
+  event('page_open');return api;
+}
+
+var surveyDiagnostics=null;
+function diag(name,data){try{if(surveyDiagnostics)surveyDiagnostics.event(name,data);}catch(ignore){}}
 // Shared verbatim by the formal questionnaire and its internal test worker.
 function runSubmissionController(config) {
   var payload=config.payload,m=payload.meta,worker=payload.demographics.id;
-  var stopped=false,statusBusy=false,frameReady=false,pollTimer=null,requestTimer=null;
-  var activeScript=null,frame=null,lastPost=0,lastProgress=Date.now(),failures=0,callbackName='';
+  function clockNow(){return window.performance&&typeof window.performance.now==='function'?window.performance.now():Date.now();}
+  var stopped=false,statusBusy=false,frameReady=false,pollTimer=null,requestTimer=null,watchdog=null;
+  var activeScript=null,frame=null,lastPost=0,lastProgress=clockNow(),failures=0,callbackName='',writerUntil=0,verifiedPending=null,directReceiptPending=false,directInFlight=false;
   var bytes=new Uint32Array(4);window.crypto.getRandomValues(bytes);
   var nonce=Array.prototype.map.call(bytes,function(v){return ('00000000'+v.toString(16)).slice(-8);}).join('-');
-  var stats={startedAt:Date.now(),posts:0,statusRequests:0,rpcReports:0,firstPageReadyAt:null,jsonVerifiedAt:null,completedAt:null,lastCode:''};
+  var stats={startedAt:Date.now(),posts:0,directPosts:0,statusRequests:0,rpcReports:0,firstPageReadyAt:null,jsonVerifiedAt:null,completedAt:null,lastCode:''};
   var endpointOrigin=new URL(config.endpoint,window.location.href).origin;
   var parentOrigin=window.location.protocol==='file:'?'null':window.location.origin;
+  function diagnostic(name,data){try{if(config.diagnostics)config.diagnostics.event(name,data);}catch(ignore){}}
   function emit(stage,result) {
     stats.lastCode=(result&&result.code)||stage;
-    if(config.onState)config.onState(stage,result||{},Object.assign({},stats));
+    diagnostic(stage==='saving'?'save_channel':'save_result',Object.assign({},stats,(result&&result.diagnostic_server)||{},{code:stats.lastCode}));
+    try{if(config.onState)config.onState(stage,result||{},Object.assign({},stats));}catch(uiError){stats.lastUIError=String(uiError.message||uiError);}
   }
   function cleanupRequest() {
     clearTimeout(requestTimer);if(activeScript)activeScript.remove();activeScript=null;
     if(callbackName)window[callbackName]=function(){};statusBusy=false;
   }
   function stop() {
-    if(stopped)return;stopped=true;clearTimeout(pollTimer);cleanupRequest();
-    window.removeEventListener('message',message);if(frame)frame.remove();
+    if(stopped)return;stopped=true;clearTimeout(pollTimer);clearInterval(watchdog);cleanupRequest();
+    window.removeEventListener('message',message);window.removeEventListener('online',reconnect);window.removeEventListener('pageshow',reconnect);window.document.removeEventListener('visibilitychange',visible);if(frame)frame.remove();
   }
   function verified(r) {
     return r&&r.status==='ok'&&r.json_saved===true&&r.receipt_verified===true&&
-      r.batch_id===m.batchId&&r.submissionId===m.submissionId;
+      r.batch_id===m.batchId&&r.submissionId===m.submissionId&&!!verifiedCompletionURL(r,{worker:worker,request:m.assignmentRequestId,batch:m.batchId,submission:m.submissionId,group:m.groupId||'G1',study:m.studyId||'',session:m.sessionId||''},config.endpoint);
   }
   function accept(r) {
     if(stopped)return;
     if(verified(r)) {
-      stats.jsonVerifiedAt=Date.now();stats.completedAt=stats.jsonVerifiedAt;
-      var resultStats=Object.assign({},stats);stop();
-      if(config.onComplete)config.onComplete(r,resultStats);return;
+      diagnostic('json_verified_client',Object.assign({},stats,r.diagnostic_server||{}));
+      verifiedPending=r;cleanupRequest();clearTimeout(pollTimer);
+      stats.jsonVerifiedAt=stats.jsonVerifiedAt||Date.now();stats.completedAt=Date.now();
+      try{
+        if(config.onComplete&&config.onComplete(r,Object.assign({},stats))===false)throw new Error('Completion handler not ready');
+        stop();
+      }catch(completionError){
+        emit('confirming',{code:'COMPLETION_RECONNECTING',retryable:true});
+        clearTimeout(pollTimer);pollTimer=setTimeout(function(){accept(r);},1500);
+      }
+      return;
     }
     if(r&&(r.status==='qc_fail'||(r.status==='error'&&!r.retryable))) {
+      diagnostic('submit_terminal',Object.assign({},stats,{code:r.code||r.status}));
       var errorStats=Object.assign({},stats);stop();
       if(config.onTerminal)config.onTerminal(r,errorStats);return;
     }
-    emit('confirming',r);
+    writerUntil=clockNow()+Math.min(420000,Math.max(0,Number(r&&r.writer_remaining_ms)||0));emit('confirming',r);
   }
   function permittedOrigin(origin) {
     return origin===endpointOrigin||/^https:\/\/([a-z0-9-]+\.)?googleusercontent\.com$/.test(origin);
@@ -1413,13 +1529,13 @@ function runSubmissionController(config) {
     var d=event.data;
     if(stopped||!d||d.type!=='survey-save'||d.nonce!==nonce||
        d.batch_id!==m.batchId||d.submission_id!==m.submissionId||!permittedOrigin(event.origin))return;
-    frameReady=true;lastProgress=Date.now();
-    if(!stats.firstPageReadyAt)stats.firstPageReadyAt=lastProgress;
+    frameReady=true;if(d.stage!=='rpc-start')lastProgress=clockNow();
+    if(!stats.firstPageReadyAt)stats.firstPageReadyAt=Date.now();
     if(d.stage==='result'){stats.rpcReports++;accept(d.result);}else emit('connected',d.result);
   }
   function post() {
     if(stopped)return;
-    lastPost=Date.now();lastProgress=lastPost;frameReady=false;stats.posts++;
+    lastPost=clockNow();lastProgress=lastPost;frameReady=false;stats.posts++;
     if(frame)frame.remove();
     frame=document.createElement('iframe');frame.name='save_'+nonce+'_'+stats.posts;
     frame.title='Saving survey response';frame.style.display='none';
@@ -1433,23 +1549,43 @@ function runSubmissionController(config) {
     try{HTMLFormElement.prototype.submit.call(form);}catch(error){emit('reconnecting',{code:'POST_RECONNECTING'});}
     form.remove();emit('saving');
   }
+  function resend() {
+    // If HTML Service's embedded RPC cannot start/return, the original frozen
+    // payload can still reach doPost without reading a cross-origin response.
+    // Only the independent verified receipt can unlock completion.
+    if(typeof window.fetch!=='function'||(!frameReady&&stats.posts<2)){post();return;}
+    if(directInFlight)return;
+    directInFlight=true;directReceiptPending=true;lastPost=clockNow();lastProgress=lastPost;
+    stats.posts++;stats.directPosts++;
+    var body=new URLSearchParams({transport:'durable_post',payload:JSON.stringify(payload)});
+    var aborter=typeof window.AbortController==='function'?new window.AbortController():null;
+    var directTimer=setTimeout(function(){if(aborter)aborter.abort();directInFlight=false;},30000);
+    window.fetch(config.endpoint,{method:'POST',mode:'no-cors',credentials:'omit',body:body,signal:aborter?aborter.signal:undefined})
+      .catch(function(){emit('reconnecting',{code:'POST_RECONNECTING'});})
+      .finally(function(){clearTimeout(directTimer);directInFlight=false;});
+    emit('saving');
+  }
   function schedule(delay) {
     if(!stopped)pollTimer=setTimeout(poll,delay);
   }
   function poll() {
-    if(stopped||statusBusy)return;
+    if(stopped||statusBusy||verifiedPending)return;
+    // The live iframe is the normal request channel. A separate status request
+    // is only a recovery probe, never a second continuous polling loop.
+    var quiet=clockNow()-lastProgress;
+    if(!directReceiptPending&&frameReady&&quiet<30000){schedule(30000-quiet+Math.random()*3000);return;}
     statusBusy=true;stats.statusRequests++;var settled=false;
     callbackName='receipt_'+nonce.replace(/-/g,'_')+'_'+stats.statusRequests;
     function finish(r) {
       if(settled||stopped)return;settled=true;cleanupRequest();
       if(r&&r.code!=='STATUS_CONNECTION_PENDING')failures=0;else failures++;
-      accept(r);if(stopped)return;
+      accept(r);if(stopped||verifiedPending)return;
       // A failed page load is cheap to retry: embedded_result only renders HTML.
       // JSON creation starts inside the live iframe, after its ready handshake.
       var canResume=r&&(r.next_action==='post'||r.next_action==='resume');
-      var age=Date.now()-lastPost;
-      if(canResume&&((!frameReady&&age>=12000)||(frameReady&&Date.now()-lastProgress>=7*60000)))post();
-      schedule(Math.min(30000,3500*Math.pow(1.7,Math.min(failures,5)))+Math.random()*1500);
+      var age=clockNow()-lastPost;
+      if(canResume&&age>=15000)resend();
+      schedule(Math.min(8000,3000*Math.pow(1.5,Math.min(failures,3)))+Math.random()*1000);
     }
     window[callbackName]=finish;
     activeScript=document.createElement('script');
@@ -1457,17 +1593,31 @@ function runSubmissionController(config) {
     var params={action:'submission_status',worker_id:worker,batch_id:m.batchId,request_id:m.assignmentRequestId,
       submission_id:m.submissionId,group_id:m.groupId||'G1',study_id:m.studyId||'',session_id:m.sessionId||'',accept_verified_receipt:'1',callback:callbackName};
     activeScript.src=config.endpoint+'?'+Object.keys(params).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);}).join('&');
-    requestTimer=setTimeout(function(){finish({status:'busy',code:'STATUS_CONNECTION_PENDING',retryable:true});},30000);
+    requestTimer=setTimeout(function(){finish({status:'busy',code:'STATUS_CONNECTION_PENDING',retryable:true});},12000);
     document.body.appendChild(activeScript);
   }
-  window.addEventListener('message',message);post();schedule(4000+Math.random()*1000);
+  function reconnect(){if(!stopped&&!statusBusy){clearTimeout(pollTimer);poll();}}
+  function visible(){if(!window.document.hidden)reconnect();}
+  // Status checks must not be the only way to restart a dropped POST. Both
+  // channels can fail together. Fixed-ID storage makes the original payload
+  // safe to resend; the server still arbitrates each writer reservation.
+  watchdog=setInterval(function(){
+    if(stopped||verifiedPending||statusBusy||(window.navigator&&window.navigator.onLine===false))return;
+    var now=clockNow(),quiet=now-lastProgress,limit=frameReady?45000:20000;
+    if(now-lastPost>=limit&&quiet>=limit&&now>=writerUntil)post();
+  },2000);
+  window.addEventListener('online',reconnect);window.addEventListener('pageshow',reconnect);
+  window.document.addEventListener('visibilitychange',visible);
+  window.addEventListener('message',message);post();schedule(20000+Math.random()*3000);
   return {stop:stop,metrics:function(){return Object.assign({},stats);}};
 }
 
-  var activeSubmissionController=null;
+
+var activeSubmissionController=null;
   function submitViaResultPage(payload) {
     if(activeSubmissionController)return;
-    activeSubmissionController=runSubmissionController({endpoint:APPS_SCRIPT_URL,payload:payload,
+    if(surveyDiagnostics){surveyDiagnostics.setIdentity({batch:payload.meta.batchId,request:payload.meta.assignmentRequestId,submission:payload.meta.submissionId});surveyDiagnostics.setStage('saving');}
+    activeSubmissionController=runSubmissionController({endpoint:APPS_SCRIPT_URL,payload:payload,diagnostics:surveyDiagnostics,
       onState:function(stage,result){
         q('#submit-overlay').classList.add('show');
         q('#submit-overlay-message').textContent='Saving your answers';
@@ -1475,10 +1625,11 @@ function runSubmissionController(config) {
       },
       onComplete:function(receipt,metrics){
         activeSubmissionController=null;
-        q('#submit-overlay').classList.remove('show');
-        showRecoveredSubmissionComplete(receipt);
+        try{q('#submit-overlay').classList.remove('show');}catch(uiError){}
+        return showRecoveredSubmissionComplete(receipt,{worker:payload.demographics.id,request:payload.meta.assignmentRequestId,batch:payload.meta.batchId,submission:payload.meta.submissionId,group:payload.meta.groupId||'G1',study:payload.meta.studyId||'',session:payload.meta.sessionId||''});
       },
       onTerminal:function(result){
+        if(surveyDiagnostics)surveyDiagnostics.setStage('terminal');
         activeSubmissionController=null;
         q('#submit-overlay-message').textContent='Please check your submission';
         q('#submit-overlay-status').textContent=(result.message||result.error||result.code)+' Your answers remain in this browser.';
@@ -1495,36 +1646,52 @@ function runSubmissionController(config) {
       '<a href="https://app.prolific.com/studies">Go to Prolific</a></div>';
   }
 
-  function showRecoveredSubmissionComplete(receipt) {
-    if(!receipt || (receipt.status!=='ok'&&receipt.status!=='finished') || receipt.json_saved!==true || receipt.receipt_verified!==true)return;
-    var internal=/^(anon-|MANUAL_TEST_|STRESS_TAB_|LOCAL_TAB_)/.test(getProlificPid());
-    if(!internal) {
-      try {
-        var completion=new URL(receipt.completion_url);
-        if(completion.origin!=='https://app.prolific.com'||completion.pathname!=='/submissions/complete'||!completion.searchParams.get('cc'))return;
-      } catch(invalidCompletion){return;}
-    }
-    clearClientState();
-    hideLoading();
+// Shared by the formal survey and the internal end-to-end handoff test.
+function verifiedCompletionURL(receipt,identity,endpoint) {
+  if(!receipt||(receipt.status!=='ok'&&receipt.status!=='finished')||receipt.json_saved!==true||receipt.receipt_verified!==true)return null;
+  if(receipt.worker_id!==identity.worker||receipt.request_id!==identity.request||receipt.batch_id!==identity.batch||receipt.submissionId!==identity.submission)return null;
+  if(receipt.study_id!==identity.study||receipt.session_id!==identity.session||receipt.group_id!==identity.group)return null;
+  try {
+    var url=new URL(receipt.completion_url),internal=/^(anon-|MANUAL_TEST_|STRESS_TAB_|LOCAL_TAB_)/.test(identity.worker);
     if(internal) {
-      q('#main-container').innerHTML='<div style="text-align:center;padding:60px 20px;"><h2>Internal test saved</h2><p>Your five-pair response has been saved and verified. No Prolific submission is needed.</p></div>';
-      return;
-    }
-    q('#main-container').innerHTML = '<div style="text-align:center;padding:60px 20px;max-width:760px;margin:0 auto;">' +
-      '<h2 style="color:#15803d;font-size:28px;">Answers saved</h2>' +
-      '<p style="font-size:17px;color:#475569;line-height:1.6;">Your five-pair response has been saved and verified. Please complete your submission on Prolific.</p>' +
-      '<a id="verified-completion" style="display:inline-block;margin-top:18px;background:#2563eb;color:#fff;padding:14px 26px;text-decoration:none;border-radius:8px;font-weight:700;">Complete on Prolific</a></div>';
-    q('#verified-completion').href=completion.href;
+      if(url.origin!==new URL(endpoint).origin||url.searchParams.get('action')!=='internal_complete'||url.searchParams.get('worker_id')!==identity.worker||url.searchParams.get('submission_id')!==identity.submission)return null;
+    } else if(url.origin!=='https://app.prolific.com'||url.pathname!=='/submissions/complete'||!url.searchParams.get('cc'))return null;
+    return url.href;
+  } catch(invalid){return null;}
+}
+function handoffVerifiedCompletion(receipt,identity,endpoint,onReady,onEvent) {
+  var url=verifiedCompletionURL(receipt,identity,endpoint);if(!url)return false;
+  // Never restart a navigation which may still be loading. The visible Continue
+  // link is the fallback if the browser blocks the automatic navigation.
+  try{if(onReady)onReady(url);}catch(uiError){}
+  try{if(onEvent)onEvent('handoff_requested');}catch(ignore){}
+  try{window.location.replace(url);}catch(navigationBlocked){try{if(onEvent)onEvent('handoff_blocked');}catch(ignore){}}
+  return true;
+}
+
+  function showRecoveredSubmissionComplete(receipt,expected) {
+    var identity=expected||{worker:getProlificPid(),request:receipt&&receipt.request_id,batch:receipt&&receipt.batch_id,submission:receipt&&receipt.submissionId,
+      group:getQueryParam('group_id')||'G1',study:getQueryParam('STUDY_ID')||'',session:getQueryParam('SESSION_ID')||''};
+    if(!verifiedCompletionURL(receipt,identity,APPS_SCRIPT_URL))return false;
+    return handoffVerifiedCompletion(receipt,identity,APPS_SCRIPT_URL,function(url){
+      hideLoading();
+      q('#main-container').innerHTML='<div style="text-align:center;padding:60px 20px;max-width:760px;margin:auto;"><h2>Answers saved</h2><p>Your answers have been saved and verified. Returning you to '+(/^(anon-|MANUAL_TEST_|STRESS_TAB_|LOCAL_TAB_)/.test(identity.worker)?'the internal test confirmation':'Prolific')+'...</p><p>If this page stays open, select Continue below.</p><a id="verified-completion" style="display:inline-block;padding:14px 26px;background:#2563eb;color:white;border-radius:8px;">Continue</a></div>';
+      q('#verified-completion').href=url;
+      q('#verified-completion').addEventListener('click',function(){diag('manual_continue');setTimeout(function(){if(surveyDiagnostics)surveyDiagnostics.flush(true);},1500);});
+    },function(event){
+      if(surveyDiagnostics){surveyDiagnostics.setIdentity({batch:identity.batch,request:identity.request,submission:identity.submission});surveyDiagnostics.setStage('handoff');}
+      diag(event);setTimeout(function(){if(surveyDiagnostics)surveyDiagnostics.flush(true);},1500);
+    });
   }
 
   function resumePendingSubmission() {
     var pending=null;
     try {
-      pending=JSON.parse(localStorage.getItem(storageKey('pending_payload'))||'null');
-      if(!pending && localStorage.getItem(storageKey('submission_pending'))==='1') {
-        var saved=loadSavedProgress(),id=localStorage.getItem(storageKey('submission_id'));
-        if(saved&&saved.state&&id)pending={demographics:saved.state.demographics,pair_responses:saved.state.pair_responses,
-          quality_check:saved.state.quality_check,meta:{batchId:saved.batch_id,assignmentRequestId:saved.request_id,submissionId:id}};
+      pending=JSON.parse(clientStorage.getItem(storageKey('pending_payload'))||'null');
+      if(!pending && clientStorage.getItem(storageKey('submission_pending'))==='1') {
+        var saved=loadSavedProgress(),id=clientStorage.getItem(storageKey('submission_id'));
+        if(saved&&saved.state&&id&&saved.scope&&saved.scope.study===(getQueryParam('STUDY_ID')||'')&&saved.scope.session===(getQueryParam('SESSION_ID')||'')&&saved.scope.group===(getQueryParam('group_id')||'G1'))pending={demographics:saved.state.demographics,pair_responses:saved.state.pair_responses,
+          quality_check:saved.state.quality_check,meta:{batchId:saved.batch_id,assignmentRequestId:saved.request_id,submissionId:id,studyId:saved.scope.study,sessionId:saved.scope.session,groupId:saved.scope.group}};
       }
     } catch(e){return false;}
     if(pending && pending.meta && (String(pending.meta.studyId||'')!==String(getQueryParam('STUDY_ID')||'') ||
@@ -1534,27 +1701,38 @@ function runSubmissionController(config) {
        pending.meta.assignmentRequestId!==getOrCreateAssignmentRequestId()||!pending.meta.batchId||!pending.meta.submissionId||
        !Array.isArray(pending.pair_responses)||pending.pair_responses.length!==BATCH_SIZE||
        !pending.quality_check||!pending.quality_check.passed)return false;
+    diag('submit_resume');
     state.demographics=pending.demographics;state.pair_responses=pending.pair_responses;state.quality_check=pending.quality_check;
     if(!allPairRatingsComplete())return false;
-    assignedBatch={batch_id:pending.meta.batchId,assignment_request_id:pending.meta.assignmentRequestId,
+    assignedBatch={batch_id:pending.meta.batchId,assignment_request_id:pending.meta.assignmentRequestId,submission_id:pending.meta.submissionId,
       group_id:pending.meta.groupId||getQueryParam('group_id')||'G1',pairs:pending.pair_responses.map(function(p){return {pair_id:p.pair_id,pair_order:p.pair_order};})};
     state.navigation={stage:'review',pairIndex:BATCH_SIZE-1,attrIndex:ATTRIBUTES.length-1};
     submitData();return true;
   }
 
   q('#btn-agree').addEventListener('click', function() {
-    showPage('1');
-    if (!resumePendingSubmission()) {
-      showLoading('Checking study availability');
-      requestAssignment();
-    }
+    if(resumePendingSubmission())return;
+    if(!clientStorage.available()){showLoadingFailure('Your browser cannot save survey progress. Please enable site storage or use another browser before starting.');return;}
+    showPage('1');showLoading('Checking study availability');
+    jsonp(APPS_SCRIPT_URL+'?action=internal_test_info&study_id='+encodeURIComponent(getQueryParam('STUDY_ID')||'')+'&group_id='+encodeURIComponent(getQueryParam('group_id')||'G1'),function(info){
+      if(!info||info.backend_build!==SURVEY_BUILD||info.handoff_required!==true||info.coverage_ready!==true||info.storage_ready!==true){
+        assignmentPoolFull=true;q('#loading-spinner').style.display='none';q('#loading-title').textContent='Study temporarily unavailable';
+        q('#loading-error').textContent='This study is being updated. Please go back to Prolific and select Return. You do not need to wait here.';
+        q('#loading-error').style.color='#475569';q('#loading-error').style.display='block';q('#loading-reload').textContent='Back to Prolific';q('#loading-reload').style.display='inline-block';return;
+      }
+      hideLoading();showLoading('Checking study availability');requestAssignment();
+    });
   });
 
   q('#btn-disagree').addEventListener('click', function() {
     var saved = loadSavedProgress();
     var batchId = assignedBatch ? assignedBatch.batch_id : (saved ? saved.batch_id : '');
-    var url = APPS_SCRIPT_URL + '?action=abort&worker_id=' + encodeURIComponent(getProlificPid()) + (batchId ? '&batch_id=' + encodeURIComponent(batchId) : '');
-    jsonp(url, function() {});
+    var request=assignedBatch?assignedBatch.assignment_request_id:(saved?saved.request_id:'');
+    if(batchId&&request){
+      var params={action:'abort',worker_id:getProlificPid(),batch_id:batchId,request_id:request,
+        group_id:getQueryParam('group_id')||'G1',study_id:getQueryParam('STUDY_ID')||'',session_id:getQueryParam('SESSION_ID')||''};
+      jsonp(APPS_SCRIPT_URL+'?'+new URLSearchParams(params),function(){},0,{passBusy:true});
+    }
     clearClientState();
     q('#main-container').innerHTML = '<div style="text-align:center;padding:60px 20px;"><h2 style="color:#ef4444;font-size:28px;">Session Terminated</h2><p style="font-size:18px;color:#475569;">You have chosen not to participate. You may now close this window or return the submission on Prolific.</p></div>';
   });
@@ -1604,7 +1782,9 @@ function runSubmissionController(config) {
   });
 
   window.addEventListener('DOMContentLoaded', function() {
-    assignmentResumeHint = localStorage.getItem(storageKey('assignment_pending')) === '1' || localStorage.getItem(storageKey('assignment_active')) === '1';
+    migrateLegacyProgress();
+    try{surveyDiagnostics=createSurveyDiagnostics({endpoint:APPS_SCRIPT_URL,build:SURVEY_BUILD,store:clientStorage,key:storageKey('technical_diagnostics'),identity:{worker:getProlificPid(),request:getOrCreateAssignmentRequestId(),batch:'',submission:'',study:getQueryParam('STUDY_ID')||'',session:getQueryParam('SESSION_ID')||'',group:getQueryParam('group_id')||'G1'}});}catch(ignore){}
+    assignmentResumeHint = clientStorage.getItem(storageKey('assignment_pending')) === '1' || clientStorage.getItem(storageKey('assignment_active')) === '1';
     savedBeforeAssignment = loadSavedProgress();
     if (savedBeforeAssignment && savedBeforeAssignment.state) {
       state = savedBeforeAssignment.state;
@@ -1618,6 +1798,7 @@ function runSubmissionController(config) {
       q('#user-id').readOnly = true;
       q('#user-id').style.background = '#e2e8f0';
     }
+    resumePendingSubmission();
   });
 })();
 </script>
