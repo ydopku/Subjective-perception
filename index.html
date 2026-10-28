@@ -229,9 +229,10 @@
 
 <div id="loading-overlay" style="position:fixed;inset:0;background:#fff;z-index:10000;display:none;flex-direction:column;align-items:center;justify-content:center;">
   <div id="loading-title" style="font-size:1.5rem;font-weight:700;color:#1e293b;margin-bottom:10px;">Loading Survey</div>
+  <p id="loading-guidance" role="status" style="max-width:650px;padding:16px 24px;text-align:center;background:#eff6ff;border-left:4px solid #2563eb;line-height:1.6;"><strong>Please keep this page open.</strong><br>We retry automatically. Do not refresh or open another survey tab while waiting.</p>
   <div id="loading-spinner" style="width:40px;height:40px;border:5px solid rgba(37,99,235,0.2);border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite;"></div>
   <div id="loading-error" style="display:none;margin-top:20px;color:#ef4444;font-weight:600;max-width:760px;text-align:center;padding:0 24px;"></div>
-  <button id="loading-reload" type="button" style="display:none;margin-top:18px;padding:12px 22px;">Refresh survey</button>
+  <button id="loading-reload" type="button" style="display:none;margin-top:18px;padding:12px 22px;">Retry</button>
 </div>
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
@@ -252,7 +253,13 @@
     </div>
     <p style="font-weight:600;color:#0f172a;text-align:center;">By clicking "I Agree" below, you confirm that you have read and understood the information provided and consent to participate in this study.</p>
     <div style="margin:18px auto 0;max-width:900px;padding:14px 16px;border-radius:10px;background:#fffbeb;border:1px solid #fde68a;color:#78350f;font-size:14px;line-height:1.55;">
-      <strong>Technical note:</strong> The main street images are delivered from Google Drive. If the survey becomes stuck on “Loading Survey” or an image does not appear after several seconds, please refresh this page once. After refreshing, click “I Agree” again. Your assigned five image pairs and locally saved progress will be restored automatically.
+      <strong>Technical guidance — when to refresh:</strong>
+      <ul style="text-align:left;line-height:1.6;">
+        <li><strong>While a task is being assigned or your answers are being submitted: keep this page open. Do not refresh or open another survey tab.</strong> The survey retries automatically. During submission, please avoid selecting Return on Prolific; this may interrupt completion.</li>
+        <li><strong>If an image fails to load before submission:</strong> use the on-screen Retry button first. If the image still does not load, refresh this same tab once. If asked, click I Agree to restore your saved progress. Use the same browser and do not clear its site data.</li>
+        <li><strong>If you accidentally close or refresh during submission:</strong> reopen the same study link in the same browser. The survey will try to resume the pending submission; you do not need to answer again.</li>
+        <li><strong>After your answers are confirmed saved:</strong> allow the automatic return to Prolific, or use the Continue to Prolific button if it is shown.</li>
+      </ul>
     </div>
     <div class="buttons" style="justify-content:space-between;">
       <button class="btn-decline" id="btn-disagree" type="button">I Disagree (Exit Survey)</button>
@@ -378,8 +385,8 @@
       <div class="title" style="font-weight:700;font-size:18px;margin-bottom:8px;">Submitting…</div>
       <div class="spinner" style="margin-left:12px;width:20px;height:20px;border:3px solid rgba(37,99,235,0.2);border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite;"></div>
     </div>
-    <div class="message" id="submit-overlay-message" style="margin-bottom:16px;">Please wait...</div>
-    <div class="status-small" id="submit-overlay-status" style="font-size:13px;color:#64748b;"></div>
+    <div class="message" id="submit-overlay-message" role="status" aria-live="polite" style="margin-bottom:16px;font-weight:700;font-size:21px;color:#1e3a8a;">Please wait...</div>
+    <div class="status-small" id="submit-overlay-status" style="font-size:16px;color:#334155;line-height:1.65;white-space:pre-line;"></div>
     <button id="submit-overlay-confirm" style="margin-top:16px;display:none;background:#22c55e;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600;">OK</button>
   </div>
 </div>
@@ -388,8 +395,8 @@
 (function() {
   'use strict';
 
-  const SURVEY_BUILD='v5-20261028-flow-7';
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwTTXafNhtGRDZ59V33DZswKCTpFkHeiKO2sZ76FdOXl7qGkeSd3KREQdzDR6sttsjT/exec';
+  const SURVEY_BUILD='v5-20261028-wait-8';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwrCiAfbh9XUBytW4Zt2CQ-bpCtmSj7vFj1mLCgaVDgdCzDEAgU_GmeFms3sfEfhQFU/exec';
   const BATCH_SIZE = 5;
   const QC_AFTER_PAIR_INDEX = BATCH_SIZE - 1; // after all five main image pairs
   const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
@@ -679,6 +686,7 @@
   });
 
   function showLoading(title) {
+    q('#loading-guidance').style.display = 'block';
     q('#loading-spinner').style.display = 'block';
     q('#loading-error').style.color = '#ef4444';
     q('#loading-error').style.whiteSpace = '';
@@ -695,6 +703,8 @@
   }
 
   function showLoadingFailure(message) {
+    q('#loading-guidance').style.display = 'none';
+    q('#loading-spinner').style.display = 'none';
     q('#loading-title').textContent = 'Loading problem';
     q('#loading-error').textContent = message;
     q('#loading-error').style.display = 'block';
@@ -754,6 +764,7 @@
   }
 
   function showStudyFull() {
+    q('#loading-guidance').style.display = 'none';
     assignmentPoolFull = true;
     waitingForAssignmentAfterDemographics = false;
     q('#loading-title').textContent = 'No places available right now';
@@ -818,7 +829,7 @@
         }).catch(function(err) {
           console.warn('Pair 1 preload failed:', err);
           if (waitingForAssignmentAfterDemographics) {
-            showLoadingFailure('The first street-image pair could not be loaded. Please retry or refresh once; the same five-pair batch will be restored.');
+            showLoadingFailure('The first street-image pair could not be loaded. Use Retry first. If the image still does not load, refresh this same tab once without clearing site data.');
           }
         });
         return;
@@ -1035,7 +1046,7 @@
         hideLoading();
         schedulePairPreload(pairIndex + 1, randomBetween(900, 1800));
       }).catch(function() {
-        showLoadingFailure('The required street images could not be loaded after several attempts. Please refresh once; the same five-pair assignment and your saved answers will be restored.');
+        showLoadingFailure('The required street images could not be loaded after several attempts. Use Retry first. If the images still do not load, refresh this same tab once without clearing site data.');
       });
     }
 
@@ -1197,7 +1208,7 @@
       attachQCAssets();
       hideLoading();
     }).catch(function() {
-      showLoadingFailure('One or more quality-control images could not be loaded after several attempts. Please check your connection or refresh once; the same five-pair assignment and saved answers will be kept.');
+      showLoadingFailure('One or more quality-control images could not be loaded after several attempts. Check your connection and use Retry first. If the images still do not load, refresh this same tab once without clearing site data.');
     });
   }
 
@@ -1479,7 +1490,7 @@ function runSubmissionController(config) {
   var activeScript=null,frame=null,lastPost=0,lastProgress=clockNow(),failures=0,callbackName='',writerUntil=0,verifiedPending=null,directReceiptPending=false,directInFlight=false;
   var bytes=new Uint32Array(4);window.crypto.getRandomValues(bytes);
   var nonce=Array.prototype.map.call(bytes,function(v){return ('00000000'+v.toString(16)).slice(-8);}).join('-');
-  var stats={startedAt:Date.now(),posts:0,directPosts:0,statusRequests:0,rpcReports:0,firstPageReadyAt:null,jsonVerifiedAt:null,completedAt:null,lastCode:''};
+  var stats={startedAt:Date.now(),posts:0,directPosts:0,statusRequests:0,rpcReports:0,rpcHistory:[],firstPageReadyAt:null,jsonVerifiedAt:null,completedAt:null,lastCode:''};
   var endpointOrigin=new URL(config.endpoint,window.location.href).origin;
   var parentOrigin=window.location.protocol==='file:'?'null':window.location.origin;
   function diagnostic(name,data){try{if(config.diagnostics)config.diagnostics.event(name,data);}catch(ignore){}}
@@ -1531,7 +1542,7 @@ function runSubmissionController(config) {
        d.batch_id!==m.batchId||d.submission_id!==m.submissionId||!permittedOrigin(event.origin))return;
     frameReady=true;if(d.stage!=='rpc-start')lastProgress=clockNow();
     if(!stats.firstPageReadyAt)stats.firstPageReadyAt=Date.now();
-    if(d.stage==='result'){stats.rpcReports++;accept(d.result);}else emit('connected',d.result);
+    if(d.stage==='result'){stats.rpcReports++;stats.rpcHistory.push({elapsed_ms:Date.now()-stats.startedAt,code:d.result&&(d.result.code||d.result.status)||'EMPTY',server:d.result&&d.result.diagnostic_server||null});if(stats.rpcHistory.length>20)stats.rpcHistory.shift();accept(d.result);}else emit('connected',d.result);
   }
   function post() {
     if(stopped)return;
@@ -1617,22 +1628,29 @@ var activeSubmissionController=null;
   function submitViaResultPage(payload) {
     if(activeSubmissionController)return;
     if(surveyDiagnostics){surveyDiagnostics.setIdentity({batch:payload.meta.batchId,request:payload.meta.assignmentRequestId,submission:payload.meta.submissionId});surveyDiagnostics.setStage('saving');}
+    var waitStarted=Date.now();
+    function renderSaveWait() {
+      q('#submit-overlay-message').textContent=navigator.onLine===false?'Connection interrupted — answers not yet confirmed':Date.now()-waitStarted>=20000?'Still saving — please keep this page open':'Saving your answers — please keep this page open';
+      q('#submit-overlay-status').textContent=navigator.onLine===false?'Reconnect to the internet and keep this tab open. We will retry automatically. Do not refresh, clear site data, or open another survey tab.':'Please do not refresh, close this tab, or open another survey tab. We are retrying automatically; you do not need to submit again.\n\nAvoid selecting Return on Prolific while saving. Once saving is confirmed, we will return you to Prolific automatically.';
+    }
+    var waitTimer=setInterval(renderSaveWait,1000);
     activeSubmissionController=runSubmissionController({endpoint:APPS_SCRIPT_URL,payload:payload,diagnostics:surveyDiagnostics,
       onState:function(stage,result){
         q('#submit-overlay').classList.add('show');
-        q('#submit-overlay-message').textContent='Saving your answers';
-        q('#submit-overlay-status').textContent='Please keep this page open. Your answers are retained while we confirm the save.';
+        renderSaveWait();
       },
       onComplete:function(receipt,metrics){
+        clearInterval(waitTimer);
         activeSubmissionController=null;
         try{q('#submit-overlay').classList.remove('show');}catch(uiError){}
         return showRecoveredSubmissionComplete(receipt,{worker:payload.demographics.id,request:payload.meta.assignmentRequestId,batch:payload.meta.batchId,submission:payload.meta.submissionId,group:payload.meta.groupId||'G1',study:payload.meta.studyId||'',session:payload.meta.sessionId||''});
       },
       onTerminal:function(result){
+        clearInterval(waitTimer);
         if(surveyDiagnostics)surveyDiagnostics.setStage('terminal');
         activeSubmissionController=null;
         q('#submit-overlay-message').textContent='Please check your submission';
-        q('#submit-overlay-status').textContent=(result.message||result.error||result.code)+' Your answers remain in this browser.';
+        q('#submit-overlay-status').textContent=(result.message||result.error||result.code)+' Keep this page open and contact the researcher with your Prolific ID. Do not clear site data or start another response.';
       }
     });
   }
@@ -1716,7 +1734,7 @@ function handoffVerifiedCompletion(receipt,identity,endpoint,onReady,onEvent) {
     showPage('1');showLoading('Checking study availability');
     jsonp(APPS_SCRIPT_URL+'?action=internal_test_info&study_id='+encodeURIComponent(getQueryParam('STUDY_ID')||'')+'&group_id='+encodeURIComponent(getQueryParam('group_id')||'G1'),function(info){
       if(!info||info.backend_build!==SURVEY_BUILD||info.handoff_required!==true||info.coverage_ready!==true||info.storage_ready!==true){
-        assignmentPoolFull=true;q('#loading-spinner').style.display='none';q('#loading-title').textContent='Study temporarily unavailable';
+        assignmentPoolFull=true;q('#loading-guidance').style.display='none';q('#loading-spinner').style.display='none';q('#loading-title').textContent='Study temporarily unavailable';
         q('#loading-error').textContent='This study is being updated. Please go back to Prolific and select Return. You do not need to wait here.';
         q('#loading-error').style.color='#475569';q('#loading-error').style.display='block';q('#loading-reload').textContent='Back to Prolific';q('#loading-reload').style.display='inline-block';return;
       }
