@@ -258,7 +258,7 @@
         <li><strong>While a task is being assigned or your answers are being submitted: keep this page open. Do not refresh or open another survey tab.</strong> The survey retries automatically. During submission, please avoid selecting Return on Prolific; this may interrupt completion.</li>
         <li><strong>If an image fails to load before submission:</strong> use the on-screen Retry button first. If the image still does not load, refresh this same tab once. If asked, click I Agree to restore your saved progress. Use the same browser and do not clear its site data.</li>
         <li><strong>If you accidentally close or refresh during submission:</strong> reopen the same study link in the same browser. The survey will try to resume the pending submission; you do not need to answer again.</li>
-        <li><strong>After your answers are confirmed saved:</strong> allow the automatic return to Prolific, or use the Continue to Prolific button if it is shown.</li>
+        <li><strong>After your answers are confirmed saved:</strong> continue to Prolific in the new tab, or click Continue to Prolific if no tab opens. Finish any remaining steps there and check that your submission is Awaiting review or Approved. Your verified completion code stays on the questionnaire completion page.</li>
       </ul>
     </div>
     <div class="buttons" style="justify-content:space-between;">
@@ -395,8 +395,8 @@
 (function() {
   'use strict';
 
-  const SURVEY_BUILD='v5-20261028-wait-8';
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwrCiAfbh9XUBytW4Zt2CQ-bpCtmSj7vFj1mLCgaVDgdCzDEAgU_GmeFms3sfEfhQFU/exec';
+  const SURVEY_BUILD='v5-20261030-identity-9';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx-JQAhQwCuikgwRB_AleRskEXSXDu8IubUIp1KPCxBN1x7VNE1RCtMa68uSLQ7Y04W/exec';
   const BATCH_SIZE = 5;
   const QC_AFTER_PAIR_INDEX = BATCH_SIZE - 1; // after all five main image pairs
   const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
@@ -441,8 +441,19 @@
   function qa(selector) { return Array.from(document.querySelectorAll(selector)); }
   function sleep(ms) { return new Promise(function(resolve) { setTimeout(resolve, ms); }); }
   function randomBetween(min, max) { return Math.floor(min + Math.random() * (max - min + 1)); }
+  // Capture entry parameters once. Later navigation cannot turn a real session into a local test.
+  const entryURL = new URL(window.location.href);
+  var participantIdentity = '';
   function getQueryParam(name) {
-    try { return new URL(window.location.href).searchParams.get(name); }
+    try {
+      var value=entryURL.searchParams.get(name);
+      if(value)return value;
+      if(entryURL.protocol==='file:' && !entryURL.searchParams.get('STUDY_ID') && !entryURL.searchParams.get('SESSION_ID')) {
+        if(name==='STUDY_ID')return 'INTERNAL_LOCAL';
+        if(name==='SESSION_ID')return 'LOCAL_SESSION_'+getProlificPid();
+      }
+      return value;
+    }
     catch (e) { return null; }
   }
 
@@ -462,14 +473,43 @@
   })();
 
   function getProlificPid() {
+    if(participantIdentity)return participantIdentity;
     var p = getQueryParam('PROLIFIC_PID') || getQueryParam('PROLIFICID') || getQueryParam('participant_id') || getQueryParam('worker_id');
-    if (p) return p.trim();
+    if (p) return participantIdentity=p.trim();
+    if(entryURL.protocol!=='file:')return '';
     var s = clientStorage.getItem('anon_worker_id');
     if (!s) {
       s = 'anon-' + Math.random().toString(36).slice(2);
       clientStorage.setItem('anon_worker_id', s);
     }
-    return s;
+    return participantIdentity=s;
+  }
+
+  function studyEntryValid() {
+    if(entryURL.protocol==='file:' && !entryURL.searchParams.get('STUDY_ID') && !entryURL.searchParams.get('SESSION_ID'))return true;
+    return /^[a-f0-9]{24}$/i.test(getProlificPid()) && /^[a-f0-9]{24}$/i.test(getQueryParam('STUDY_ID')||'') &&
+      /^[a-f0-9]{24}$/i.test(getQueryParam('SESSION_ID')||'') && /^G(?:[1-9]|10)$/.test(getQueryParam('group_id')||'');
+  }
+
+  function checkStudyEntry() {
+    if(studyEntryValid())return true;
+    showLoadingFailure('The study link is missing participant or study details. Please open the original questionnaire link from your Prolific study page. No task has been reserved.');
+    q('#loading-reload').textContent='Back to Prolific';
+    q('#loading-reload').onclick=function(){window.location.href='https://app.prolific.com/studies';};
+    return false;
+  }
+
+  function assignmentMatches(data, expected) {
+    var received=data&&data.diagnostic_server&&data.diagnostic_server.server_identity;
+    return !!data && !!received && ['worker','request','group','study','session'].every(function(k){return received[k]===expected[k];}) &&
+      data.worker_id===expected.worker && typeof data.assignment_request_id==='string' && !!data.assignment_request_id &&
+      (data.assignment_request_id===expected.request || data.type==='restored') &&
+      data.group_id===expected.group && data.study_id===expected.study && data.session_id===expected.session &&
+      typeof data.batch_id==='string' && !!data.batch_id &&
+      data.submission_id==='sub-'+data.batch_id+'-'+expected.worker+'-'+data.assignment_request_id &&
+      Array.isArray(data.pairs) && data.pairs.length===5 &&
+      new Set(data.pairs.map(function(p){return p.pair_id;})).size===5 &&
+      data.pairs.every(function(p,i){return p.pair_id && p.file_id1 && p.file_id2 && p.pair_order===i+1;});
   }
 
   function legacyStorageKey(name) {return 'streetscape_batch5_'+name+'_'+getProlificPid();}
@@ -780,19 +820,21 @@
 
   function requestAssignment() {
     if (assignmentPoolFull || assignedBatch || assignmentRequestInFlight) return;
+    if(!checkStudyEntry())return;
     if(!clientStorage.available()){showLoadingFailure('Your browser cannot save survey progress. Please enable site storage or use another browser before starting.');return;}
     assignmentRequestInFlight = true;
     markAssignmentPending();
-    diag('assign_start');
 
     var workerId = getProlificPid();
     var requestId = getOrCreateAssignmentRequestId();
+    var expected={worker:workerId,request:requestId,group:getQueryParam('group_id')||'G1',study:getQueryParam('STUDY_ID')||'',session:getQueryParam('SESSION_ID')||''};
+    diag('assign_start',{request_identity:expected});
     var url = APPS_SCRIPT_URL + '?action=assign&worker_id=' + encodeURIComponent(workerId) + '&request_id=' + encodeURIComponent(requestId) + '&resume=' + (assignmentResumeHint ? '1' : '0') + '&frontend_build='+encodeURIComponent(SURVEY_BUILD)+'&group_id=' + encodeURIComponent(getQueryParam('group_id') || 'G1') + '&study_id=' + encodeURIComponent(getQueryParam('STUDY_ID') || '') + '&session_id=' + encodeURIComponent(getQueryParam('SESSION_ID') || '');
 
     jsonp(url, function(data) {
       assignmentRequestInFlight = false;
-      if(surveyDiagnostics){surveyDiagnostics.setIdentity({batch:data&&data.batch_id||'',request:data&&data.assignment_request_id||requestId});}
-      diag('assign_result',Object.assign({},data&&data.diagnostic_server||{},{code:data&&data.code||data&&data.status||'EMPTY_REPLY'}));
+      var returned={worker:data&&data.worker_id,request:data&&data.assignment_request_id,batch:data&&data.batch_id,submission:data&&data.submission_id,group:data&&data.group_id,study:data&&data.study_id,session:data&&data.session_id};
+      diag('assign_result',Object.assign({},data&&data.diagnostic_server||{},{code:data&&data.code||data&&data.status||'EMPTY_REPLY',request_identity:expected,response_identity:returned}));
       if (data && data.code === 'PREVIOUS_PARTICIPATION') {
         showPreviousParticipation();
         return;
@@ -807,7 +849,16 @@
         showRecoveredSubmissionComplete(data);
         return;
       }
-      if (data && data.status === 'ok' && Array.isArray(data.pairs) && data.pairs.length === BATCH_SIZE) {
+      if (data && data.status === 'ok') {
+        if(!assignmentMatches(data,expected)){
+          diag('assignment_identity_mismatch',{code:'ASSIGNMENT_IDENTITY_MISMATCH',request_identity:expected,response_identity:returned});
+          if(surveyDiagnostics)surveyDiagnostics.flush(true);
+          showLoading('Checking your questionnaire assignment');
+          q('#loading-error').textContent='We are checking your place. Please keep this page open; you do not need to refresh.';
+          q('#loading-error').style.display='block';
+          setTimeout(requestAssignment,3000+randomBetween(0,2000));return;
+        }
+        if(surveyDiagnostics)surveyDiagnostics.setIdentity({batch:data.batch_id,request:data.assignment_request_id,submission:data.submission_id});
         assignedBatch = data;
         document.body.dataset.batchId = data.batch_id || '';
         markAssignmentActive(data.assignment_request_id);
@@ -1447,7 +1498,8 @@ function createSurveyDiagnostics(config) {
     // Collapse a burst of identical reports; counters on later events remain exact.
     if(signature===lastEvent&&stamp-lastAt<5000)return;
     lastEvent=signature;lastAt=stamp;
-    var row={id:run+':'+(++seq),event:text(name),client_at:stamp,elapsed_ms:Math.round(performance.now()-started),stage:stage};
+    var row={id:run+':'+(++seq),event:text(name),client_at:stamp,elapsed_ms:Math.round(performance.now()-started),stage:stage,identity:Object.assign({},identity)};
+    ['request_identity','response_identity','server_identity'].forEach(function(k){if(data[k]){row[k]={};['worker','request','batch','submission','group','study','session'].forEach(function(f){row[k][f]=text(data[k][f]);});}});
     if(data.code)row.code=text(data.code);
     if(data.server_at)row.server_at=text(data.server_at);
     if(data.server_build)row.server_build=text(data.server_build);
@@ -1460,11 +1512,21 @@ function createSurveyDiagnostics(config) {
     if(tail===lastSent || (!urgent&&Date.now()-lastFlush<60000))return;
     // All retained events are sent again after a page reload, preserving stable
     // event IDs. Analysis deduplicates these IDs; opaque HTTP is not an ACK.
-    var envelope={schema:'survey-diagnostics-1',frontend_build:config.build,identity:identity,events:events,dropped:dropped};
-    var body=new URLSearchParams({transport:'diagnostic_batch',diagnostics:JSON.stringify(envelope)}),queued=false;
-    if(navigator.sendBeacon)queued=navigator.sendBeacon(config.endpoint,body);
-    if(!queued&&window.fetch){window.fetch(config.endpoint,{method:'POST',mode:'no-cors',credentials:'omit',keepalive:true,body:body}).catch(function(){});queued=true;}
-    if(queued){lastSent=tail;lastFlush=Date.now();}
+    var chunks=[],chunk=[];
+    function envelope(rows){return {schema:'survey-diagnostics-1',frontend_build:config.build,identity:identity,events:rows,dropped:dropped};}
+    events.forEach(function(row){
+      var candidate=chunk.concat([row]);
+      if(chunk.length && JSON.stringify(envelope(candidate)).length>26000){chunks.push(chunk);chunk=[row];}else chunk=candidate;
+    });
+    if(chunk.length)chunks.push(chunk);
+    var allQueued=true;
+    chunks.forEach(function(rows){
+      var body=new URLSearchParams({transport:'diagnostic_batch',diagnostics:JSON.stringify(envelope(rows))}),queued=false;
+      if(navigator.sendBeacon)queued=navigator.sendBeacon(config.endpoint,body);
+      if(!queued&&window.fetch){window.fetch(config.endpoint,{method:'POST',mode:'no-cors',credentials:'omit',keepalive:true,body:body}).catch(function(){});queued=true;}
+      if(!queued)allQueued=false;
+    });
+    if(allQueued){lastSent=tail;lastFlush=Date.now();}
   }catch(ignore){}}
   var api={event:event,flush:flush,setIdentity:function(p){try{Object.keys(identity).forEach(function(k){if(p[k]!=null)identity[k]=text(p[k]);});}catch(ignore){}},
     setStage:function(value){stage=text(value);},stop:function(){clearInterval(timer);}};
@@ -1683,7 +1745,10 @@ function handoffVerifiedCompletion(receipt,identity,endpoint,onReady,onEvent) {
   // link is the fallback if the browser blocks the automatic navigation.
   try{if(onReady)onReady(url);}catch(uiError){}
   try{if(onEvent)onEvent('handoff_requested');}catch(ignore){}
-  try{window.location.replace(url);}catch(navigationBlocked){try{if(onEvent)onEvent('handoff_blocked');}catch(ignore){}}
+  try{
+    if(/^(anon-|MANUAL_TEST_|STRESS_TAB_|LOCAL_TAB_)/.test(identity.worker))window.location.replace(url);
+    else {var opened=window.open(url,'_blank');if(opened){try{opened.opener=null;}catch(ignore){}}else if(onEvent)onEvent('handoff_blocked');}
+  }catch(navigationBlocked){try{if(onEvent)onEvent('handoff_blocked');}catch(ignore){}}
   return true;
 }
 
@@ -1693,9 +1758,14 @@ function handoffVerifiedCompletion(receipt,identity,endpoint,onReady,onEvent) {
     if(!verifiedCompletionURL(receipt,identity,APPS_SCRIPT_URL))return false;
     return handoffVerifiedCompletion(receipt,identity,APPS_SCRIPT_URL,function(url){
       hideLoading();
-      q('#main-container').innerHTML='<div style="text-align:center;padding:60px 20px;max-width:760px;margin:auto;"><h2>Answers saved</h2><p>Your answers have been saved and verified. Returning you to '+(/^(anon-|MANUAL_TEST_|STRESS_TAB_|LOCAL_TAB_)/.test(identity.worker)?'the internal test confirmation':'Prolific')+'...</p><p>If this page stays open, select Continue below.</p><a id="verified-completion" style="display:inline-block;padding:14px 26px;background:#2563eb;color:white;border-radius:8px;">Continue</a></div>';
-      q('#verified-completion').href=url;
-      q('#verified-completion').addEventListener('click',function(){diag('manual_continue');setTimeout(function(){if(surveyDiagnostics)surveyDiagnostics.flush(true);},1500);});
+      var internal=/^(anon-|MANUAL_TEST_|STRESS_TAB_|LOCAL_TAB_)/.test(identity.worker);
+      q('#main-container').innerHTML='<div style="text-align:center;padding:48px 20px;max-width:760px;margin:auto;"><h2>Answers saved successfully</h2><p>Your answers have been saved and verified. You do not need to submit them again.</p><p id="completion-instructions"></p><a id="verified-completion" style="display:inline-block;padding:14px 26px;background:#2563eb;color:white;border-radius:8px;">Continue to Prolific</a><div id="completion-fallback" style="margin-top:24px;padding:18px;background:#eff6ff;border-radius:8px;"><p>If Prolific asks for a completion code, enter:</p><strong id="verified-code" style="font-size:24px;letter-spacing:2px;"></strong><p>On Prolific, confirm that this submission appears as <strong>Awaiting review</strong> or <strong>Approved</strong>. If it still appears as ongoing, finish the submission there using this code. If it shows Returned or Timed out, contact the researcher; do not repeat the questionnaire.</p></div></div>';
+      q('#completion-instructions').textContent=internal?'Internal test complete.':'Continue to Prolific to finish your submission. If a new Prolific tab has opened, complete any remaining steps there. This page keeps your completion code available.';
+      var link=q('#verified-completion');link.href=url;
+      link.target='_blank';link.rel='noopener';
+      if(internal){link.textContent='Internal test confirmation';q('#completion-fallback').style.display='none';}
+      else q('#verified-code').textContent=new URL(url).searchParams.get('cc');
+      link.addEventListener('click',function(){diag('manual_continue');if(surveyDiagnostics)surveyDiagnostics.flush(true);});
     },function(event){
       if(surveyDiagnostics){surveyDiagnostics.setIdentity({batch:identity.batch,request:identity.request,submission:identity.submission});surveyDiagnostics.setStage('handoff');}
       diag(event);setTimeout(function(){if(surveyDiagnostics)surveyDiagnostics.flush(true);},1500);
@@ -1729,6 +1799,7 @@ function handoffVerifiedCompletion(receipt,identity,endpoint,onReady,onEvent) {
   }
 
   q('#btn-agree').addEventListener('click', function() {
+    if(!checkStudyEntry())return;
     if(resumePendingSubmission())return;
     if(!clientStorage.available()){showLoadingFailure('Your browser cannot save survey progress. Please enable site storage or use another browser before starting.');return;}
     showPage('1');showLoading('Checking study availability');
