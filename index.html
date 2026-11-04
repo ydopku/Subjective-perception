@@ -397,6 +397,7 @@
   'use strict';
 
   const SURVEY_BUILD='v5-20261103-reliability-11';
+  // Frontend revision: local-test-recovery-20261104 (backend protocol unchanged).
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyIzgA3w_1d3RHEzNAosqVDV6-NWJLTQ5mssez8f6HXSizCtlm2QurFfqt7Es1Fs3U/exec';
   const BATCH_SIZE = 5;
   const QC_AFTER_PAIR_INDEX = BATCH_SIZE - 1; // after all five main image pairs
@@ -1782,6 +1783,7 @@ var activeSubmissionController=null;
         clearInterval(waitTimer);
         if(surveyDiagnostics)surveyDiagnostics.setStage('terminal');
         activeSubmissionController=null;
+        if(isAnonymousLocalTest()) {showLocalTestOptions('The previous internal submission could not be recovered ('+(result.code||result.status)+'). Its browser answers are kept. You can start a new internal test after checking the old test.');return;}
         q('#submit-overlay-message').textContent='Please check your submission';
         q('#submit-overlay-status').textContent=(result.message||result.error||result.code)+' Keep this page open and contact the researcher with your Prolific ID. Do not clear site data or start another response.';
       }
@@ -1841,7 +1843,56 @@ function handoffVerifiedCompletion(receipt,identity,endpoint,onReady,onEvent) {
     });
   }
 
+  var localResumeAllowed = false;
+  function isAnonymousLocalTest() {
+    return entryURL.protocol === 'file:' && !['PROLIFIC_PID','PROLIFICID','participant_id','worker_id','STUDY_ID','SESSION_ID'].some(function(key) {
+      return entryURL.searchParams.has(key);
+    });
+  }
+
+  function showLocalTestOptions(message) {
+    if (!isAnonymousLocalTest()) return false;
+    if (!message && !clientStorage.getItem(storageKey('pending_payload')) && !loadSavedProgress()) return false;
+    hideLoading();
+    q('#submit-overlay').classList.remove('show');
+    var panel = q('#local-test-options');
+    if (!panel) {
+      panel = document.createElement('section');panel.id='local-test-options';
+      panel.style.cssText='position:fixed;inset:0;z-index:10001;background:#f8fafc;overflow:auto;padding:40px;box-sizing:border-box';
+      panel.innerHTML='<div style="max-width:680px;margin:auto"><h2>Local internal test</h2><p id="local-test-message"></p><p>This choice applies only to anonymous local testing. It does not submit to Prolific or change any real participant data.</p><button id="local-test-new" type="button">Start a new internal test</button> <button id="local-test-resume" type="button">Resume the previous internal test</button></div>';
+      document.body.appendChild(panel);
+      q('#local-test-new').onclick=function(){
+        // Retain the old identity-scoped answers; rotate only the anonymous local entry.
+        clientStorage.setItem('anon_worker_id','anon-'+(window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)));
+        window.location.reload();
+      };
+      q('#local-test-resume').onclick=function(){
+        var button=this;button.disabled=true;
+        var pending=null;try{pending=JSON.parse(clientStorage.getItem(storageKey('pending_payload'))||'null');}catch(ignore){}
+        if (!pending || !pending.meta) {
+          localResumeAllowed=true;panel.remove();q('#btn-agree').click();return;
+        }
+        q('#local-test-message').textContent='Checking the previous internal assignment. No answers are being submitted.';
+        var m=pending.meta;
+        jsonp(APPS_SCRIPT_URL+'?'+new URLSearchParams({action:'submission_status',worker_id:getProlificPid(),batch_id:m.batchId,request_id:m.assignmentRequestId,submission_id:m.submissionId,study_id:getQueryParam('STUDY_ID'),session_id:getQueryParam('SESSION_ID'),group_id:getQueryParam('group_id')||'G1',accept_verified_receipt:'1'}),function(result){
+          button.disabled=false;
+          if(!result || result.status==='error' || result.status==='busy'){
+            q('#local-test-message').textContent=result&&result.code==='RECEIPT_IDENTITY_MISMATCH'?'The previous internal assignment is no longer available under this identity. It may have been cleaned up. Start a new internal test. Its saved browser answers have been kept.':'The previous internal assignment could not be confirmed. You can retry this check. No answers have been submitted.';
+            if(result&&result.code==='RECEIPT_IDENTITY_MISMATCH')button.disabled=true;
+            return;
+          }
+          localResumeAllowed=true;panel.remove();
+          if(showRecoveredSubmissionComplete(result,{worker:getProlificPid(),request:m.assignmentRequestId,batch:m.batchId,submission:m.submissionId,study:getQueryParam('STUDY_ID'),session:getQueryParam('SESSION_ID'),group:getQueryParam('group_id')||'G1'}))return;
+          if(!resumePendingSubmission())q('#btn-agree').click();
+        },0,{passBusy:true});
+      };
+    }
+    q('#local-test-message').textContent=message||'This browser contains an earlier internal test. Choose whether to start a new test or recover the previous one. No saved answers have been submitted automatically.';
+    return true;
+  }
+
   function resumePendingSubmission() {
+    if(isAnonymousLocalTest() && !localResumeAllowed) return showLocalTestOptions();
     var pending=null;
     try {
       pending=JSON.parse(clientStorage.getItem(storageKey('pending_payload'))||'null');
