@@ -168,7 +168,8 @@
       .mobile-text { display: inline; }
       .desktop-text { display: none; }
     }
-  </style>
+  .answer-needed{outline:3px solid #d97706;outline-offset:5px;border-radius:8px;scroll-margin:24px}
+</style>
 <style id="v3-review-and-rating-ui">
 .image-slot{flex:1;min-width:0;width:100%;display:flex;flex-direction:column;gap:8px}
 .image-slot .img-wrapper{flex:1;width:100%}
@@ -258,7 +259,7 @@
         <li><strong>While a task is being assigned or your answers are being submitted: keep this page open. Do not refresh or open another survey tab.</strong> The survey retries automatically. During submission, please avoid selecting Return on Prolific; this may interrupt completion.</li>
         <li><strong>If an image fails to load before submission:</strong> use the on-screen Retry button first. If the image still does not load, refresh this same tab once. If asked, click I Agree to restore your saved progress. Use the same browser and do not clear its site data.</li>
         <li><strong>If you accidentally close or refresh during submission:</strong> reopen the same study link in the same browser. The survey will try to resume the pending submission; you do not need to answer again.</li>
-        <li><strong>After your answers are confirmed saved:</strong> continue to Prolific in the new tab, or click Continue to Prolific if no tab opens. Finish any remaining steps there and check that your submission is Awaiting review or Approved. Your verified completion code stays on the questionnaire completion page.</li>
+        <li><strong>After your answers are confirmed saved:</strong> this tab will return you to Prolific. If the questionnaire completion page remains open, click Continue to Prolific. Finish any remaining steps there and check that your submission is Awaiting review or Approved. Do not return or cancel a completed submission.</li>
       </ul>
     </div>
     <div class="buttons" style="justify-content:space-between;">
@@ -328,7 +329,7 @@
     <h2>Environment Classification</h2>
     <p style="margin-bottom:20px;color:var(--muted);">Before continuing, please complete this short classification section.</p>
 
-    <div class="check-section">
+    <div class="check-section" id="qc-classification">
       <h3 style="margin-top:0;">In each row below, please click on the image that best represents a <strong>Rural</strong> (countryside) environment.</h3>
       <div class="check-row" id="qc-row-1">
         <div style="width:30px;font-weight:700;padding-top:12px;">1.</div>
@@ -353,7 +354,7 @@
       </div>
     </div>
 
-    <div class="check-section">
+    <div class="check-section" id="qc-preference">
       <h3 style="margin-top:0;">General Preference</h3>
       <p style="font-size:16px;margin-bottom:16px;">In general, which type of environment do you prefer living in?</p>
       <div style="display:flex;flex-direction:column;gap:12px;">
@@ -395,8 +396,8 @@
 (function() {
   'use strict';
 
-  const SURVEY_BUILD='v5-20261030-identity-9';
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx-JQAhQwCuikgwRB_AleRskEXSXDu8IubUIp1KPCxBN1x7VNE1RCtMa68uSLQ7Y04W/exec';
+  const SURVEY_BUILD='v5-20261103-reliability-11';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyIzgA3w_1d3RHEzNAosqVDV6-NWJLTQ5mssez8f6HXSizCtlm2QurFfqt7Es1Fs3U/exec';
   const BATCH_SIZE = 5;
   const QC_AFTER_PAIR_INDEX = BATCH_SIZE - 1; // after all five main image pairs
   const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
@@ -684,14 +685,19 @@
     });
   }
 
+  var pageRevision = 0;
+  var dialogAction = null;
+
   function showPage(name) {
+    pageRevision++;
     qa('.page').forEach(function(page) { page.classList.remove('active'); });
     var page = q('#page-' + name);
     if (page) page.classList.add('active');
     window.scrollTo(0, 0);
   }
 
-  function showDialog(title, text, warning) {
+  function showDialog(title, text, warning, afterClose) {
+    dialogAction = afterClose || null;
     var modal = q('#msg-modal');
     var box = modal.querySelector('.msg-box');
     var content = q('#msg-content');
@@ -704,6 +710,9 @@
   q('#msg-ok').addEventListener('click', function() {
     q('#msg-modal').classList.remove('show');
     q('#msg-modal .msg-box').classList.remove('warning-theme');
+    var action = dialogAction;
+    dialogAction = null;
+    if (action) action();
   });
 
   q('#loading-reload').textContent = 'Retry';
@@ -1042,6 +1051,7 @@
   }
 
   function setCurrentRating(value) {
+    q('#dynamic-rating').classList.remove('answer-needed');
     var attr = ATTRIBUTES[currentAttrIndex];
     state.pair_responses[currentPairIndex].ratings[attr] = value;
     saveProgress();
@@ -1058,16 +1068,23 @@
     });
   }
 
+  function recordSurveyStage(stage,code) {
+    if(surveyDiagnostics)surveyDiagnostics.setStage(stage);
+    diag('survey_stage',{code:code||stage});
+  }
+
   function renderComparison(pairIndex, attrIndex) {
     if (!assignedBatch) {
       showLoading('Waiting for assignment');
       return;
     }
+    if(attrIndex===0)recordSurveyStage('comparison','PAIR_'+(pairIndex+1));
     currentPairIndex = pairIndex;
     currentAttrIndex = attrIndex;
     state.navigation = { stage: 'comparison', pairIndex: pairIndex, attrIndex: attrIndex };
     saveProgress();
     showPage('comparison');
+    var revision = pageRevision;
 
     var attr = ATTRIBUTES[attrIndex];
     q('#pair-progress-current').textContent = String(pairIndex + 1);
@@ -1076,6 +1093,7 @@
     q('#attribute-definition').innerHTML = '<strong>' + attr + ':</strong> ' + ATTRIBUTE_DEFINITIONS[attr];
     q('#comparison-progress-bar').style.width = (((pairIndex * ATTRIBUTES.length + attrIndex) / (BATCH_SIZE * ATTRIBUTES.length)) * 100) + '%';
     var selected = state.pair_responses[pairIndex].ratings[attr];
+    if (typeof selected !== 'number' || [1,0.5,0,-0.5,-1].indexOf(selected) < 0) selected = undefined;
     renderRatingControl(attr, selected);
 
     var nextText = 'Next question ▶';
@@ -1093,10 +1111,12 @@
     } else {
       showLoading('Loading Image Pair ' + (pairIndex + 1) + ' of ' + BATCH_SIZE);
       ensurePairLoaded(pairIndex, true).then(function() {
+        if (revision !== pageRevision) return;
         if (currentPairIndex === pairIndex && q('#page-comparison').classList.contains('active')) attachCurrentPairImages(pairIndex);
         hideLoading();
         schedulePairPreload(pairIndex + 1, randomBetween(900, 1800));
       }).catch(function() {
+        if (revision !== pageRevision) return;
         showLoadingFailure('The required street images could not be loaded after several attempts. Use Retry first. If the images still do not load, refresh this same tab once without clearing site data.');
       });
     }
@@ -1249,24 +1269,45 @@
     });
   }
 
+  function focusRequiredField(selector) {
+    qa('.answer-needed').forEach(function(el) { el.classList.remove('answer-needed'); });
+    var el = q(selector);
+    if (!el) return;
+    el.classList.add('answer-needed');
+    el.setAttribute('tabindex', '-1');
+    el.focus({preventScroll:true});
+    el.scrollIntoView({block:'center', behavior:'instant'});
+  }
+
   function showQCPage() {
+    recordSurveyStage('qc');
     state.navigation = { stage: 'qc', pairIndex: QC_AFTER_PAIR_INDEX, attrIndex: ATTRIBUTES.length - 1 };
     saveProgress();
     showPage('qc');
+    var revision = pageRevision;
     syncQCSelections();
     showLoading('Loading classification images');
-    preloadQCAssets().then(function() {
+    return preloadQCAssets().then(function() {
+      if (revision !== pageRevision) return false;
       attachQCAssets();
       hideLoading();
+      return true;
     }).catch(function() {
+      if (revision !== pageRevision) return false;
       showLoadingFailure('One or more quality-control images could not be loaded after several attempts. Check your connection and use Retry first. If the images still do not load, refresh this same tab once without clearing site data.');
+      return false;
     });
   }
 
   function validateQCAndContinue() {
     var qc = state.quality_check;
     if (!qc.q1 || !qc.q2 || !qc.q3 || !qc.preference) {
-      showDialog('Action Required: Incomplete Selection', 'Please complete all three classification rows and the general preference question.');
+      diag('validation_blocked',{code:'QC_INCOMPLETE'});
+      var missing = ['q1','q2','q3','preference'].filter(function(key) { return !qc[key]; });
+      var names = missing.map(function(key) { return key === 'preference' ? 'General Preference' : 'Environment Classification — row ' + key.slice(1); });
+      showDialog('Action Required: Incomplete Selection', 'Please answer: ' + names.join('; ') + '.\n\nSelect OK to go to the first unanswered item. Your other answers are kept.', false, function() {
+        focusRequiredField(missing[0] === 'preference' ? '#qc-preference' : '#qc-row-' + missing[0].slice(1));
+      });
       return;
     }
     if (!qc.first_attempt) qc.first_attempt = { q1: qc.q1, q2: qc.q2, q3: qc.q3 };
@@ -1275,19 +1316,50 @@
       qc.failed_attempts = Number(qc.failed_attempts || 0) + 1;
       qc.passed = false;
       saveProgress();
-      showDialog('Data Quality Check Failed', 'One or more answers in the Environment Classification section do not match the intended categories. This may have been accidental, but please review the images and answer carefully.\n\nWarning: Please also make sure that all of your survey responses reflect your genuine judgments. Submissions showing clear random or careless responding may be rejected in accordance with Prolific submission guidelines.\n\nTo proceed, please correct the classification errors.', true);
+      diag('validation_blocked',{code:'QC_INCORRECT'});
+      showDialog('Data Quality Check Failed', 'One or more answers in the Environment Classification section do not match the intended categories. This may have been accidental, but please review the images and answer carefully.\n\nWarning: Please also make sure that all of your survey responses reflect your genuine judgments. Submissions showing clear random or careless responding may be rejected in accordance with Prolific submission guidelines.\n\nTo proceed, please correct the classification errors.', true, function() { focusRequiredField('#qc-classification'); });
       return;
     }
     qc.passed = true;
+    recordSurveyStage('review','QC_PASSED');
     saveProgress();
     renderReview();
   }
 
+  function firstMissingRating() {
+    for (var i = 0; i < BATCH_SIZE; i++) {
+      var pair = state.pair_responses && state.pair_responses[i];
+      for (var j = 0; j < ATTRIBUTES.length; j++) {
+        var value = pair && pair.ratings && pair.ratings[ATTRIBUTES[j]];
+        if (typeof value !== 'number' || [1, 0.5, 0, -0.5, -1].indexOf(value) < 0) return {pair:i, attr:j};
+      }
+    }
+    return null;
+  }
+
   function allPairRatingsComplete() {
-    if (!state.pair_responses || state.pair_responses.length !== BATCH_SIZE) return false;
-    return state.pair_responses.every(function(pair) {
-      return ATTRIBUTES.every(function(attr) { return pair.ratings && pair.ratings[attr] !== undefined; });
-    });
+    return !!state.pair_responses && state.pair_responses.length === BATCH_SIZE && !firstMissingRating();
+  }
+
+  function requireCompleteAnswers() {
+    var missing = firstMissingRating();
+    if (missing) {
+      diag('validation_blocked',{code:'RATINGS_INCOMPLETE_PAIR_'+(missing.pair+1)+'_ATTRIBUTE_'+(missing.attr+1)});
+      showDialog('Action Required: Rating', 'Please answer Image Pair ' + (missing.pair + 1) + ' — ' + ATTRIBUTES[missing.attr] + '.\n\nSelect OK to return to that question. Your other answers are kept.', false, function() {
+        renderComparison(missing.pair, missing.attr);
+        focusRequiredField('#dynamic-rating');
+      });
+      return false;
+    }
+    var qc = state.quality_check;
+    if (!qc.passed || !qc.q1 || !qc.q2 || !qc.q3 || !qc.preference) {
+      diag('validation_blocked',{code:'QC_NOT_PASSED'});
+      showQCPage().then(function(ready) {
+        if (ready && (!qc.q1 || !qc.q2 || !qc.q3 || !qc.preference)) validateQCAndContinue();
+      });
+      return false;
+    }
+    return true;
   }
 
   function drawReviewThumbnail(sourceImg, canvas) {
@@ -1355,14 +1427,7 @@
   }
 
   function renderReview() {
-    if (!allPairRatingsComplete()) {
-      showDialog('Review Error', 'One or more pair ratings are incomplete. Please return to the comparison pages.');
-      return;
-    }
-    if (!state.quality_check.passed) {
-      showQCPage();
-      return;
-    }
+    if (!requireCompleteAnswers()) return;
     state.navigation = { stage: 'review', pairIndex: BATCH_SIZE - 1, attrIndex: ATTRIBUTES.length - 1 };
     saveProgress();
 
@@ -1430,10 +1495,16 @@
   }
 
   function submitData() {
-    if (!assignedBatch || !assignedBatch.batch_id || !allPairRatingsComplete() || !state.quality_check.passed) {
-      showDialog('Submission Error', 'The five-pair assignment or one of the required answers is incomplete.');
+    diag('submit_clicked');
+    if (!assignedBatch || !assignedBatch.batch_id) {
+      diag('validation_blocked',{code:'ASSIGNMENT_MISSING'});
+      showDialog('Assignment recovery needed', 'Your answers are kept in this browser. Select OK to reload this same page and recover your existing assignment. Do not open a new questionnaire tab.', false, function() {
+        saveProgress();
+        window.location.reload();
+      });
       return;
     }
+    if (!requireCompleteAnswers()) return;
     saveProgress();
     diag('submit_start');
     var btn = q('#finish');
@@ -1745,10 +1816,8 @@ function handoffVerifiedCompletion(receipt,identity,endpoint,onReady,onEvent) {
   // link is the fallback if the browser blocks the automatic navigation.
   try{if(onReady)onReady(url);}catch(uiError){}
   try{if(onEvent)onEvent('handoff_requested');}catch(ignore){}
-  try{
-    if(/^(anon-|MANUAL_TEST_|STRESS_TAB_|LOCAL_TAB_)/.test(identity.worker))window.location.replace(url);
-    else {var opened=window.open(url,'_blank');if(opened){try{opened.opener=null;}catch(ignore){}}else if(onEvent)onEvent('handoff_blocked');}
-  }catch(navigationBlocked){try{if(onEvent)onEvent('handoff_blocked');}catch(ignore){}}
+  try{window.location.replace(url);}
+  catch(navigationBlocked){try{if(onEvent)onEvent('handoff_blocked');}catch(ignore){}}
   return true;
 }
 
@@ -1760,9 +1829,9 @@ function handoffVerifiedCompletion(receipt,identity,endpoint,onReady,onEvent) {
       hideLoading();
       var internal=/^(anon-|MANUAL_TEST_|STRESS_TAB_|LOCAL_TAB_)/.test(identity.worker);
       q('#main-container').innerHTML='<div style="text-align:center;padding:48px 20px;max-width:760px;margin:auto;"><h2>Answers saved successfully</h2><p>Your answers have been saved and verified. You do not need to submit them again.</p><p id="completion-instructions"></p><a id="verified-completion" style="display:inline-block;padding:14px 26px;background:#2563eb;color:white;border-radius:8px;">Continue to Prolific</a><div id="completion-fallback" style="margin-top:24px;padding:18px;background:#eff6ff;border-radius:8px;"><p>If Prolific asks for a completion code, enter:</p><strong id="verified-code" style="font-size:24px;letter-spacing:2px;"></strong><p>On Prolific, confirm that this submission appears as <strong>Awaiting review</strong> or <strong>Approved</strong>. If it still appears as ongoing, finish the submission there using this code. If it shows Returned or Timed out, contact the researcher; do not repeat the questionnaire.</p></div></div>';
-      q('#completion-instructions').textContent=internal?'Internal test complete.':'Continue to Prolific to finish your submission. If a new Prolific tab has opened, complete any remaining steps there. This page keeps your completion code available.';
+      q('#completion-instructions').textContent=internal?'Internal test complete.':'Returning you to Prolific to finish your submission. If this page remains open, click Continue to Prolific below. Do not select Return or cancel your submission after completing the questionnaire.';
       var link=q('#verified-completion');link.href=url;
-      link.target='_blank';link.rel='noopener';
+      link.target='_self';
       if(internal){link.textContent='Internal test confirmation';q('#completion-fallback').style.display='none';}
       else q('#verified-code').textContent=new URL(url).searchParams.get('cc');
       link.addEventListener('click',function(){diag('manual_continue');if(surveyDiagnostics)surveyDiagnostics.flush(true);});
@@ -1827,7 +1896,8 @@ function handoffVerifiedCompletion(receipt,identity,endpoint,onReady,onEvent) {
   });
 
   q('#demographics-next').addEventListener('click', function() {
-    if (!saveDemographicsFromForm()) return;
+    if (!saveDemographicsFromForm()) {diag('validation_blocked',{code:'DEMOGRAPHICS_INCOMPLETE'});return;}
+    recordSurveyStage('comparison','DEMOGRAPHICS_COMPLETE');
     if (!assignedBatch) {
       waitingForAssignmentAfterDemographics = true;
       showLoading('Waiting for your five image pairs');
@@ -1848,6 +1918,7 @@ function handoffVerifiedCompletion(receipt,identity,endpoint,onReady,onEvent) {
   qa('.check-img-wrap').forEach(function(wrap) {
     wrap.addEventListener('click', function() {
       var key = 'q' + wrap.dataset.qcQuestion;
+      q('#qc-row-' + wrap.dataset.qcQuestion).classList.remove('answer-needed');
       state.quality_check[key] = wrap.dataset.qcAnswer;
       state.quality_check.passed = false;
       syncQCSelections();
@@ -1857,6 +1928,7 @@ function handoffVerifiedCompletion(receipt,identity,endpoint,onReady,onEvent) {
   qa('input[name="preference"]').forEach(function(radio) {
     radio.addEventListener('change', function() {
       if (radio.checked) {
+        q('#qc-preference').classList.remove('answer-needed');
         state.quality_check.preference = radio.value;
         syncQCSelections();
         saveProgress();
