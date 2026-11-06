@@ -257,7 +257,7 @@
       <strong>Technical guidance — when to refresh:</strong>
       <ul style="text-align:left;line-height:1.6;">
         <li><strong>While a task is being assigned or your answers are being submitted: keep this page open. Do not refresh or open another survey tab.</strong> The survey retries automatically. During submission, please avoid selecting Return on Prolific; this may interrupt completion.</li>
-        <li><strong>If an image fails to load before submission:</strong> use the on-screen Retry button first. If the image still does not load, refresh this same tab once. If asked, click I Agree to restore your saved progress. Use the same browser and do not clear its site data.</li>
+        <li><strong>If an image fails to load before submission and no browser-storage warning is shown:</strong> use the on-screen Retry button first. If the image still does not load, refresh this same tab once. If asked, click I Agree to restore your saved progress. Use the same browser and do not clear its site data.</li>
         <li><strong>If you accidentally close or refresh during submission:</strong> reopen the same study link in the same browser. The survey will try to resume the pending submission; you do not need to answer again.</li>
         <li><strong>After your answers are confirmed saved:</strong> this tab will return you to Prolific. If the questionnaire completion page remains open, click Continue to Prolific. Finish any remaining steps there and check that your submission is Awaiting review or Approved. Do not return or cancel a completed submission.</li>
       </ul>
@@ -396,9 +396,9 @@
 (function() {
   'use strict';
 
-  const SURVEY_BUILD='v5-20261103-reliability-11';
+  const SURVEY_BUILD='v5-20261105-reliability-13';
   // Frontend revision: local-test-recovery-20261104 (backend protocol unchanged).
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyIzgA3w_1d3RHEzNAosqVDV6-NWJLTQ5mssez8f6HXSizCtlm2QurFfqt7Es1Fs3U/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzn0OyJe1YSqlBlCdUr_8JPdyMa5ZKiqk9RNyzqzINNEHtBicmsYRpnsI1eFqtbJxh7/exec';
   const BATCH_SIZE = 5;
   const QC_AFTER_PAIR_INDEX = BATCH_SIZE - 1; // after all five main image pairs
   const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
@@ -462,17 +462,46 @@
   // Use a second browser store when one is blocked or full. Memory keeps the
   // same identity during the current page even if both stores reject writes.
   var clientStorage=(function(){
-    var memory=Object.create(null),revision=0;
+    var memory=Object.create(null),pending=Object.create(null),revision=0;
     function stores(){var a=[];try{a.push(window.localStorage);}catch(e){}try{a.push(window.sessionStorage);}catch(e){}return a;}
-    function decode(v){try{var r=JSON.parse(v);if(r&&r.__survey_store===1&&typeof r.value==='string'&&Number.isFinite(r.revision))return r;}catch(e){}return {revision:0,value:v};}
+    function decode(v){try{var r=JSON.parse(v);if(r&&r.__survey_store===1&&(typeof r.value==='string'||r.value===null)&&Number.isFinite(r.revision))return r;}catch(e){}return {revision:0,value:v};}
     function newest(k){var best=memory[k]||null;stores().forEach(function(s){try{var v=s.getItem(k);if(v!==null){var r=decode(v);if(!best||r.revision>best.revision)best=r;}}catch(e){}});if(best){memory[k]=best;revision=Math.max(revision,best.revision);}return best;}
+    function persist(k,r){
+      var raw=JSON.stringify(r),durable=false;
+      stores().forEach(function(s){try{s.setItem(k,raw);if(s.getItem(k)===raw)durable=true;}catch(e){}});
+      if(durable)delete pending[k];else pending[k]=r;
+      if(typeof storageWriteStatus==='function')storageWriteStatus(k,durable);
+      return durable;
+    }
+    function write(k,v){newest(k);revision=Math.max(Date.now(),revision+1);var r={__survey_store:1,revision:revision,value:v};memory[k]=r;return persist(k,r);}
     return {
-      available:function(){var a=stores(),k='__survey_storage_probe__';for(var i=0;i<a.length;i++){try{a[i].setItem(k,k);var ok=a[i].getItem(k)===k;a[i].removeItem(k);if(ok)return true;}catch(e){}}return false;},
+      available:function(){var a=stores(),k='__survey_storage_probe__',sample='x'.repeat(65536);for(var i=0;i<a.length;i++){try{a[i].setItem(k,sample);var ok=a[i].getItem(k)===sample;a[i].removeItem(k);if(ok)return true;}catch(e){try{a[i].removeItem(k);}catch(ignore){}}}return false;},
       getItem:function(k){var r=newest(k);return r?r.value:null;},
-      setItem:function(k,v){newest(k);revision=Math.max(Date.now(),revision+1);var r={__survey_store:1,revision:revision,value:String(v)};memory[k]=r;var raw=JSON.stringify(r);stores().forEach(function(s){try{s.setItem(k,raw);}catch(e){}});},
-      removeItem:function(k){delete memory[k];stores().forEach(function(s){try{s.removeItem(k);}catch(e){}});}
+      setItem:function(k,v){return write(k,String(v));},
+      removeItem:function(k){return write(k,null);},
+      retryPending:function(){Object.keys(pending).forEach(function(k){persist(k,newest(k)||pending[k]);});}
     };
   })();
+  var failedStorageKeys=Object.create(null),storageRetryTimer=null;
+  function storageWriteStatus(key,ok) {
+    if(!failedStorageKeys || key.indexOf('streetscape_batch5_')!==0 || key.indexOf('diagnostic')>=0)return;
+    if(ok)delete failedStorageKeys[key];else failedStorageKeys[key]=true;
+    var failed=Object.keys(failedStorageKeys).length>0;
+    var notice=document.getElementById('storage-recovery-notice');
+    if(failed && !notice && document.body){
+      notice=document.createElement('div');notice.id='storage-recovery-notice';notice.setAttribute('role','status');
+      notice.style.cssText='position:fixed;top:0;left:0;right:0;z-index:10000;padding:12px 20px;background:#fff3cd;color:#382b00;border-bottom:2px solid #b58100;font:16px/1.5 Arial';
+      notice.innerHTML='<strong>Keep this page open. Do not refresh.</strong> Your browser could not save a recovery copy. You can continue answering and submit normally. We are retrying the recovery copy automatically.';
+      document.body.appendChild(notice);
+    }
+    if(notice)notice.hidden=!failed;
+    if(failed&&!storageRetryTimer)storageRetryTimer=setInterval(function(){clientStorage.retryPending();},5000);
+    if(!failed&&storageRetryTimer){clearInterval(storageRetryTimer);storageRetryTimer=null;}
+  }
+
+  window.addEventListener('beforeunload',function(event){
+    if(Object.keys(failedStorageKeys).length){event.preventDefault();event.returnValue='';}
+  });
 
   function getProlificPid() {
     if(participantIdentity)return participantIdentity;
@@ -1829,6 +1858,9 @@ function handoffVerifiedCompletion(receipt,identity,endpoint,onReady,onEvent) {
     if(!verifiedCompletionURL(receipt,identity,APPS_SCRIPT_URL))return false;
     return handoffVerifiedCompletion(receipt,identity,APPS_SCRIPT_URL,function(url){
       hideLoading();
+      var storageNotice=document.getElementById('storage-recovery-notice');if(storageNotice)storageNotice.remove();
+      if(storageRetryTimer){clearInterval(storageRetryTimer);storageRetryTimer=null;}
+      failedStorageKeys=Object.create(null);
       var internal=/^(anon-|MANUAL_TEST_|STRESS_TAB_|LOCAL_TAB_)/.test(identity.worker);
       q('#main-container').innerHTML='<div style="text-align:center;padding:48px 20px;max-width:760px;margin:auto;"><h2>Answers saved successfully</h2><p>Your answers have been saved and verified. You do not need to submit them again.</p><p id="completion-instructions"></p><a id="verified-completion" style="display:inline-block;padding:14px 26px;background:#2563eb;color:white;border-radius:8px;">Continue to Prolific</a><div id="completion-fallback" style="margin-top:24px;padding:18px;background:#eff6ff;border-radius:8px;"><p>If Prolific asks for a completion code, enter:</p><strong id="verified-code" style="font-size:24px;letter-spacing:2px;"></strong><p>On Prolific, confirm that this submission appears as <strong>Awaiting review</strong> or <strong>Approved</strong>. If it still appears as ongoing, finish the submission there using this code. If it shows Returned or Timed out, contact the researcher; do not repeat the questionnaire.</p></div></div>';
       q('#completion-instructions').textContent=internal?'Internal test complete.':'Returning you to Prolific to finish your submission. If this page remains open, click Continue to Prolific below. Do not select Return or cancel your submission after completing the questionnaire.';
