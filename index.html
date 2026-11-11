@@ -396,9 +396,9 @@
 (function() {
   'use strict';
 
-  const SURVEY_BUILD='v5-20261106-speed-14';
+  const SURVEY_BUILD='v5-20261111-flow-15';
   // Frontend revision: local-test-recovery-20261104 (backend protocol unchanged).
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyATOX8vH3m423Ni8BZKkNiSA5KeZIV2Jsm7Fo7aJc-NduBwStUkyLnD2dXN53YzLlP/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwMi7KJzhxstUTCaqOGFYS9cDkgoWeu25swNsMo53hobOOs1gHuEVkrT0K_MksrjB3Z/exec';
   const BATCH_SIZE = 5;
   const QC_AFTER_PAIR_INDEX = BATCH_SIZE - 1; // after all five main image pairs
   const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
@@ -1650,7 +1650,7 @@ function runSubmissionController(config) {
   var payload=config.payload,m=payload.meta,worker=payload.demographics.id;
   function clockNow(){return window.performance&&typeof window.performance.now==='function'?window.performance.now():Date.now();}
   var stopped=false,statusBusy=false,frameReady=false,pollTimer=null,requestTimer=null,watchdog=null;
-  var activeScript=null,frame=null,lastPost=0,lastProgress=clockNow(),failures=0,callbackName='',writerUntil=0,verifiedPending=null,directReceiptPending=false,directInFlight=false;
+  var activeScript=null,frame=null,lastPost=0,lastProgress=clockNow(),failures=0,callbackName='',writerUntil=0,verifiedPending=null,directReceiptPending=false,directInFlight=false,lastStatusProbe=0,lastPrimaryResult=-Infinity;
   var bytes=new Uint32Array(4);window.crypto.getRandomValues(bytes);
   var nonce=Array.prototype.map.call(bytes,function(v){return ('00000000'+v.toString(16)).slice(-8);}).join('-');
   var stats={startedAt:Date.now(),posts:0,directPosts:0,statusRequests:0,rpcReports:0,rpcHistory:[],firstPageReadyAt:null,jsonVerifiedAt:null,completedAt:null,lastCode:''};
@@ -1705,7 +1705,7 @@ function runSubmissionController(config) {
        d.batch_id!==m.batchId||d.submission_id!==m.submissionId||!permittedOrigin(event.origin))return;
     frameReady=true;if(d.stage!=='rpc-start')lastProgress=clockNow();
     if(!stats.firstPageReadyAt)stats.firstPageReadyAt=Date.now();
-    if(d.stage==='result'){stats.rpcReports++;stats.rpcHistory.push({elapsed_ms:Date.now()-stats.startedAt,code:d.result&&(d.result.code||d.result.status)||'EMPTY',server:d.result&&d.result.diagnostic_server||null});if(stats.rpcHistory.length>20)stats.rpcHistory.shift();accept(d.result);}else emit('connected',d.result);
+    if(d.stage==='result'){lastPrimaryResult=clockNow();stats.rpcReports++;stats.rpcHistory.push({elapsed_ms:Date.now()-stats.startedAt,code:d.result&&(d.result.code||d.result.status)||'EMPTY',server:d.result&&d.result.diagnostic_server||null});if(stats.rpcHistory.length>20)stats.rpcHistory.shift();accept(d.result);}else emit('connected',d.result);
   }
   function post() {
     if(stopped)return;
@@ -1740,15 +1740,20 @@ function runSubmissionController(config) {
     emit('saving');
   }
   function schedule(delay) {
-    if(!stopped)pollTimer=setTimeout(poll,delay);
+    clearTimeout(pollTimer);if(!stopped)pollTimer=setTimeout(poll,delay);
   }
   function poll() {
     if(stopped||statusBusy||verifiedPending)return;
     // The live iframe is the normal request channel. A separate status request
     // is only a recovery probe, never a second continuous polling loop.
     var quiet=clockNow()-lastProgress;
-    if(!directReceiptPending&&frameReady&&quiet<30000){schedule(30000-quiet+Math.random()*3000);return;}
-    statusBusy=true;stats.statusRequests++;var settled=false;
+    // A no-cors POST still needs an independent receipt. Only an actual
+    // primary result establishes channel health; sending a POST does not.
+    var primaryResponsive=frameReady&&clockNow()-lastPrimaryResult<30000;
+    var remaining=directReceiptPending?(primaryResponsive?15000-(clockNow()-lastStatusProbe):0):
+      (frameReady?30000-quiet:0);
+    if(remaining>0){schedule(remaining+Math.random()*1000);return;}
+    lastStatusProbe=clockNow();statusBusy=true;stats.statusRequests++;var settled=false;
     callbackName='receipt_'+nonce.replace(/-/g,'_')+'_'+stats.statusRequests;
     function finish(r) {
       if(settled||stopped)return;settled=true;cleanupRequest();
@@ -1758,7 +1763,9 @@ function runSubmissionController(config) {
       // JSON creation starts inside the live iframe, after its ready handshake.
       var canResume=r&&(r.next_action==='post'||r.next_action==='resume');
       var age=clockNow()-lastPost;
-      if(canResume&&age>=15000)resend();
+      // Responsive busy/pending replies are not a lost transport. Do not add
+      // another writer while that channel is still returning server results.
+      if(canResume&&age>=15000&&(!frameReady||clockNow()-lastPrimaryResult>=30000))resend();
       schedule(Math.min(8000,3000*Math.pow(1.5,Math.min(failures,3)))+Math.random()*1000);
     }
     window[callbackName]=finish;
