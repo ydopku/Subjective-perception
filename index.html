@@ -383,8 +383,8 @@
 <div id="submit-overlay">
   <div class="card">
     <div style="display:flex;align-items:center;justify-content:center;">
-      <div class="title" style="font-weight:700;font-size:18px;margin-bottom:8px;">Submitting…</div>
-      <div class="spinner" style="margin-left:12px;width:20px;height:20px;border:3px solid rgba(37,99,235,0.2);border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite;"></div>
+      <div id="submit-overlay-title" class="title" style="font-weight:700;font-size:18px;margin-bottom:8px;">Submitting…</div>
+      <div id="submit-overlay-spinner" class="spinner" style="margin-left:12px;width:20px;height:20px;border:3px solid rgba(37,99,235,0.2);border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite;"></div>
     </div>
     <div class="message" id="submit-overlay-message" role="status" aria-live="polite" style="margin-bottom:16px;font-weight:700;font-size:21px;color:#1e3a8a;">Please wait...</div>
     <div class="status-small" id="submit-overlay-status" style="font-size:16px;color:#334155;line-height:1.65;white-space:pre-line;"></div>
@@ -396,9 +396,9 @@
 (function() {
   'use strict';
 
-  const SURVEY_BUILD='v5-20261111-flow-15';
+  const SURVEY_BUILD='v5-20261112-fifo-16';
   // Frontend revision: local-test-recovery-20261104 (backend protocol unchanged).
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwMi7KJzhxstUTCaqOGFYS9cDkgoWeu25swNsMo53hobOOs1gHuEVkrT0K_MksrjB3Z/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw6naSwKMUnzvcdd9C1Ti-wF_rkvTfobq0f4ZR74W32AlMtddQZQXpkyJDzUzbvcR_p/exec';
   const BATCH_SIZE = 5;
   const QC_AFTER_PAIR_INDEX = BATCH_SIZE - 1; // after all five main image pairs
   const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
@@ -803,7 +803,7 @@
       window[cbName] = function() {};
     }
 
-    function retryOrFail(reason, serverDelay) {
+    function retryOrFail(reason, serverDelay, queue) {
       if (settled) return;
       settled = true;
       clearTimeout(timeoutTimer);
@@ -812,11 +812,12 @@
         var exponential = Math.min(500 * Math.pow(1.4, Math.min(retryCount,10)), 3000);
         var requested = parseInt(serverDelay, 10);
         var base = Math.max(exponential, Number.isFinite(requested) && requested > 0 ? requested : 0);
-        var delay = Math.min(base, 8000) + randomBetween(300, 1800);
+        var queued=queue&&queue.state==='waiting';
+        var delay=queued?1000:Math.min(base,8000)+randomBetween(300,1800);
         if (url.indexOf('action=assign') >= 0) {
           diag('assign_retry',{code:reason,attempt:retryCount+1});
-          q('#loading-title').textContent = 'Waiting for an available connection';
-          q('#loading-error').textContent = 'The server is busy. Retrying automatically in ' + Math.ceil(delay / 1000) + ' seconds. Please keep this page open.';
+          q('#loading-title').textContent=queued?'Waiting for your turn':'Connecting to the study';
+          q('#loading-error').textContent=queued?('Your place in line is kept. '+(queue.ahead>0?'At the last check, '+queue.ahead+' requests were ahead of yours. ':'Your request is next or is being processed. ')+'Please keep this page open; do not refresh or open another survey tab.'):'Reconnecting automatically. Please keep this page open; you do not need to refresh.';
           q('#loading-error').style.display = 'block';
         }
         setTimeout(function() { jsonp(url, callback, retryCount + 1, options); }, delay);
@@ -827,7 +828,7 @@
     window[cbName] = function(data) {
       if (settled) return;
       if (!options.passBusy && data && (data.status === 'busy' || data.retryable === true)) {
-        retryOrFail(data.code || 'Server busy', data.retry_after_ms);
+        retryOrFail(data.code || 'Server busy', data.retry_after_ms, data.queue);
         return;
       }
       settled = true;
@@ -1653,7 +1654,7 @@ function runSubmissionController(config) {
   var activeScript=null,frame=null,lastPost=0,lastProgress=clockNow(),failures=0,callbackName='',writerUntil=0,verifiedPending=null,directReceiptPending=false,directInFlight=false,lastStatusProbe=0,lastPrimaryResult=-Infinity;
   var bytes=new Uint32Array(4);window.crypto.getRandomValues(bytes);
   var nonce=Array.prototype.map.call(bytes,function(v){return ('00000000'+v.toString(16)).slice(-8);}).join('-');
-  var stats={startedAt:Date.now(),posts:0,directPosts:0,statusRequests:0,rpcReports:0,rpcHistory:[],firstPageReadyAt:null,jsonVerifiedAt:null,completedAt:null,lastCode:''};
+  var stats={startedAt:Date.now(),posts:0,directPosts:0,statusRequests:0,rpcReports:0,rpcHistory:[],queueHistory:[],firstPageReadyAt:null,jsonVerifiedAt:null,completedAt:null,lastCode:''};
   var endpointOrigin=new URL(config.endpoint,window.location.href).origin;
   var parentOrigin=window.location.protocol==='file:'?'null':window.location.origin;
   function diagnostic(name,data){try{if(config.diagnostics)config.diagnostics.event(name,data);}catch(ignore){}}
@@ -1675,6 +1676,7 @@ function runSubmissionController(config) {
       r.batch_id===m.batchId&&r.submissionId===m.submissionId&&!!verifiedCompletionURL(r,{worker:worker,request:m.assignmentRequestId,batch:m.batchId,submission:m.submissionId,group:m.groupId||'G1',study:m.studyId||'',session:m.sessionId||''},config.endpoint);
   }
   function accept(r) {
+    if(r&&r.queue){stats.queueHistory.push(Object.assign({observed_at:Date.now()},r.queue));if(stats.queueHistory.length>256)stats.queueHistory.shift();}
     if(stopped)return;
     if(verified(r)) {
       diagnostic('json_verified_client',Object.assign({},stats,r.diagnostic_server||{}));
@@ -1705,7 +1707,7 @@ function runSubmissionController(config) {
        d.batch_id!==m.batchId||d.submission_id!==m.submissionId||!permittedOrigin(event.origin))return;
     frameReady=true;if(d.stage!=='rpc-start')lastProgress=clockNow();
     if(!stats.firstPageReadyAt)stats.firstPageReadyAt=Date.now();
-    if(d.stage==='result'){lastPrimaryResult=clockNow();stats.rpcReports++;stats.rpcHistory.push({elapsed_ms:Date.now()-stats.startedAt,code:d.result&&(d.result.code||d.result.status)||'EMPTY',server:d.result&&d.result.diagnostic_server||null});if(stats.rpcHistory.length>20)stats.rpcHistory.shift();accept(d.result);}else emit('connected',d.result);
+    if(d.stage==='result'){lastPrimaryResult=clockNow();try{if(config.onTiming&&d.result&&d.result.diagnostic_server&&d.result.diagnostic_server.performance)config.onTiming(d.result.diagnostic_server.performance,d.result.code||d.result.status);}catch(ignoreTiming){}stats.rpcReports++;stats.rpcHistory.push({elapsed_ms:Date.now()-stats.startedAt,code:d.result&&(d.result.code||d.result.status)||'EMPTY',server:d.result&&d.result.diagnostic_server||null});if(stats.rpcHistory.length>20)stats.rpcHistory.shift();accept(d.result);}else emit('connected',d.result);
   }
   function post() {
     if(stopped)return;
@@ -1793,19 +1795,25 @@ function runSubmissionController(config) {
   return {stop:stop,metrics:function(){return Object.assign({},stats);}};
 }
 
-
 var activeSubmissionController=null;
   function submitViaResultPage(payload) {
     if(activeSubmissionController)return;
     if(surveyDiagnostics){surveyDiagnostics.setIdentity({batch:payload.meta.batchId,request:payload.meta.assignmentRequestId,submission:payload.meta.submissionId});surveyDiagnostics.setStage('saving');}
-    var waitStarted=Date.now();
+    var saveQueue=null,payloadReceived=false;
+    q('#submit-overlay-title').textContent='Submitting…';
+    q('#submit-overlay-spinner').style.display='block';
     function renderSaveWait() {
-      q('#submit-overlay-message').textContent=navigator.onLine===false?'Connection interrupted — answers not yet confirmed':Date.now()-waitStarted>=20000?'Still saving — please keep this page open':'Saving your answers — please keep this page open';
-      q('#submit-overlay-status').textContent=navigator.onLine===false?'Reconnect to the internet and keep this tab open. We will retry automatically. Do not refresh, clear site data, or open another survey tab.':'Please do not refresh, close this tab, or open another survey tab. We are retrying automatically; you do not need to submit again.\n\nAvoid selecting Return on Prolific while saving. Once saving is confirmed, we will return you to Prolific automatically.';
+      var offline=navigator.onLine===false,waiting=saveQueue&&saveQueue.state==='waiting';
+      q('#submit-overlay-message').textContent=offline?'Connection interrupted — answers not yet confirmed':waiting?'Waiting for your turn':payloadReceived?'Answers received — checking the saved file':'Connecting to the saving service';
+      var stage=offline?'Reconnect to the internet and keep this tab open. Your answers are kept in this browser.':waiting?('Your place in line is kept. '+(saveQueue.ahead>0?'At the last check, '+saveQueue.ahead+' requests were ahead of yours.':'Your request is next or is being processed.')):payloadReceived?'Your answers have reached the server. We are checking that the response file was saved correctly.':'We will confirm when your answers have been received and saved.';
+      q('#submit-overlay-status').textContent=stage+'\n\nPlease keep this page open. Do not refresh, close this tab, or submit again. The page checks progress automatically.\n\nAvoid selecting Return on Prolific while saving. After saving is confirmed, we will return you to Prolific.';
     }
     var waitTimer=setInterval(renderSaveWait,1000);
     activeSubmissionController=runSubmissionController({endpoint:APPS_SCRIPT_URL,payload:payload,diagnostics:surveyDiagnostics,
       onState:function(stage,result){
+        if(result&&result.queue)saveQueue=result.queue;
+        if(result&&result.payload_received)payloadReceived=true;
+        if(saveQueue&&saveQueue.state==='accepted')payloadReceived=true;
         q('#submit-overlay').classList.add('show');
         renderSaveWait();
       },
@@ -1820,6 +1828,8 @@ var activeSubmissionController=null;
         if(surveyDiagnostics)surveyDiagnostics.setStage('terminal');
         activeSubmissionController=null;
         if(isAnonymousLocalTest()) {showLocalTestOptions('The previous internal submission could not be recovered ('+(result.code||result.status)+'). Its browser answers are kept. You can start a new internal test after checking the old test.');return;}
+        q('#submit-overlay-title').textContent='Submission needs attention';
+        q('#submit-overlay-spinner').style.display='none';
         q('#submit-overlay-message').textContent='Please check your submission';
         q('#submit-overlay-status').textContent=(result.message||result.error||result.code)+' Keep this page open and contact the researcher with your Prolific ID. Do not clear site data or start another response.';
       }
@@ -1976,13 +1986,16 @@ function handoffVerifiedCompletion(receipt,identity,endpoint,onReady,onEvent) {
     var saved = loadSavedProgress();
     var batchId = assignedBatch ? assignedBatch.batch_id : (saved ? saved.batch_id : '');
     var request=assignedBatch?assignedBatch.assignment_request_id:(saved?saved.request_id:'');
+    q('#main-container').innerHTML='<div style="text-align:center;padding:60px 20px;"><h2>Participation ended</h2><p>You have chosen not to participate. You may close this window and return the study on Prolific.</p><p id="release-status"></p></div>';
     if(batchId&&request){
+      q('#release-status').textContent='We are releasing your reserved place in the background. You do not need to wait.';
       var params={action:'abort',worker_id:getProlificPid(),batch_id:batchId,request_id:request,
         group_id:getQueryParam('group_id')||'G1',study_id:getQueryParam('STUDY_ID')||'',session_id:getQueryParam('SESSION_ID')||''};
-      jsonp(APPS_SCRIPT_URL+'?'+new URLSearchParams(params),function(){},0,{passBusy:true});
-    }
-    clearClientState();
-    q('#main-container').innerHTML = '<div style="text-align:center;padding:60px 20px;"><h2 style="color:#ef4444;font-size:28px;">Session Terminated</h2><p style="font-size:18px;color:#475569;">You have chosen not to participate. You may now close this window or return the submission on Prolific.</p></div>';
+      jsonp(APPS_SCRIPT_URL+'?'+new URLSearchParams(params),function(result){
+        if(result&&result.status==='aborted'){clearClientState();q('#release-status').textContent='Your reserved place has been released.';}
+        else q('#release-status').textContent='Your earlier response state has been retained for review.';
+      });
+    }else clearClientState();
   });
 
   q('#demographics-next').addEventListener('click', function() {
