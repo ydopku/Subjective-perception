@@ -396,9 +396,9 @@
 (function() {
   'use strict';
 
-  const SURVEY_BUILD='v5-20261112-fifo-16';
+  const SURVEY_BUILD='v5-20261117-worker-17';
   // Frontend revision: local-test-recovery-20261104 (backend protocol unchanged).
-  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw6naSwKMUnzvcdd9C1Ti-wF_rkvTfobq0f4ZR74W32AlMtddQZQXpkyJDzUzbvcR_p/exec';
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxNWHBSgl4Hs8jrQB8r7atRg7sSQXvJVPSKp3zbS5bX3cZCnHcj6Asd7YEXRUKIyo4u/exec';
   const BATCH_SIZE = 5;
   const QC_AFTER_PAIR_INDEX = BATCH_SIZE - 1; // after all five main image pairs
   const ATTRIBUTES = ['Safe', 'Lively', 'Beautiful', 'Wealthy', 'Boring', 'Depressing'];
@@ -814,12 +814,6 @@
         var base = Math.max(exponential, Number.isFinite(requested) && requested > 0 ? requested : 0);
         var queued=queue&&queue.state==='waiting';
         var delay=queued?1000:Math.min(base,8000)+randomBetween(300,1800);
-        if (url.indexOf('action=assign') >= 0) {
-          diag('assign_retry',{code:reason,attempt:retryCount+1});
-          q('#loading-title').textContent=queued?'Waiting for your turn':'Connecting to the study';
-          q('#loading-error').textContent=queued?('Your place in line is kept. '+(queue.ahead>0?'At the last check, '+queue.ahead+' requests were ahead of yours. ':'Your request is next or is being processed. ')+'Please keep this page open; do not refresh or open another survey tab.'):'Reconnecting automatically. Please keep this page open; you do not need to refresh.';
-          q('#loading-error').style.display = 'block';
-        }
         setTimeout(function() { jsonp(url, callback, retryCount + 1, options); }, delay);
       }
     }
@@ -869,9 +863,9 @@
     var requestId = getOrCreateAssignmentRequestId();
     var expected={worker:workerId,request:requestId,group:getQueryParam('group_id')||'G1',study:getQueryParam('STUDY_ID')||'',session:getQueryParam('SESSION_ID')||''};
     diag('assign_start',{request_identity:expected});
-    var url = APPS_SCRIPT_URL + '?action=assign&worker_id=' + encodeURIComponent(workerId) + '&request_id=' + encodeURIComponent(requestId) + '&resume=' + (assignmentResumeHint ? '1' : '0') + '&frontend_build='+encodeURIComponent(SURVEY_BUILD)+'&group_id=' + encodeURIComponent(getQueryParam('group_id') || 'G1') + '&study_id=' + encodeURIComponent(getQueryParam('STUDY_ID') || '') + '&session_id=' + encodeURIComponent(getQueryParam('SESSION_ID') || '');
 
-    jsonp(url, function(data) {
+
+    function receivedAssignment(data) {
       assignmentRequestInFlight = false;
       var returned={worker:data&&data.worker_id,request:data&&data.assignment_request_id,batch:data&&data.batch_id,submission:data&&data.submission_id,group:data&&data.group_id,study:data&&data.study_id,session:data&&data.session_id};
       diag('assign_result',Object.assign({},data&&data.diagnostic_server||{},{code:data&&data.code||data&&data.status||'EMPTY_REPLY',request_identity:expected,response_identity:returned}));
@@ -926,7 +920,10 @@
         return;
       }
       showLoadingFailure('Server Error' + (data && data.code ? ' [' + data.code + ']' : '') + ': ' + ((data && (data.error || data.message)) || 'No five-pair assignment is available.'));
-    });
+    }
+    runQueuedRequest({endpoint:APPS_SCRIPT_URL,kind:'assign',input:{worker_id:workerId,request_id:requestId,group_id:expected.group,study_id:expected.study,session_id:expected.session,frontend_build:SURVEY_BUILD},
+      validate:function(r){return r.status==='finished'||assignmentMatches(r,expected);},onComplete:receivedAssignment,onTerminal:receivedAssignment,
+      onState:function(stage,r){if(r.queue||stage==='confirming'){q('#loading-error').textContent='Your request has been received. We are preparing your questionnaire. Please keep this page open; do not refresh or open another survey tab.';q('#loading-error').style.display='block';}}});
   }
 
   function getDriveImageCandidates(fileId) {
@@ -1647,152 +1644,62 @@ function createSurveyDiagnostics(config) {
 var surveyDiagnostics=null;
 function diag(name,data){try{if(surveyDiagnostics)surveyDiagnostics.event(name,data);}catch(ignore){}}
 // Shared verbatim by the formal questionnaire and its internal test worker.
+function runQueuedRequest(config) {
+  // One immutable request, one read-only result channel. A wake contains identity
+  // only and can never create a second response or change the original answers.
+  var input=JSON.parse(JSON.stringify(config.input)),m=input.meta||{},d=input.demographics||{};
+  var identity={worker_id:input.worker_id||d.id||'',request_id:input.request_id||m.assignmentRequestId||'',batch_id:input.batch_id||m.batchId||'',submission_id:input.submission_id||m.submissionId||'',group_id:input.group_id||m.groupId||'G1',study_id:input.study_id||m.studyId||'',session_id:input.session_id||m.sessionId||''};
+  var stopped=false,pollTimer,requestTimer,script,callback='',inQuery=false,lastSend=-Infinity,lastWake=-Infinity,accepted=false;
+  var testFaults=config.testFaults||{},requestDropped=false,statusDropped=false;
+  var stats={startedAt:Date.now(),posts:0,directPosts:0,statusRequests:0,rpcReports:0,rpcHistory:[],queueHistory:[],injectedRequestDrops:0,injectedStatusDrops:0,lastCode:''};
+  function emit(stage,r){stats.lastCode=r&&r.code||stage;if(config.diagnostics)config.diagnostics.event('save_result',{code:stats.lastCode,queue:r&&r.queue});if(config.onState)config.onState(stage,r||{},Object.assign({},stats));}
+  function cleanQuery(){clearTimeout(requestTimer);if(script)script.remove();script=null;inQuery=false;if(callback){var old=callback;window[old]=function(){};setTimeout(function(){delete window[old];},60000);callback='';}}
+  function stop(){stopped=true;clearTimeout(pollTimer);cleanQuery();window.removeEventListener('online',resume);document.removeEventListener('visibilitychange',resume);}
+  function send(wake){
+    if(stopped)return;var now=Date.now();if(wake){if(now-lastWake<15000)return;lastWake=now;}else{if(now-lastSend<15000)return;lastSend=now;stats.posts++;stats.directPosts++;}
+    if(!wake&&testFaults.dropFirstRequest&&!requestDropped){requestDropped=true;stats.injectedRequestDrops++;emit('reconnecting',{code:'INJECTED_REQUEST_DROP'});return;}
+    var body=new URLSearchParams({transport:wake?'queue_wake':'queue_request',kind:config.kind,payload:JSON.stringify(wake?identity:input)});
+    // Opaque fetch completion is never interpreted as server acceptance.
+    try{window.fetch(config.endpoint,{method:'POST',mode:'no-cors',credentials:'omit',body:body}).catch(function(){if(!stopped)emit('reconnecting',{code:'CONNECTION_RETRY'});});}
+    catch(error){emit('reconnecting',{code:'CONNECTION_RETRY'});}
+  }
+  function schedule(ms){clearTimeout(pollTimer);if(!stopped)pollTimer=setTimeout(query,ms);}
+  function accept(r){
+    if(stopped)return;
+    stats.rpcReports++;if(r.queue){stats.queueHistory.push(Object.assign({observed_at:Date.now()},r.queue));if(stats.queueHistory.length>100)stats.queueHistory.shift();}
+    if(r.performance&&config.onTiming)config.onTiming(r.performance,r.code||r.status);
+    if(r.diagnostic_server&&r.diagnostic_server.performance&&config.onTiming)config.onTiming(r.diagnostic_server.performance,r.code||r.status);
+    if(r.status==='ok'||r.status==='finished'){
+      if(config.validate&&!config.validate(r)){emit('confirming',{code:'RESULT_IDENTITY_MISMATCH'});schedule(3000);return;}
+      if(config.kind==='submit'&&config.diagnostics)config.diagnostics.event('json_verified_client',{code:r.code});stats.jsonVerifiedAt=config.kind==='submit'?Date.now():null;stats.completedAt=Date.now();
+      try{if(config.onComplete&&config.onComplete(r,Object.assign({},stats))===false)throw Error('Completion not ready');stop();}
+      catch(error){emit('confirming',{code:'COMPLETION_RECONNECTING'});schedule(2000);}return;
+    }
+    if(r.status==='qc_fail'||(r.status==='error'&&!r.retryable)){stop();if(config.onTerminal)config.onTerminal(r,Object.assign({},stats));return;}
+    if(r.request_received||r.payload_received||r.queue)accepted=true;
+    emit(accepted?'confirming':'connecting',r);
+    if(r.code==='REQUEST_NOT_RECEIVED'){accepted=false;send(false);}
+    else if(r.needs_worker)send(true);
+    schedule(2500);
+  }
+  function query(){
+    if(stopped||inQuery)return;inQuery=true;stats.statusRequests++;
+    callback='queue_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2);var settled=false;
+    function finish(r){if(settled||stopped)return;settled=true;cleanQuery();try{accept(r);}catch(error){emit('reconnecting',{code:'STATUS_RETRY'});schedule(3000);}}
+    window[callback]=finish;if(testFaults.dropFirstStatus&&!statusDropped){statusDropped=true;stats.injectedStatusDrops++;setTimeout(function(){finish({status:'pending',code:'INJECTED_STATUS_DROP'});},50);return;}script=document.createElement('script');
+    script.src=config.endpoint+'?'+new URLSearchParams(Object.assign({action:'queue_status',kind:config.kind,callback:callback},identity));
+    script.onerror=function(){finish({status:'pending',code:'STATUS_RETRY'});};
+    requestTimer=setTimeout(function(){finish({status:'pending',code:'STATUS_RETRY'});},15000);document.body.appendChild(script);
+  }
+  function resume(){if(!document.hidden&&!stopped){if(!accepted)send(false);query();}}
+  window.addEventListener('online',resume);document.addEventListener('visibilitychange',resume);
+  send(false);schedule(5000);
+  return {stop:stop,metrics:function(){return Object.assign({},stats);}};
+}
 function runSubmissionController(config) {
   var payload=config.payload,m=payload.meta,worker=payload.demographics.id;
-  function clockNow(){return window.performance&&typeof window.performance.now==='function'?window.performance.now():Date.now();}
-  var stopped=false,statusBusy=false,frameReady=false,pollTimer=null,requestTimer=null,watchdog=null;
-  var activeScript=null,frame=null,lastPost=0,lastProgress=clockNow(),failures=0,callbackName='',writerUntil=0,verifiedPending=null,directReceiptPending=false,directInFlight=false,lastStatusProbe=0,lastPrimaryResult=-Infinity;
-  var bytes=new Uint32Array(4);window.crypto.getRandomValues(bytes);
-  var nonce=Array.prototype.map.call(bytes,function(v){return ('00000000'+v.toString(16)).slice(-8);}).join('-');
-  var stats={startedAt:Date.now(),posts:0,directPosts:0,statusRequests:0,rpcReports:0,rpcHistory:[],queueHistory:[],firstPageReadyAt:null,jsonVerifiedAt:null,completedAt:null,lastCode:''};
-  var endpointOrigin=new URL(config.endpoint,window.location.href).origin;
-  var parentOrigin=window.location.protocol==='file:'?'null':window.location.origin;
-  function diagnostic(name,data){try{if(config.diagnostics)config.diagnostics.event(name,data);}catch(ignore){}}
-  function emit(stage,result) {
-    stats.lastCode=(result&&result.code)||stage;
-    diagnostic(stage==='saving'?'save_channel':'save_result',Object.assign({},stats,(result&&result.diagnostic_server)||{},{code:stats.lastCode}));
-    try{if(config.onState)config.onState(stage,result||{},Object.assign({},stats));}catch(uiError){stats.lastUIError=String(uiError.message||uiError);}
-  }
-  function cleanupRequest() {
-    clearTimeout(requestTimer);if(activeScript)activeScript.remove();activeScript=null;
-    if(callbackName)window[callbackName]=function(){};statusBusy=false;
-  }
-  function stop() {
-    if(stopped)return;stopped=true;clearTimeout(pollTimer);clearInterval(watchdog);cleanupRequest();
-    window.removeEventListener('message',message);window.removeEventListener('online',reconnect);window.removeEventListener('pageshow',reconnect);window.document.removeEventListener('visibilitychange',visible);if(frame)frame.remove();
-  }
-  function verified(r) {
-    return r&&r.status==='ok'&&r.json_saved===true&&r.receipt_verified===true&&
-      r.batch_id===m.batchId&&r.submissionId===m.submissionId&&!!verifiedCompletionURL(r,{worker:worker,request:m.assignmentRequestId,batch:m.batchId,submission:m.submissionId,group:m.groupId||'G1',study:m.studyId||'',session:m.sessionId||''},config.endpoint);
-  }
-  function accept(r) {
-    if(r&&r.queue){stats.queueHistory.push(Object.assign({observed_at:Date.now()},r.queue));if(stats.queueHistory.length>256)stats.queueHistory.shift();}
-    if(stopped)return;
-    if(verified(r)) {
-      diagnostic('json_verified_client',Object.assign({},stats,r.diagnostic_server||{}));
-      verifiedPending=r;cleanupRequest();clearTimeout(pollTimer);
-      stats.jsonVerifiedAt=stats.jsonVerifiedAt||Date.now();stats.completedAt=Date.now();
-      try{
-        if(config.onComplete&&config.onComplete(r,Object.assign({},stats))===false)throw new Error('Completion handler not ready');
-        stop();
-      }catch(completionError){
-        emit('confirming',{code:'COMPLETION_RECONNECTING',retryable:true});
-        clearTimeout(pollTimer);pollTimer=setTimeout(function(){accept(r);},1500);
-      }
-      return;
-    }
-    if(r&&(r.status==='qc_fail'||(r.status==='error'&&!r.retryable))) {
-      diagnostic('submit_terminal',Object.assign({},stats,{code:r.code||r.status}));
-      var errorStats=Object.assign({},stats);stop();
-      if(config.onTerminal)config.onTerminal(r,errorStats);return;
-    }
-    writerUntil=clockNow()+Math.min(420000,Math.max(0,Number(r&&r.writer_remaining_ms)||0));emit('confirming',r);
-  }
-  function permittedOrigin(origin) {
-    return origin===endpointOrigin||/^https:\/\/([a-z0-9-]+\.)?googleusercontent\.com$/.test(origin);
-  }
-  function message(event) {
-    var d=event.data;
-    if(stopped||!d||d.type!=='survey-save'||d.nonce!==nonce||
-       d.batch_id!==m.batchId||d.submission_id!==m.submissionId||!permittedOrigin(event.origin))return;
-    frameReady=true;if(d.stage!=='rpc-start')lastProgress=clockNow();
-    if(!stats.firstPageReadyAt)stats.firstPageReadyAt=Date.now();
-    if(d.stage==='result'){lastPrimaryResult=clockNow();try{if(config.onTiming&&d.result&&d.result.diagnostic_server&&d.result.diagnostic_server.performance)config.onTiming(d.result.diagnostic_server.performance,d.result.code||d.result.status);}catch(ignoreTiming){}stats.rpcReports++;stats.rpcHistory.push({elapsed_ms:Date.now()-stats.startedAt,code:d.result&&(d.result.code||d.result.status)||'EMPTY',server:d.result&&d.result.diagnostic_server||null});if(stats.rpcHistory.length>20)stats.rpcHistory.shift();accept(d.result);}else emit('connected',d.result);
-  }
-  function post() {
-    if(stopped)return;
-    lastPost=clockNow();lastProgress=lastPost;frameReady=false;stats.posts++;
-    if(frame)frame.remove();
-    frame=document.createElement('iframe');frame.name='save_'+nonce+'_'+stats.posts;
-    frame.title='Saving survey response';frame.style.display='none';
-    frame.setAttribute('sandbox','allow-scripts allow-forms allow-same-origin');
-    (config.host||document.body).appendChild(frame);
-    var form=document.createElement('form');form.method='POST';form.action=config.endpoint;form.target=frame.name;form.style.display='none';
-    [['transport','embedded_result'],['payload',JSON.stringify(payload)],['bridge_nonce',nonce],['bridge_origin',parentOrigin]].forEach(function(item){
-      var field=document.createElement('textarea');field.name=item[0];field.value=item[1];form.appendChild(field);
-    });
-    document.body.appendChild(form);
-    try{HTMLFormElement.prototype.submit.call(form);}catch(error){emit('reconnecting',{code:'POST_RECONNECTING'});}
-    form.remove();emit('saving');
-  }
-  function resend() {
-    // If HTML Service's embedded RPC cannot start/return, the original frozen
-    // payload can still reach doPost without reading a cross-origin response.
-    // Only the independent verified receipt can unlock completion.
-    if(typeof window.fetch!=='function'||(!frameReady&&stats.posts<2)){post();return;}
-    if(directInFlight)return;
-    directInFlight=true;directReceiptPending=true;lastPost=clockNow();lastProgress=lastPost;
-    stats.posts++;stats.directPosts++;
-    var body=new URLSearchParams({transport:'durable_post',payload:JSON.stringify(payload)});
-    var aborter=typeof window.AbortController==='function'?new window.AbortController():null;
-    var directTimer=setTimeout(function(){if(aborter)aborter.abort();directInFlight=false;},30000);
-    window.fetch(config.endpoint,{method:'POST',mode:'no-cors',credentials:'omit',body:body,signal:aborter?aborter.signal:undefined})
-      .catch(function(){emit('reconnecting',{code:'POST_RECONNECTING'});})
-      .finally(function(){clearTimeout(directTimer);directInFlight=false;});
-    emit('saving');
-  }
-  function schedule(delay) {
-    clearTimeout(pollTimer);if(!stopped)pollTimer=setTimeout(poll,delay);
-  }
-  function poll() {
-    if(stopped||statusBusy||verifiedPending)return;
-    // The live iframe is the normal request channel. A separate status request
-    // is only a recovery probe, never a second continuous polling loop.
-    var quiet=clockNow()-lastProgress;
-    // A no-cors POST still needs an independent receipt. Only an actual
-    // primary result establishes channel health; sending a POST does not.
-    var primaryResponsive=frameReady&&clockNow()-lastPrimaryResult<30000;
-    var remaining=directReceiptPending?(primaryResponsive?15000-(clockNow()-lastStatusProbe):0):
-      (frameReady?30000-quiet:0);
-    if(remaining>0){schedule(remaining+Math.random()*1000);return;}
-    lastStatusProbe=clockNow();statusBusy=true;stats.statusRequests++;var settled=false;
-    callbackName='receipt_'+nonce.replace(/-/g,'_')+'_'+stats.statusRequests;
-    function finish(r) {
-      if(settled||stopped)return;settled=true;cleanupRequest();
-      if(r&&r.code!=='STATUS_CONNECTION_PENDING')failures=0;else failures++;
-      accept(r);if(stopped||verifiedPending)return;
-      // A failed page load is cheap to retry: embedded_result only renders HTML.
-      // JSON creation starts inside the live iframe, after its ready handshake.
-      var canResume=r&&(r.next_action==='post'||r.next_action==='resume');
-      var age=clockNow()-lastPost;
-      // Responsive busy/pending replies are not a lost transport. Do not add
-      // another writer while that channel is still returning server results.
-      if(canResume&&age>=15000&&(!frameReady||clockNow()-lastPrimaryResult>=30000))resend();
-      schedule(Math.min(8000,3000*Math.pow(1.5,Math.min(failures,3)))+Math.random()*1000);
-    }
-    window[callbackName]=finish;
-    activeScript=document.createElement('script');
-    activeScript.onerror=function(){finish({status:'busy',code:'STATUS_CONNECTION_PENDING',retryable:true});};
-    var params={action:'submission_status',worker_id:worker,batch_id:m.batchId,request_id:m.assignmentRequestId,
-      submission_id:m.submissionId,group_id:m.groupId||'G1',study_id:m.studyId||'',session_id:m.sessionId||'',accept_verified_receipt:'1',callback:callbackName};
-    activeScript.src=config.endpoint+'?'+Object.keys(params).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);}).join('&');
-    requestTimer=setTimeout(function(){finish({status:'busy',code:'STATUS_CONNECTION_PENDING',retryable:true});},12000);
-    document.body.appendChild(activeScript);
-  }
-  function reconnect(){if(!stopped&&!statusBusy){clearTimeout(pollTimer);poll();}}
-  function visible(){if(!window.document.hidden)reconnect();}
-  // Status checks must not be the only way to restart a dropped POST. Both
-  // channels can fail together. Fixed-ID storage makes the original payload
-  // safe to resend; the server still arbitrates each writer reservation.
-  watchdog=setInterval(function(){
-    if(stopped||verifiedPending||statusBusy||(window.navigator&&window.navigator.onLine===false))return;
-    var now=clockNow(),quiet=now-lastProgress,limit=frameReady?45000:20000;
-    if(now-lastPost>=limit&&quiet>=limit&&now>=writerUntil)post();
-  },2000);
-  window.addEventListener('online',reconnect);window.addEventListener('pageshow',reconnect);
-  window.document.addEventListener('visibilitychange',visible);
-  window.addEventListener('message',message);post();schedule(20000+Math.random()*3000);
-  return {stop:stop,metrics:function(){return Object.assign({},stats);}};
+  return runQueuedRequest({endpoint:config.endpoint,kind:'submit',input:payload,testFaults:config.testFaults,diagnostics:config.diagnostics,onState:config.onState,onTiming:config.onTiming,onTerminal:config.onTerminal,onComplete:config.onComplete,
+    validate:function(r){return r.status==='ok'&&r.json_saved===true&&r.receipt_verified===true&&r.batch_id===m.batchId&&r.submissionId===m.submissionId&&!!verifiedCompletionURL(r,{worker:worker,request:m.assignmentRequestId,batch:m.batchId,submission:m.submissionId,group:m.groupId||'G1',study:m.studyId||'',session:m.sessionId||''},config.endpoint);}});
 }
 
 var activeSubmissionController=null;
